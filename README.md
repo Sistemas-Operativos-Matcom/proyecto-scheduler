@@ -4,7 +4,7 @@ Implementa las diferentes estrategias de schedulers estudiados en clase y
 evalúa las ventajas y desventajas de cada una según las métricas vistas en
 conferencia.
 
-Debes implementar cada estrategia en el archivo `src/schedulers.c`. En el mismo
+Debes implementar cada estrategia en el archivo `src/scheduler.c`. En el mismo
 se encuentra una implementación de un scheduler tipo FIFO. Además podrás
 encontrar las instrucciones para la creación de otras estrategias.
 
