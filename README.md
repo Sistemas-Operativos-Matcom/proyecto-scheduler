@@ -4,9 +4,53 @@ Implementa las diferentes estrategias de schedulers estudiados en clase y
 evalúa las ventajas y desventajas de cada una según las métricas vistas en
 conferencia.
 
-Debes implementar cada estrategia en el archivo `src/scheduler.c`. En el mismo
-se encuentra una implementación de un scheduler tipo FIFO. Además podrás
-encontrar las instrucciones para la creación de otras estrategias.
+Para implementar una estrategia de scheduling debes crear en el archivo que se
+encuentra en `src/scheduler.c` una función de la siguiente forma:
+
+```c
+int scheduler_name(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid) {
+    // ...
+}
+```
+
+Los parámetros de esta función representan:
+
+- `procs_info`: Array que contiene la información de cada proceso activo
+- `procs_count`: Cantidad de procesos activos
+- `curr_time`: Tiempo actual de la simulación
+- `curr_pid`: PID del proceso que se está ejecutando en el CPU
+
+Esta función se ejecuta en cada timer-interrupt donde existan procesos activos
+(se asegura que `procs_count > 0`) y determina el PID del proceso a ejecutar.
+El valor de retorno es un entero que indica el PID de dicho proceso. Pueden
+ocurrir tres casos:
+
+- **La función devuelve -1:** No se ejecuta ningún proceso.
+- **La función devuelve un PID igual al curr_pid:** Se mantiene en ejecución el
+  proceso actual.
+- **La función devuelve un PID diferente al curr_pid:** Simula un cambio de
+  contexto y se ejecuta el proceso indicado.
+
+Luego de implementar dicha función, debes registrarla en la función
+`get_scheduler` del mismo archivo:
+
+```c
+schedule_action_t get_scheduler(const char *name) {
+  // ...
+
+  if (strcmp(name, "my_scheduler") == 0) return *scheduler_name;
+
+  // ...
+}
+```
+
+> El nombre del scheduler (en este caso `my_scheduler`) es el que se usará en
+> la ejecución del proyecto para indicar cuál estrategia usar entre todas las
+> implementadas.
+
+El proyecto tiene una implementación de ejemplo de un scheduler de tipo FIFO.
+Para implementar varias estrategias crea una función por cada una.
 
 ## Compilar y ejecutar el proyecto
 
