@@ -33,6 +33,22 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  const  int timeskip = 5;
+  static int interrupts_elapsed = 0;
+  static int curr_pos = 0;
+    
+  if (timeskip > ++interrupts_elapsed) {
+    curr_pos = curr_pos % procs_count;
+  }
+  else {
+    interrupts_elapsed = 0;
+    curr_pos = (curr_pos + 1) % procs_count;
+  }
+  
+  return procs_info[curr_pos].pid;
+}
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -60,11 +76,7 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  if (strcmp(name, "rr")   == 0) return *rr_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
