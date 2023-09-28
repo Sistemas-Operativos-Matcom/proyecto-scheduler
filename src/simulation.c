@@ -229,11 +229,7 @@ void start_new_simulation(process_t *processes, int process_count,
 
     // Actualizar un proceso que esté realizando IO de forma aleatoria.
     if (on_io_count) {
-      do {
-        random_idx = ms_time() % on_io_count;
-      } while (g_sim->procs_exec_info[on_io[random_idx]].pid !=
-               g_sim->curr_proc_pid);
-
+      random_idx = ms_time() % on_io_count;
       if (update_process(&g_sim->procs_exec_info[on_io[random_idx]],
                          next_sim_time) == ENDED) {
         ended_processes++;
