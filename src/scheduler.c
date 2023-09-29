@@ -64,21 +64,6 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 //   return -1;
 // }
 
-// int compare_duration_to_pid(const void *a, const void *b) {
-//   duration_to_pid_t n1 = *(duration_to_pid_t*) a;
-//   duration_to_pid_t n2 = *(duration_to_pid_t*) b;
-
-//   if (n1.duration > n2.duration) {
-//     return 1;
-//   }
-
-//   if (n1.duration < n2.duration) {
-//     return -1;
-//   }
-
-//   return 0;
-// }
-
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                   int curr_pid) {
   if (procs_count == 0) return -1;
@@ -98,25 +83,6 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
 
   return less_duration_pid;
-
-  // Old
-  // duration_to_pid_t procs_duration[procs_count];
-  // for (int i = 0; i < procs_count; i++) {
-  //   duration_to_pid_t dtp = {
-  //     .duration = process_total_time(procs_info[i].pid), 
-  //     .pid = procs_info[i].pid
-  //   };
-
-  //   procs_duration[i] = dtp;
-  // }
-
-  // qsort(procs_duration, procs_count, sizeof(duration_to_pid_t), compare_duration_to_pid);
-
-  // if (curr_pid == procs_duration[0].pid) {
-  //   return curr_pid;
-  // }
-  
-  // return procs_duration[0].pid;
 }
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
