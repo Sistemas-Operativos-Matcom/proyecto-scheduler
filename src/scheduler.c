@@ -33,6 +33,21 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+int sfj_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  int pid = procs_info[0].pid, min_time = process_total_time(procs_info[0].pid), tmp;
+  
+  for (int i = 0; i < procs_count; i++) {
+    if (curr_pid == procs_info[i].pid) return curr_pid;
+    
+    tmp = process_total_time(procs_info[i].pid);
+    if (tmp < min_time) {
+      tmp = min_time;
+      pid = procs_info[i].pid;
+    }
+  }
+  return pid;
+}
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
   const  int timeskip = 5;
   static int interrupts_elapsed = 0;
@@ -77,6 +92,7 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "rr")   == 0) return *rr_scheduler;
+  if (strcmp(name, "sfj")   == 0) return *sfj_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
