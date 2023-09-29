@@ -39,7 +39,6 @@ typedef int (*schedule_action_t)(proc_info_t *, int, int, int);
 int process_total_time(int pid);
 
 // Comienza una simulación
-void start_new_simulation(process_t *processes, int processes_count,
-                          schedule_action_t scheduler_action, int config);
+void start_new_simulation(process_t *processes, int processes_count,schedule_action_t scheduler_action, int config);
 
 #endif

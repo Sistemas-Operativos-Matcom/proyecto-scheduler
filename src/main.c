@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
   printf("Scheduler: %s\n", scheduler_name);
   printf("--------------------------------------------\n\n");
 
-  start_new_simulation(processes, process_count, get_scheduler(scheduler_name),
-                       config);
+  start_new_simulation(processes, process_count, get_scheduler(scheduler_name), config);
   return 0;
 }
