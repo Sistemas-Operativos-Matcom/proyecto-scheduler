@@ -42,9 +42,8 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int pid = procs_info[0].pid;      // PID del proceso
   int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
                                     // realizando una opreación IO
-  int exec_time =
-      procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
-                                    // (curr_time - arrival_time)
+  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
+                                                // ejecutado (en CPU o en I/O)
 
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
