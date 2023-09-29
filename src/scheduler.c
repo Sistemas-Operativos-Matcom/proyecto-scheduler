@@ -9,8 +9,6 @@
 #include "process.h"
 #include "simulation.h"
 
-int procs_exec_time[MAX_PROCESS_COUNT];
-
 static int find_proc_info_index_by_pid(proc_info_t *procs_info, int procs_count, int pid) {
   for (int i = 0; i < procs_count; i++) {
     if (procs_info[i].pid == pid) return i;
@@ -88,19 +86,12 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                   int curr_pid) {
   if (procs_count == 0) return -1;
-  // TODO: use timer interrupt definition
-  if (curr_pid != -1) procs_exec_time[curr_pid] += 10;
 
   int less_duration = INT_MAX;
   int less_duration_pid = -1;
 
   for (int i = 0; i < procs_count; i++) {
-    if (procs_exec_time[procs_info[i].pid] == NULL) {
-      procs_exec_time[procs_info[i].pid] = 0;
-    }
-
-    int full_duration = process_total_time(procs_info[i].pid);
-    int remain_duration = full_duration - procs_exec_time[procs_info[i].pid];
+    int remain_duration = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
 
     if (remain_duration < less_duration) {
       less_duration = remain_duration;
@@ -108,8 +99,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
 
-  return less_duration_pid;
-  
+  return less_duration_pid;  
 }
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
