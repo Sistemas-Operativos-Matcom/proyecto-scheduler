@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 ./build.sh || exit 1
 for test_case in $1/*.txt; do
