@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
+#include <limits.h>
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -51,6 +52,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
+  
   // Ordenar los procesos por su tiempo de ejecución restante
   for (int i = 0; i < procs_count - 1; i++) {
     for (int j = i + 1; j < procs_count; j++) {
@@ -68,43 +70,27 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  // Calcular el tiempo de ejecución total de todos los procesos
-  int total_time = 0;
-  for (int i = 0; i < procs_count; i++) {
-    total_time += process_total_time(procs_info[i].pid);
+  static int current_process = 0;
+  static int time_slice = 10; // Time slice of 10 units
+
+  // Check if the current process has finished executing
+  if (procs_info[current_process].executed_time == process_total_time(procs_info[current_process].pid)) {
+    current_process = (current_process + 1) % procs_count; // Move to the next process
+    time_slice = 10; // Reset the time slice
   }
 
-  // Calcular el time slice como el tiempo de ejecución total dividido por el número de procesos
-  int time_slice = total_time / procs_count;
-
-  // Mantener un índice que apunte al proceso actual
-  static int current_index = 0;
-
-  // Obtener el proceso actual
-  proc_info_t current_proc = procs_info[current_index];
-
-  // Verificar si el proceso actual ha terminado
-  if (process_total_time(current_proc.pid) - current_proc.executed_time  == 0) {
-    // Actualizar el índice al siguiente proceso
-    current_index = (current_index + 1) % procs_count;
-    current_proc = procs_info[current_index];
+  // Check if the current process has exceeded its time slice
+  if (time_slice == 0) {
+    current_process = (current_process + 1) % procs_count; // Move to the next process
+    time_slice = 10; // Reset the time slice
   }
 
-  // Verificar si el proceso actual ha excedido el time slice
-  if (current_proc.executed_time % time_slice == 0 && current_proc.executed_time != 0) {
-    // Actualizar el índice al siguiente proceso
-    current_index = (current_index + 1) % procs_count;
-    current_proc = procs_info[current_index];
-  }
+  // Execute the current process for one unit of time
+  int pid = procs_info[current_process].pid;
+  //procs_info[current_process].executed_time++;
+  time_slice--;
 
-  // Actualizar el tiempo ejecutado del proceso actual
-  current_proc.executed_time++;
-
-  // Actualizar el tiempo restante de ejecución del proceso actual
-  //current_proc.executed_time++;
-
-  // Retornar el PID del proceso actual
-  return current_proc.pid;
+  return pid;
 }
 
 
@@ -134,6 +120,10 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "round_robin") == 0) return *round_robin_scheduler;
+
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
