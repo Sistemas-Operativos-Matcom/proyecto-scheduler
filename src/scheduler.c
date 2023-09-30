@@ -52,6 +52,25 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
+
+
+
+// STCF Shortest Time to Completion First) Schelduler
+
+int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  
+  int pid = procs_info[0].pid;     
+  int on_io = procs_info[0].on_io;  
+  int exec_time = procs_info[0].executed_time;  
+
+  int duration = process_total_time(pid);
+
+  return -1;
+}
+
+
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
