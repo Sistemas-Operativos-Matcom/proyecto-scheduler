@@ -22,7 +22,7 @@
 //
 //  - La función devuelve -1: No se ejecuta ningún proceso.
 //  - La función devuelve un PID igual al curr_pid: Se mantiene en ejecución el
-//  proceso actual.jf
+//  proceso actual.
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
@@ -55,24 +55,45 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // Si hay un proceso en marcha, termínalo
-  if (curr_pid != -1)
-  {
-    return curr_pid;
-  }
-
   // Si no hay procesos en la cola, no hay nada que ejecutar
   if (procs_count == 0)
   {
     return -1;
   }
 
-  // Si no hay un proceso en marcha y hay procesos en cola, seleccionar el más corto
-  int i = 1;
-  int process = procs_info[0].pid;
+  // Si hay un proceso en marcha, termínalo siempre que no esté en i/o
+  if (curr_pid != -1)
+  {
+    int process_location = 0;
+    while (curr_pid != procs_info[process_location].pid)
+    {
+      process_location++;
+    }
+    // Aquí tenemos la posición de nuestro proceso
+    // Ahora vemos si está en i/o o no, y si no está, lo ejecutamos
+    if (!(procs_info[process_location].on_io))
+    {
+      return curr_pid;
+    }
+  }
+
+  // Si no hay un proceso en marcha (o el actual está en i/o) y hay procesos en cola, seleccionar el más corto de los que no estén en i/o
+  int i = 0;
+  // Guardamos nuestro primer proceso que no esté en i/o
+  while (i < procs_count && procs_info[i].on_io)
+  {
+    i++;
+  }
+  // Si pasaste por todos los procesos y todos están en i/o, no ejecutes ninguno
+  if (i == procs_count)
+  {
+    return -1;
+  }
+  // De lo contrario, guardamos el primero de estos procesos y empezamos a comparar sus tiempos
+  int process = procs_info[i].pid;
   while (i < procs_count)
   {
-    if (process_total_time(process) > process_total_time(procs_info[i].pid))
+    if ((process_total_time(process) > process_total_time(procs_info[i].pid)) && !(procs_info[i].on_io))
     {
       process = procs_info[i].pid;
     }
@@ -88,17 +109,28 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   {
     return -1;
   }
-  // Siempre ejecutar el que menos demore en terminar (seleccionado durante cada time interrupt)
-  int i = 1;
-  int process = procs_info[0].pid;
-  int process_remaining_time = process_total_time(process) - procs_info[0].executed_time;
+  int i = 0;
+  // Guardamos nuestro primer proceso que no esté en i/o
+  while (i < procs_count && procs_info[i].on_io)
+  {
+    i++;
+  }
+  // Si pasaste por todos los procesos y todos están en i/o, no ejecutes ninguno
+  if (i == procs_count)
+  {
+    return -1;
+  }
+  // De lo contrario, guardamos el primero de estos procesos y empezamos a comparar sus tiempos
+  // En este caso nos quedaremos con el que menos tiempo le quede para terminar su ejecución
+  int process = procs_info[i].pid;
+  int process_remaining_time = process_total_time(process) - procs_info[i].executed_time;
   while (i < procs_count)
   {
-    if (process_remaining_time > process_total_time(procs_info[i].pid) - procs_info[i].executed_time)
+    if ((process_remaining_time > process_total_time(procs_info[i].pid) - procs_info[i].executed_time) && (!procs_info[i].on_io))
     {
       process = procs_info[i].pid;
+      process_remaining_time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
     }
-    process_remaining_time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
     i++;
   }
   return process;
@@ -112,14 +144,25 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     return -1;
   }
   // Siempre ejecutar el primer proceso de la lista con menor tiempo ejecutado
-  int i = 1;
-  int process = procs_info[0].pid;
-  int process_exec_time = procs_info[0].executed_time;
+  int i = 0;
+  // Guardamos nuestro primer proceso que no esté en i/o
+  while (i < procs_count && procs_info[i].on_io)
+  {
+    i++;
+  }
+  // Si pasaste por todos los procesos y todos están en i/o, no ejecutes ninguno
+  if (i == procs_count)
+  {
+    return -1;
+  }
+  // De lo contrario, guardamos el primero de estos procesos y empezamos a comparar sus tiempos
+  int process = procs_info[i].pid;
+  int process_exec_time = procs_info[i].executed_time;
   while (i < procs_count)
   {
-    if(procs_info[i].executed_time<process_exec_time&&procs_info[i].pid!=curr_pid)  //Garantizando que no se repita el proceso
+    if (procs_info[i].executed_time < process_exec_time && procs_info[i].pid != curr_pid && (!procs_info[i].on_io)) // Garantizando que no se repita el proceso
     {
-      process=procs_info[i].pid;
+      process = procs_info[i].pid;
       process_exec_time = procs_info[i].executed_time;
     }
     i++;
