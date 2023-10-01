@@ -26,6 +26,8 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
@@ -52,32 +54,20 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   return procs_info[current_proc%procs_count].pid;
 }
 
+
 int round_time;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
 {
-  // it can be done better.
-  static int flag1 = 0;
-  static int flag2 = 1;
-  if(flag1 && flag2)
+  static round_length = 0;
+  if(round_length == 0 || curr_pid == -1)
   {
-    round_time = curr_time/2*5;
-    flag2 = 0;
+    static int current_proc = -1;
+    current_proc+=1;
+    round_length = 5;
+    return procs_info[current_proc%procs_count].pid;
   }
-  if(flag1)
-  {
-    if(curr_time%round_time == 0 || curr_pid==-1)
-    {
-      static int current_proc = -1;
-      current_proc+=1;
-      return procs_info[current_proc%procs_count].pid;
-    }
-    return curr_pid;
-  }
-  else 
-  {
-    flag1 = 1;
-    return procs_info[0].pid;
-  }
+  round_length-=1;
+  return curr_pid;
 }
 
 
