@@ -7,6 +7,8 @@
 
 #include "simulation.h"
 
+const int priority_boost_time = 100;
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -64,32 +66,72 @@ int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 int RR_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   int actual_proc_position;
-  int finded=0;
+  int finded = 0;
   for (int i = 0; i < procs_count; i++)
   {
     if (procs_info[i].pid == curr_pid)
     {
-      finded=1;
-      actual_proc_position=i;
+      finded = 1;
+      actual_proc_position = i;
     }
-  }  
-  if (finded==1)
+  }
+  if (finded == 1)
   {
-    if (actual_proc_position==procs_count-1)
+    if (actual_proc_position == procs_count - 1)
       return procs_info[0].pid;
     else
-      return procs_info[actual_proc_position+1].pid;
+      return procs_info[actual_proc_position + 1].pid;
   }
   else
   {
-    int min_pid=procs_info[0].pid;
+    int min_pid = procs_info[0].pid;
     for (int i = 0; i < procs_count; i++)
     {
-      if(procs_info[i].pid<min_pid && procs_info[i].pid>curr_pid)
-        min_pid=procs_info[i].pid;
+      if (procs_info[i].pid < min_pid && procs_info[i].pid > curr_pid)
+        min_pid = procs_info[i].pid;
     }
-    return min_pid;  
-  } 
+    return min_pid;
+  }
+}
+
+int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  int min_priority = procs_info[0].priority;
+  int procs_same_priority = 0;
+
+  for (int i = 0; i < procs_count; i++) // actualizo si es necesario la prioridad del proceso que se esta ejecutando
+  {
+    if (procs_info[i].pid == curr_pid)
+    {
+      if (procs_info[i].executed_time > 50 && procs_info[i].priority < 3)
+      {
+        procs_info[i].priority++;
+      }
+      break;
+    }
+  }
+
+  if (curr_time % priority_boost_time == 0) // en base del tiempo de ejecucion activo el priority boost.
+  {
+    for (int i = 0; i < procs_count; i++)
+    {
+      procs_info[i].priority = 1;
+    }
+  }
+
+  for (int i = 0; i < procs_count; i++)
+    min_priority = procs_info[i].priority < min_priority ? procs_info[i].priority : min_priority;
+
+  proc_info_t procs_priority[procs_count];
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].priority == min_priority)
+    {
+      procs_priority[procs_same_priority] = procs_info[i];
+      procs_same_priority++;
+    }
+  }
+  return RR_scheduler(procs_priority, procs_same_priority, curr_time, curr_pid);
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -101,13 +143,13 @@ schedule_action_t get_scheduler(const char *name)
 
   if (strcmp(name, "fifo") == 0)
     return *fifo_scheduler;
-  if(strcmp(name,"sjf")==0)
+  if (strcmp(name, "sjf") == 0)
     return *SJF_scheduler;
-  if (strcmp(name,"stcf")==0)
+  if (strcmp(name, "stcf") == 0)
     return *STCF_scheduler;
-  if(strcmp(name,"rr")==0)
-    return *RR_scheduler;  
-  
+  if (strcmp(name, "rr") == 0)
+    return *RR_scheduler;
+
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }

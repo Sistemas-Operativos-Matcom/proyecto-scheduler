@@ -24,6 +24,7 @@ typedef struct proc_info {
   int pid;
   int executed_time;
   int on_io;
+  int priority;
 } proc_info_t;
 
 typedef struct simulation {

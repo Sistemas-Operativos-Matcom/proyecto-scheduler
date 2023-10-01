@@ -8,8 +8,7 @@ Para implementar una estrategia de scheduling debes crear en el archivo que se
 encuentra en `src/scheduler.c` una función de la siguiente forma:
 
 ```c
-int scheduler_name(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid) {
+int scheduler_name(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
     // ...
 }
 ```
