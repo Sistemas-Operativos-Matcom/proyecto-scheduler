@@ -27,23 +27,25 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid) {
+                   int curr_pid)
+{
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+                     int curr_pid)
+{
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
 
   // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una operación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+  int pid = procs_info[0].pid;                 // PID del proceso
+  int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
+                                               // realizando una operación IO
+  int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
+                                               // ejecutado (en CPU o en I/O)
 
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
@@ -52,84 +54,100 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
-
+// Random Scheduler
 int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+                     int curr_pid)
+{
   srand((unsigned)time(NULL));
-  return procs_info[rand()%procs_count].pid;
+  return procs_info[rand() % procs_count].pid;
 }
 
-
-// Quick Sort Generic Func 
+// Quick Sort Generic Func
 void swap(void *x, void *y, int size) // problems with macro SWAP
 {
-    char resb[size];
-    memcpy(resb, x, size);
-    memcpy(x, y, size);
-    memcpy(y, resb, size);
+  char resb[size];
+  memcpy(resb, x, size);
+  memcpy(x, y, size);
+  memcpy(y, resb, size);
 }
 
 int compare(const void *a, const void *b) // Example of compare func
 {
-    return *(int *)a - *(int *)b;
+  return *(int *)a - *(int *)b;
 }
 
 int getPivot(int li, int ls) // Strategy Random Pivot
 {
-    srand((unsigned)time(NULL));
-    return rand() % (ls - li + 1) + li;
+  srand((unsigned)time(NULL));
+  return rand() % (ls - li + 1) + li;
 }
 
 void qSort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // In-place
 {
-    quickSort(arr, 0, count - 1, size, compare);
-    return;
+  quickSort(arr, 0, count - 1, size, compare);
+  return;
 }
 
-void quickSort(void *arr, int li, int ls, size_t size, int (*compare)(const void *, const void *)) //Private Func, Recursive Calls
+void quickSort(void *arr, int li, int ls, size_t size, int (*compare)(const void *, const void *)) // Private Func, Recursive Calls
 {
-    if (ls <= li || li < 0)
-    {
-        return;
-    }
-    swap(arr + ls * size, arr + getPivot(li, ls) * size, size); // pv -> last pos
-    int index = li;
-    for (int i = li; i < ls; i++)
-    {
-        if (compare(arr + i * size, arr + ls * size) < 0)
-        {
-            swap(arr + index * size, arr + i * size, size);
-            index++;
-        }
-    }
-    swap(arr + index * size, arr + ls * size, size);
-    quickSort(arr, li, index - 1, size, compare);
-    quickSort(arr, index + 1, ls, size, compare);
+  if (ls <= li || li < 0)
+  {
     return;
+  }
+  swap(arr + ls * size, arr + getPivot(li, ls) * size, size); // pv -> last pos
+  int index = li;
+  for (int i = li; i < ls; i++)
+  {
+    if (compare(arr + i * size, arr + ls * size) < 0)
+    {
+      swap(arr + index * size, arr + i * size, size);
+      index++;
+    }
+  }
+  swap(arr + index * size, arr + ls * size, size);
+  quickSort(arr, li, index - 1, size, compare);
+  quickSort(arr, index + 1, ls, size, compare);
+  return;
 }
 // End QSort
 
-// STCF Shortest Time to Completion First) Schelduler
-int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  //CPU
+// STCF Shortest Time to Completion First Schelduler
+int compareSTCF(const void *a, const void *b) // Example of compare func
+{
+  proc_info_t *x = (proc_info_t *)a;
+  proc_info_t *y = (proc_info_t *)b;
 
-  
+  if (x->on_io)
+  {
+    return -1;
+  }
 
-  //IO
+  if (y->on_io)
+  {
+    return 1;
+  }
 
-  return -1;
+  int xTComplete = process_total_time(x->pid) - x->executed_time;
+  int yTComplete = process_total_time(y->pid) - y->executed_time;
+  return xTComplete - yTComplete;
 }
 
-
+int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid)
+{
+  qSort(procs_info, procs_count, sizeof(proc_info_t), compareSTCF);
+  return procs_info[0].pid;
+}
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
-schedule_action_t get_scheduler(const char *name) {
+schedule_action_t get_scheduler(const char *name)
+{
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
-  if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "fifo") == 0)
+    return *fifo_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
