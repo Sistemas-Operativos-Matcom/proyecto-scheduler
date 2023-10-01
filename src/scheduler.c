@@ -151,19 +151,13 @@ int compareSTCF(const void *a, const void *b) // Example of compare func
   proc_info_t *y = (proc_info_t *)b;
 
   if (x->on_io && y->on_io)
-  {
     return 0;
-  }
 
   if (x->on_io)
-  {
     return -1;
-  }
 
   if (y->on_io)
-  {
     return 1;
-  }
 
   int xTComplete = process_total_time(x->pid) - x->executed_time;
   int yTComplete = process_total_time(y->pid) - y->executed_time;
@@ -177,6 +171,27 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+// Round Robin
+
+int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{
+  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+  // cambiar)
+
+  // Información que puedes obtener de un proceso
+  int pid = procs_info[0].pid;                 // PID del proceso
+  int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
+                                               // realizando una operación IO
+  int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
+                                               // ejecutado (en CPU o en I/O)
+
+  // También puedes usar funciones definidas en `simulation.h` para extraer
+  // información extra:
+  int duration = process_total_time(pid);
+
+  return -1;
+}
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name)
@@ -199,8 +214,6 @@ schedule_action_t get_scheduler(const char *name)
 
   if (strcmp(name, "stcf") == 0)
     return *stcf_scheduler;
-
-  
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
