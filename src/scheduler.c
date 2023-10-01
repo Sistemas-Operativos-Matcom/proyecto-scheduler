@@ -81,7 +81,7 @@ int get_pivot(int li, int ls) // Strategy: Random Pivot (Implicit Partition)
 
 void q_sort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // In_place
 {
-  quickSort(arr, 0, count - 1, size, compare);
+  quick_sort(arr, 0, count - 1, size, compare);
   return;
 }
 
@@ -103,8 +103,8 @@ void quick_sort(void *arr, int li, int ls, size_t size, int (*compare)(const voi
   }
 
   swap(arr + index * size, arr + ls * size, size);
-  quickSort(arr, li, index - 1, size, compare);
-  quickSort(arr, index + 1, ls, size, compare);
+  quick_sort(arr, li, index - 1, size, compare);
+  quick_sort(arr, index + 1, ls, size, compare);
   return;
 }
 // End q_sort /////////////////////////////////////////////////////////////
