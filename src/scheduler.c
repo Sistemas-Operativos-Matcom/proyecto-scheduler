@@ -62,8 +62,8 @@ int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[rand() % procs_count].pid;
 }
 
-// Quick Sort Generic Func
-void swap(void *x, void *y, int size) // problems with macro SWAP
+// Quick Sort Generic Func ///////////////////////////////////////////////
+void swap(void *x, void *y, int size) // problems with macro SWAP?
 {
   char resb[size];
   memcpy(resb, x, size);
@@ -76,13 +76,13 @@ int compare(const void *a, const void *b) // Example of compare func
   return *(int *)a - *(int *)b;
 }
 
-int getPivot(int li, int ls) // Strategy Random Pivot
+int getPivot(int li, int ls) // Strategy: Random Pivot (Implicit Partition)
 {
   srand((unsigned)time(NULL));
   return rand() % (ls - li + 1) + li;
 }
 
-void qSort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // In-place
+void qSort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // In_place
 {
   quickSort(arr, 0, count - 1, size, compare);
   return;
@@ -109,13 +109,51 @@ void quickSort(void *arr, int li, int ls, size_t size, int (*compare)(const void
   quickSort(arr, index + 1, ls, size, compare);
   return;
 }
-// End QSort
+// End QSort /////////////////////////////////////////////////////////////
+
+// SJF Shortest Job First
+int compareSJF(const void *a, const void *b) // Example of compare func
+{
+  proc_info_t *x = (proc_info_t *)a;
+  proc_info_t *y = (proc_info_t *)b;
+
+  return (x->on_io && y->on_io) ? 0 : (x->on_io) ? 1
+                                  : (y->on_io)   ? -1
+                                                 : process_total_time(x->pid) - process_total_time(y->pid);
+}
+
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid)
+{
+  int currentProc = 0;
+
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == curr_pid)
+    {
+      currentProc = i;
+    }
+  }
+
+  if (curr_time != 0 && !procs_info[currentProc].on_io)
+  {
+    return curr_pid;
+  }
+
+  qSort(procs_info, procs_count, sizeof(proc_info_t), compareSJF);
+  return procs_info[0].pid;
+}
 
 // STCF Shortest Time to Completion First Schelduler
 int compareSTCF(const void *a, const void *b) // Example of compare func
 {
   proc_info_t *x = (proc_info_t *)a;
   proc_info_t *y = (proc_info_t *)b;
+
+  if (x->on_io && y->on_io)
+  {
+    return 0;
+  }
 
   if (x->on_io)
   {
@@ -132,7 +170,7 @@ int compareSTCF(const void *a, const void *b) // Example of compare func
   return xTComplete - yTComplete;
 }
 
-int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
 {
   qSort(procs_info, procs_count, sizeof(proc_info_t), compareSTCF);
@@ -153,6 +191,16 @@ schedule_action_t get_scheduler(const char *name)
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   //
+  if (strcmp(name, "random") == 0)
+    return *random_scheduler;
+
+  if (strcmp(name, "sjf") == 0)
+    return *sjf_scheduler;
+
+  if (strcmp(name, "stcf") == 0)
+    return *stcf_scheduler;
+
+  
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
