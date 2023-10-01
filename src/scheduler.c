@@ -96,8 +96,6 @@ int RR_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 
 int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int min_priority = procs_info[0].priority;
-  int procs_same_priority = 0;
 
   for (int i = 0; i < procs_count; i++) // actualizo si es necesario la prioridad del proceso que se esta ejecutando
   {
@@ -118,6 +116,9 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       procs_info[i].priority = 1;
     }
   }
+
+  int min_priority = procs_info[0].priority;
+  int procs_same_priority = 0;
 
   for (int i = 0; i < procs_count; i++)
     min_priority = procs_info[i].priority < min_priority ? procs_info[i].priority : min_priority;
@@ -149,7 +150,8 @@ schedule_action_t get_scheduler(const char *name)
     return *STCF_scheduler;
   if (strcmp(name, "rr") == 0)
     return *RR_scheduler;
-
+  if (strcmp(name, "mlfq") == 0)
+    return *MLFQ_scheduler;
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
