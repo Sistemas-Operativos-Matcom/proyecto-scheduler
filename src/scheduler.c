@@ -26,11 +26,29 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
-int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid) {
+int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
+}
+
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
+{
+  if(curr_pid==-1)
+  {
+    int min = 0;
+    for(int i=0; i<procs_count;i++)
+    {
+      min = (process_total_time(procs_info[min].pid)<process_total_time(procs_info[i].pid))?min:i;
+    }
+    return procs_info[min].pid;
+  }
+  return curr_pid;
+}
+
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
+{
+
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -59,6 +77,7 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
