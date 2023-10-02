@@ -49,9 +49,14 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cu
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
 {
-  static int current_proc = -1;
-  current_proc+=1;
-  return procs_info[current_proc%procs_count].pid;
+  int min = 0;
+  for(int i=0; i<procs_count;i++)
+  {
+    int temp1 = process_total_time(procs_info[min].pid)-procs_info[min].executed_time;
+    int temp2 = process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
+    min = (temp1<temp2)?min:i;
+  }
+  return procs_info[min].pid;
 }
 
 
