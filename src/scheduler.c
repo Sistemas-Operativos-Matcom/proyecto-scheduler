@@ -39,21 +39,25 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   int minimal_time = INT_MAX;
-  int return_pid = 0;
-  for (int i = 0; i < procs_count; i++)
-  {
-    if(minimal_time>process_total_time(procs_info[i].pid))
-    {
-      minimal_time = process_total_time(procs_info[i].pid);
-      return_pid = procs_info[i].pid;
-    }
-  }
+  int return_pid = curr_pid;
+
+  if (curr_pid == -1)
+      for (int i = 0; i < procs_count; i++)
+      {
+        if(minimal_time>process_total_time(procs_info[i].pid))
+        {
+          minimal_time = process_total_time(procs_info[i].pid);
+          return_pid = procs_info[i].pid;
+        }
+      }
   return return_pid;
 }
+
 int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   int remaining_time = INT_MAX;
-  int return_pid = 0;
+  int return_pid = curr_pid;
+
   for (int i = 0; i < procs_count; i++)
   {
     if(remaining_time>process_total_time(procs_info[i].pid)-procs_info[i].executed_time)
