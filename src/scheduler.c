@@ -55,12 +55,6 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // Si no hay procesos en la cola, no hay nada que ejecutar
-  if (procs_count == 0)
-  {
-    return -1;
-  }
-
   // Si hay un proceso en marcha, termínalo siempre que no esté en i/o
   if (curr_pid != -1)
   {
@@ -76,7 +70,6 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
       return curr_pid;
     }
   }
-
   // Si no hay un proceso en marcha (o el actual está en i/o) y hay procesos en cola, seleccionar el más corto de los que no estén en i/o
   int i = 0;
   // Guardamos nuestro primer proceso que no esté en i/o
@@ -104,11 +97,6 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // Si no hay procesos en la cola, no hay nada que ejecutar
-  if (procs_count == 0)
-  {
-    return -1;
-  }
   int i = 0;
   // Guardamos nuestro primer proceso que no esté en i/o
   while (i < procs_count && procs_info[i].on_io)
@@ -138,11 +126,6 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // Si no hay procesos en la cola, no hay nada que ejecutar
-  if (procs_count == 0)
-  {
-    return -1;
-  }
   // Siempre ejecutar el primer proceso de la lista con menor tiempo ejecutado
   int i = 0;
   // Guardamos nuestro primer proceso que no esté en i/o
