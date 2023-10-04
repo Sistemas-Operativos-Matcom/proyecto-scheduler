@@ -69,7 +69,7 @@ int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time
   return -1;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   
   int pid = procs_info[0].pid;
@@ -95,6 +95,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
 
   if (strcmp(name, "rr") == 0) return *roundRobin_scheduler;
+
+  if (strcmp(name, "stcf") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
