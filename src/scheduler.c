@@ -96,7 +96,7 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "rr") == 0) return *roundRobin_scheduler;
 
-  if (strcmp(name, "stcf") == 0) return *mlfq_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
