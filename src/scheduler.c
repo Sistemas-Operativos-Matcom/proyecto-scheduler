@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
+#include "heap.h"
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -48,6 +49,19 @@ int sfj_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
   return pid;
 }
 
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  int pid = procs_info[0].pid, min_time = process_total_time(procs_info[0].pid) - procs_info[0].executed_time, tmp;
+
+  for (int i = 0; i < procs_count; i++) {
+    tmp = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+    if (tmp < min_time) {
+      tmp = min_time;
+      pid = procs_info[i].pid;
+    }
+  }
+  return pid;
+}
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
   const  int timeskip = 5;
   static int interrupts_elapsed = 0;
@@ -64,26 +78,6 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[curr_pos].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
-
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time =
-      procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
-                                    // (curr_time - arrival_time)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
-}
-
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -93,6 +87,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "rr")   == 0) return *rr_scheduler;
   if (strcmp(name, "sfj")   == 0) return *sfj_scheduler;
+  if (strcmp(name, "stcf")   == 0) return *stcf_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
