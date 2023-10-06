@@ -30,14 +30,13 @@
 
 
 
-int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                    int curr_pid)
+int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {  
   return procs_info[0].pid;
 }
 
-int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
   
   int pid = procs_info[0].pid;
   int on_io = procs_info[0].on_io;  
@@ -47,8 +46,8 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
-int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
   
   int pid = procs_info[0].pid;
   int on_io = procs_info[0].on_io;  
@@ -58,8 +57,8 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
-int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
   
   int pid = procs_info[0].pid;
   int on_io = procs_info[0].on_io;  
@@ -69,8 +68,7 @@ int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time
   return -1;
 }
 
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
   
   int pid = procs_info[0].pid;
   int on_io = procs_info[0].on_io;  
