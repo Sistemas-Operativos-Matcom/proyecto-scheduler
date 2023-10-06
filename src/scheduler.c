@@ -28,8 +28,9 @@
 //* - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //*     contexto y se ejecuta el proceso indicado.
 
-int latest_sj = 0;
-
+int latest_sj = -1;
+int latest_rr = -1;
+int last_index_rr = 0;
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {  
@@ -67,13 +68,30 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
 {
-  
-  int pid = procs_info[0].pid;
-  int on_io = procs_info[0].on_io;  
-  int exec_time = procs_info[0].executed_time;
-  int duration = process_total_time(pid);
+  if(curr_pid == latest_rr) //sigue el mismo proceso
+  {
+    if(last_index_rr < procs_count -1)
+    {
+      last_index_rr += 1;
+      return procs_info[last_index_rr].pid;
+    }
+    else
+    {
+      last_index_rr = 0;
+      return procs_info[last_index_rr].pid;
+    }
+  }
+  else                      //el proceso anterior termino
+  {
+    if((procs_count - last_index_rr) > 0) 
+      return procs_info[last_index_rr].pid; //llego un nuevo proceso
 
-  return -1;
+    else //final del array
+    {
+      last_index_rr = 0;
+      return procs_info[last_index_rr].pid;
+    }
+  }
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
