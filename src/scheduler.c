@@ -7,6 +7,8 @@
 
 #include "simulation.h"
 
+int rr_mark = 0;
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -124,7 +126,20 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return process;
 }
 
+// Este Round Robin usa como time slice el mismo tiempo del time interrupt
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  rr_mark++;
+  if (rr_mark >= procs_count)
+  {
+    rr_mark = 0;
+  }
+  return procs_info[rr_mark].pid;
+}
+
+// ESTE MÉTODO ES UNA VARIANTE AL ROUND ROBIN QUE EJECUTA EN CADA TIME INTERRUPT EL PROCESO CON
+// MENOR TIEMPO DE EJECUCIÓN
+int priority_rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // Siempre ejecutar el primer proceso de la lista con menor tiempo ejecutado
   int i = 0;
@@ -168,6 +183,8 @@ schedule_action_t get_scheduler(const char *name)
     return *stcf_scheduler;
   if (strcmp(name, "rr") == 0)
     return *rr_scheduler;
+  if (strcmp(name, "prr") == 0)
+    return *priority_rr_scheduler;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
