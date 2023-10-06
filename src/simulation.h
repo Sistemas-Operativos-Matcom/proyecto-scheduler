@@ -15,6 +15,7 @@ typedef struct proc_execution {
   int pid;
   int executed_time;
   int state;
+  int priority;
 
   int turnaround;
   int response_time;
