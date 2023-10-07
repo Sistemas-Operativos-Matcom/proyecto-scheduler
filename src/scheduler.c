@@ -53,64 +53,15 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
 }
 
 // Random Scheduler
+// Ejecuta un proceso random
 int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   srand((unsigned)time(NULL));
   return procs_info[rand() % procs_count].pid;
 }
 
-// Quick Sort Generic Func ///////////////////////////////////////////////
-void swap(void *x, void *y, int size) // problems with macro SWAP?
-{
-  char resb[size];
-  memcpy(resb, x, size);
-  memcpy(x, y, size);
-  memcpy(y, resb, size);
-}
-
-int compare(const void *a, const void *b) // Example of compare func
-{
-  return *(int *)a - *(int *)b;
-}
-
-int get_pivot(int li, int ls) // Strategy: Random Pivot (Implicit Partition)
-{
-  srand((unsigned)time(NULL));
-  return rand() % (ls - li + 1) + li;
-}
-
-void q_sort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // In_place
-{
-  quick_sort(arr, 0, count - 1, size, compare);
-  return;
-}
-
-void quick_sort(void *arr, int li, int ls, size_t size, int (*compare)(const void *, const void *)) // Private Func, Recursive Calls
-{
-  if (ls <= li || li < 0)
-    return;
-
-  swap(arr + ls * size, arr + get_pivot(li, ls) * size, size); // pv -> last pos
-  int index = li;
-
-  for (int i = li; i < ls; i++)
-  {
-    if (compare(arr + i * size, arr + ls * size) < 0)
-    {
-      swap(arr + index * size, arr + i * size, size);
-      index++;
-    }
-  }
-
-  swap(arr + index * size, arr + ls * size, size);
-  quick_sort(arr, li, index - 1, size, compare);
-  quick_sort(arr, index + 1, ls, size, compare);
-  return;
-}
-// End q_sort /////////////////////////////////////////////////////////////
-
 // SJF Shortest Job First
-int compare_sjf(const void *a, const void *b) // Example of compare func
+int compare_sjf(const void *a, const void *b) // Criterio de Comparacion
 {
   proc_info_t *x = (proc_info_t *)a;
   proc_info_t *y = (proc_info_t *)b;
@@ -122,28 +73,12 @@ int compare_sjf(const void *a, const void *b) // Example of compare func
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int currentProc = 0;
-
-  for (int i = 0; i < procs_count; i++)
-  {
-    if (procs_info[i].pid == curr_pid)
-    {
-      currentProc = i;
-      break;
-    }
-  }
-
-  if (curr_time != 0 && !procs_info[currentProc].on_io)
-  {
-    return curr_pid;
-  }
-
-  q_sort(procs_info, procs_count, sizeof(proc_info_t), compare_sjf);
-  return procs_info[0].pid;
+  int to_exec_index = select(procs_info, procs_count, sizeof(proc_info_t), compare_sjf);
+  return procs_info[to_exec_index].pid;
 }
 
 // STCF Shortest Time to Completion First Schelduler
-int compare_stcf(const void *a, const void *b) // Example of compare func
+int compare_stcf(const void *a, const void *b) // Criterio de Comparacion
 {
   proc_info_t *x = (proc_info_t *)a;
   proc_info_t *y = (proc_info_t *)b;
@@ -164,40 +99,23 @@ int compare_stcf(const void *a, const void *b) // Example of compare func
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  q_sort(procs_info, procs_count, sizeof(proc_info_t), compare_stcf);
-  return procs_info[0].pid;
+  int to_exec_index = select(procs_info, procs_count, sizeof(proc_info_t), compare_stcf);
+  return procs_info[to_exec_index].pid;
 }
 
 // Round Robin
-int get_time_slice(int timeInterrup)
+int get_time_slice(int timeInterrup) // parametrizar el time slice
 {
+  int mult = 2;
+  return timeInterrup * mult;
 }
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  q_sort(procs_info, procs_count, sizeof(proc_info_t), compare);
-  return procs_info[0].pid;
+  const int TIME_INTERRUMP = 10; // Time Interrump
+  int time_slice = get_time_slice(TIME_INTERRUMP);
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid)
-{
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
-
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;                 // PID del proceso
-  int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
-                                               // realizando una operación IO
-  int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
-                                               // ejecutado (en CPU o en I/O)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
-}
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name)
@@ -223,4 +141,79 @@ schedule_action_t get_scheduler(const char *name)
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
+}
+
+// Metodos Auxialiares
+int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
+{
+  // Retorna el index de un processo en el array de procs_info
+  // retorna el index del procs, o -1 si no fue encontrado
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == pid)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
+int select(void *arr, int count, size_t size, int (*selector)(const void *, const void *))
+{
+  // Args: array, length, sizeof(item), metodo para seleccionar
+  // retorna el index del item
+  int selected = 0;
+  for (int i = 0; i < count; i++)
+  {
+    if (selector(arr + selected * size, arr + i * size) < 0) // arr[i] tiene mayor score que arr[selected]
+    {
+      selected = i;
+    }
+  }
+  return selected;
+}
+
+void swap(void *x, void *y, int size) // error haciendo macro para el swap
+{
+  char resb[size];
+  memcpy(resb, x, size);
+  memcpy(x, y, size);
+  memcpy(y, resb, size);
+}
+
+int get_pivot(int li, int ls) // Pivote Random Strategy
+{
+  srand((unsigned)time(NULL));
+  return rand() % (ls - li + 1) + li;
+}
+
+void q_sort(void *arr, int count, size_t size, int (*compare)(const void *, const void *)) // main
+{
+  // Quick Sort *InPlace*, Random Pivot, Particion implicita
+  // Args: arr:array, count:tamanno del array, size: sizeof(object), criterio de comparacion
+  quick_sort(arr, 0, count - 1, size, compare);
+  return;
+}
+
+void quick_sort(void *arr, int li, int ls, size_t size, int (*compare)(const void *, const void *))
+{
+  if (ls <= li || li < 0)
+    return;
+
+  swap(arr + ls * size, arr + get_pivot(li, ls) * size, size);
+  int index = li;
+
+  for (int i = li; i < ls; i++)
+  {
+    if (compare(arr + i * size, arr + ls * size) < 0)
+    {
+      swap(arr + index * size, arr + i * size, size);
+      index++;
+    }
+  }
+
+  swap(arr + index * size, arr + ls * size, size);
+  quick_sort(arr, li, index - 1, size, compare);
+  quick_sort(arr, index + 1, ls, size, compare);
+  return;
 }
