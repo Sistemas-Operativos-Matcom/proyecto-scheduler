@@ -35,8 +35,8 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-        int curr_pid)
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid)
 {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
@@ -50,10 +50,37 @@ int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       final = procs_info[i].pid;
     }
   }
-  return curr_pid==-1?final:curr_pid;
+  return curr_pid == -1 ? final : curr_pid;
+}
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid)
+{
+  if (curr_pid == -1)
+    return sjf_scheduler(procs_info, procs_count, curr_time, curr_pid);
+  int time;
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == curr_pid)
+    {
+      time = process_total_time(curr_pid) - procs_info[i].executed_time;
+      break;
+    }
+  }
+  int min = process_total_time(procs_info[0].pid);
+  int final = procs_info[0].pid;
+  for (size_t i = 1; i < procs_count; i++)
+  {
+    if (process_total_time(procs_info[i].pid) < min)
+    {
+      min = process_total_time(procs_info[i].pid);
+      final = procs_info[i].pid;
+    }
+  }
+  return min<time ? final:curr_pid;
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;     // PID del proceso
+}
+// Información que puedes obtener de un proceso
+/*int pid = procs_info[0].pid;     // PID del proceso
   int on_io = procs_info[0].on_io; // Indica si el proceso se encuentra
                                    // realizando una opreación IO
   int exec_time =
@@ -65,7 +92,7 @@ int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int duration = process_total_time(pid);
 
   return -1;
-}
+}*/
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -76,8 +103,10 @@ schedule_action_t get_scheduler(const char *name)
 
   if (strcmp(name, "fifo") == 0)
     return *fifo_scheduler;
-    if (strcmp(name, "SJF") == 0)
-    return *SJF_scheduler;
+  if (strcmp(name, "sjf") == 0)
+    return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0)
+    return *stcf_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
