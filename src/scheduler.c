@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "simulation.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,24 +28,37 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid) {
+                   int curr_pid)
+{
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
+int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+        int curr_pid)
+{
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
+  int min = process_total_time(procs_info[0].pid);
+  int final = procs_info[0].pid;
+  for (size_t i = 1; i < procs_count; i++)
+  {
+    if (process_total_time(procs_info[i].pid) < min)
+    {
+      min = process_total_time(procs_info[i].pid);
+      final = procs_info[i].pid;
+    }
+  }
+  return curr_pid==-1?final:curr_pid;
 
   // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
+  int pid = procs_info[0].pid;     // PID del proceso
+  int on_io = procs_info[0].on_io; // Indica si el proceso se encuentra
+                                   // realizando una opreación IO
   int exec_time =
-      procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
-                                    // (curr_time - arrival_time)
+      procs_info[0].executed_time; // Tiempo que lleva el proceso activo
+                                   // (curr_time - arrival_time)
 
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
@@ -55,11 +69,15 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
-schedule_action_t get_scheduler(const char *name) {
+schedule_action_t get_scheduler(const char *name)
+{
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
-  if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "fifo") == 0)
+    return *fifo_scheduler;
+    if (strcmp(name, "SJF") == 0)
+    return *SJF_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
