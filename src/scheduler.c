@@ -9,6 +9,8 @@
 #include "queue_ll.h"
 #define QUANTUM 50
 #define TIC (QUANTUM / 10)
+const int priority_boost_time = 100;
+Queue *queues[3];
 // La prioridad más alta
 Queue Priority_0;
 // La prioridad media
@@ -132,6 +134,7 @@ int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int cur
   return process.pid;
   // }
 }
+
 void printQueue(Queue *q)
 {
   int i = q->pop;
@@ -162,12 +165,12 @@ void print_proc_info(proc_info_t *procs_info, int procs_count)
     printf("\n");
   }
 }
-/*
-int mi_MLFQ(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+int my_MLFQ(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  if (curr_pid != -1)
+  int pos = findPID(procs_info, procs_count, curr_pid);
+  if (curr_pid != -1 && pos != -1)
   {
-    proc_info_t process_curr = procs_info[findPID(procs_info, procs_count, curr_pid)];
+    proc_info_t process_curr = procs_info[pos];
     if (process_curr.executed_time % QUANTUM != 0)
     {
       return curr_pid;
@@ -176,86 +179,229 @@ int mi_MLFQ(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
     {
       if (process_curr.on_io == 1)
       {
+        // process_curr.priority = 0;
         enqueue(&Priority_0, process_curr);
       }
-      else if (process_curr.priority == 0)
+      else
       {
-        enqueue(&Priority_1, process_curr);
-      }
-      else if (process_curr.priority == 1)
-      {
-        enqueue(&Priority_2, process_curr);
+        if (contains(&Priority_0, process_curr) == 1)
+        {
+          // process_curr.priority = 1;
+          enqueue(&Priority_1, process_curr);
+        }
+        else if (contains(&Priority_1, process_curr) == 1)
+        {
+          // process_curr.priority = 2;
+          enqueue(&Priority_2, process_curr);
+        }
+        else
+        {
+          enqueue(&Priority_2, process_curr);
+        }
       }
     }
   }
-
-  for (int i = 0; i < procs_count; i++)
+  for (size_t i = 0; i < procs_count; i++)
   {
     proc_info_t process = procs_info[i];
-    if (!contains(&Priority_0, process) && !contains(&Priority_1, process) && !contains(&Priority_2, process) && process.pid != curr_pid)
+    if (process.executed_time == 0 && contains(&Priority_0, process) == 0 && contains(&Priority_1, process) == 0 && contains(&Priority_2, process) == 0 && process.pid != curr_pid)
     {
-      enqueue(&Priority_0, process);
+      if (findPID(procs_info, procs_count, process.pid) != -1)
+      {
+        enqueue(&Priority_0, process);
+      }
     }
   }
   if (!isEmpty(&Priority_0))
   {
     proc_info_t process = dequeue(&Priority_0);
-    return process.pid;
+    int yes = 0;
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (!isEmpty(&Priority_0))
+      {
+        process = dequeue(&Priority_0);
+      }
+      else
+      {
+        yes = 1;
+        break;
+      }
+    }
+    if (yes != 1)
+    {
+      return process.pid;
+    }
   }
   else if (!isEmpty(&Priority_1))
   {
     proc_info_t process = dequeue(&Priority_1);
-    return process.pid;
+    int yes = 0;
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (!isEmpty(&Priority_1))
+      {
+        process = dequeue(&Priority_1);
+      }
+      else
+      {
+        yes = 1;
+        break;
+      }
+    }
+    if (yes != 1)
+    {
+      return process.pid;
+    }
+
+    // printf("PID: %d timeex: %d totaltime: %d \n", process.pid, process.executed_time, process_total_time(process.pid));
   }
   else if (!isEmpty(&Priority_2))
   {
     proc_info_t process = dequeue(&Priority_2);
-    return process.pid;
+
+    int yes = 0;
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (!isEmpty(&Priority_2))
+      {
+        process = dequeue(&Priority_2);
+      }
+      else
+      {
+        yes = 1;
+        break;
+      }
+    }
+    if (yes != 1)
+    {
+      return process.pid;
+    }
   }
   else
     return -1;
 }
-int my_MLFQ(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+
+int mi_MLFQ(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  static int pos = -1;
-  if (curr_time % QUANTUM == 0 || curr_pid == -1)
+  if (curr_pid != -1 && procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time % QUANTUM != 0 && (findPID(procs_info, procs_count, curr_pid) != -1))
   {
-    if (procs_info[++pos].priority == 0)
-    {
-      if (procs_info[pos].on_io == 0)
-      {
-        procs_info[pos].priority = 1;
-      }
-
-      return procs_info[pos % procs_count].pid;
-    }
+    return curr_pid;
   }
-  if (curr_time % QUANTUM == 0 || curr_pid == -1)
+  for (int i = 0; i < procs_count; i++)
   {
-    if (procs_info[++pos].priority == 1)
+    proc_info_t process = procs_info[i];
+    if (process.on_io == 1)
     {
-      if (procs_info[pos].on_io == 1)
-      {
-        procs_info[pos].priority = 0;
-      }
-
-      return procs_info[pos % procs_count].pid;
+      process.priority = 0;
     }
-  }
-  if (curr_time % QUANTUM == 0 || curr_pid == -1)
-  {
-    if (procs_info[++pos].priority == 2)
-    {
-      if (procs_info[pos].on_io == 1)
-      {
-        procs_info[pos].priority = 0;
-      }
-      return procs_info[pos % procs_count].pid;
-    }
+    enqueue(&queues[process.priority], process);
   }
 
-  return curr_pid;
-} */
+  return -1;
+}
+int my_MLFQ2(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  if (curr_pid != -1 && procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time % QUANTUM != 0 && (findPID(procs_info, procs_count, curr_pid) != -1))
+  {
+    return curr_pid;
+  }
+
+  if (isEmpty(&Priority_0))
+  {
+    for (size_t i = 0; i < procs_count; i++)
+    {
+      if (procs_info[i].priority == 0 || procs_info[i].on_io == 1)
+      {
+        proc_info_t process = procs_info[i];
+        process.priority = 1;
+        enqueue(&Priority_0, process);
+      }
+    }
+  }
+  if (!isEmpty(&Priority_0))
+  {
+    proc_info_t process = dequeue(&Priority_0);
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (isEmpty(&Priority_0))
+      {
+        for (size_t i = 0; i < procs_count; i++)
+        {
+          proc_info_t process = procs_info[i];
+          if (process.priority == 0 || process.on_io == 1)
+          {
+
+            process.priority = 1;
+            enqueue(&Priority_0, process);
+          }
+        }
+      }
+      process = dequeue(&Priority_0);
+    }
+    return process.pid;
+  }
+  if (isEmpty(&Priority_1))
+  {
+    for (size_t i = 0; i < procs_count; i++)
+    {
+      if (procs_info[i].priority == 1)
+      {
+        proc_info_t process = procs_info[i];
+        process.priority = 2;
+        enqueue(&Priority_1, process);
+      }
+    }
+  }
+  if (!isEmpty(&Priority_1))
+  {
+    proc_info_t process = dequeue(&Priority_1);
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (isEmpty(&Priority_1))
+      {
+        for (size_t i = 0; i < procs_count; i++)
+        {
+          proc_info_t process = procs_info[i];
+          if (process.priority == 1)
+          {
+
+            process.priority = 2;
+            enqueue(&Priority_1, process);
+          }
+        }
+      }
+      process = dequeue(&Priority_1);
+    }
+    return process.pid;
+  }
+  if (isEmpty(&Priority_2))
+  {
+    for (size_t i = 0; i < procs_count; i++)
+    {
+      if (procs_info[i].priority == 2)
+      {
+        proc_info_t process = procs_info[i];
+        enqueue(&Priority_2, procs_info[i]);
+      }
+    }
+  }
+  if (!isEmpty(&Priority_2))
+  {
+    proc_info_t process = dequeue(&Priority_2);
+    while (findPID(procs_info, procs_count, process.pid) == -1)
+    {
+      if (isEmpty(&Priority_2))
+      {
+        for (size_t i = 0; i < procs_count; i++)
+          enqueue(&Priority_2, procs_info[i]);
+      }
+      process = dequeue(&Priority_2);
+    }
+    return process.pid;
+  }
+  return -1;
+}
 int findPID(proc_info_t *procs_info, int procs_count, int pid)
 {
   for (int i = 0; i < procs_count; i++)
@@ -292,8 +438,15 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 schedule_action_t get_scheduler(const char *name)
 {
   initQueue(&RR);
+  // initQueue(&Priority_0);
+  // initQueue(&Priority_1);
+  // initQueue(&Priority_2);
+  for (int i = 0; i < 3; i++)
+  {
+    queues[i] = (Queue *)malloc(sizeof(Queue));
+    initQueue(queues[i]);
+  }
 
-  // initQueue(&ready_queue);
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
@@ -307,10 +460,11 @@ schedule_action_t get_scheduler(const char *name)
     return *my_RR;
   if (strcmp(name, "rrq") == 0)
     return *my_RR_queue;
-  /* if (strcmp(name, "mlfq") == 0)
+  if (strcmp(name, "mlfq") == 0)
     return *my_MLFQ;
   if (strcmp(name, "mlfq2") == 0)
-    return *mi_MLFQ; */
+    return *mi_MLFQ;
+
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }

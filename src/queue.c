@@ -60,3 +60,12 @@ int contains(struct Queue *q, proc_info_t item)
     }
     return 0;
 }
+int length(struct Queue *q)
+{
+    int count = 0;
+    for (int i = q->puntero; i < q->pop; i++)
+    {
+        count++;
+    }
+    return count;
+}
