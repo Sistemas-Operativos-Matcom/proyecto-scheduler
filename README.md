@@ -90,8 +90,8 @@ intermedio). Las opciones disponibles son:
 Por ejemplo:
 
 ```bash
-./test_single.sh ./test_cases/case_01.txt fifo rg
-./test_single.sh ./test_cases/case_01.txt fifo g
+./test_single.sh ./test_cases/case_001.txt fifo rg
+./test_single.sh ./test_cases/case_001.txt fifo g
 ```
 
 Leyenda para la gráfica de ejecución:
