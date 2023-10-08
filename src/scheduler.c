@@ -48,9 +48,10 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   return procs_info[0].pid;
 }
+// *name: sjf
 int my_SJF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  if (curr_pid == -1)
+  if (curr_pid == -1 || findPID(procs_info, procs_count, curr_pid) == -1)
   {
     proc_info_t procmin = procs_info[0];
     int TTmin = process_total_time(procmin.pid);
@@ -70,6 +71,7 @@ int my_SJF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid
     return curr_pid;
   }
 }
+// *name: stcf
 int my_STCF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   proc_info_t procmin = procs_info[0];
@@ -85,6 +87,7 @@ int my_STCF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
   }
   return procmin.pid;
 }
+// *name: rr
 int my_RR(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   static int pos = -1;
@@ -97,9 +100,10 @@ int my_RR(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
   }
   return curr_pid;
 }
+// *name: rrq   (q=> queue)
 int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // printf("PID: %d timeex: %d totaltime: %d \n", curr_pid, procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time, process_total_time(curr_pid));
+  //// printf("PID: %d timeex: %d totaltime: %d \n", curr_pid, procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time, process_total_time(curr_pid));
   if (curr_pid != -1 && procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time % QUANTUM != 0 && (findPID(procs_info, procs_count, curr_pid) != -1))
   {
     return curr_pid;
@@ -110,16 +114,9 @@ int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int cur
     for (size_t i = 0; i < procs_count; i++)
     {
       proc_info_t process = procs_info[i];
-      // printf("PID: %d timeex: %d totaltime: %d \n", process.pid, process.executed_time, process_total_time(process.pid));
-
       enqueue(&RR, procs_info[i]);
     }
-
-    // return process.pid;
   }
-  // else
-  // {
-  // printQueue(&RR);
   proc_info_t process = dequeue(&RR);
   while (findPID(procs_info, procs_count, process.pid) == -1)
   {
@@ -128,7 +125,6 @@ int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int cur
       for (size_t i = 0; i < procs_count; i++)
         enqueue(&RR, procs_info[i]);
     }
-
     process = dequeue(&RR);
   }
 
