@@ -8,6 +8,7 @@
 #include "simulation.h"
 #include "queue_ll.h"
 #define QUANTUM 50
+#define TIC (QUANTUM / 10)
 // La prioridad más alta
 Queue Priority_0;
 // La prioridad media
@@ -86,16 +87,20 @@ int my_STCF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
 }
 int my_RR(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  //// print_proc_info(procs_info, procs_count);
   static int pos = -1;
-  if (curr_time % QUANTUM == 0 || curr_pid == -1)
+  int i = findPID(procs_info, procs_count, curr_pid);
+  if (curr_pid == -1 || procs_info[i].executed_time % QUANTUM == 0 || i == -1)
+  {
+    //// print_proc_info(procs_info, procs_count);
+    //// printf("pos: %d count: %d countentrpos: %d\n", pos, procs_count, pos % procs_count);
     return procs_info[++pos % procs_count].pid;
+  }
   return curr_pid;
 }
 int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // printf("PID: %d timeex: %d totaltime: %d \n", curr_pid, procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time, process_total_time(curr_pid));
-  if (curr_pid != -1 && procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time % QUANTUM != 0)
+  if (curr_pid != -1 && procs_info[findPID(procs_info, procs_count, curr_pid)].executed_time % QUANTUM != 0 && (findPID(procs_info, procs_count, curr_pid) != -1))
   {
     return curr_pid;
   }
@@ -116,6 +121,17 @@ int my_RR_queue(proc_info_t *procs_info, int procs_count, int curr_time, int cur
   // {
   // printQueue(&RR);
   proc_info_t process = dequeue(&RR);
+  while (findPID(procs_info, procs_count, process.pid) == -1)
+  {
+    if (isEmpty(&RR))
+    {
+      for (size_t i = 0; i < procs_count; i++)
+        enqueue(&RR, procs_info[i]);
+    }
+
+    process = dequeue(&RR);
+  }
+
   // printf("PID: %d timeex: %d totaltime: %d \n", process.pid, process.executed_time, process_total_time(process.pid));
   return process.pid;
   // }
