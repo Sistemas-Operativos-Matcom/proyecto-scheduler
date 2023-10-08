@@ -51,7 +51,35 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   return -1;
 }
-
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+  if(curr_pid!=-1) return curr_pid;
+  int min = __INT_MAX__;
+  int pid = procs_info[0].pid;
+  for (int i =0; i < procs_count; i++)
+  {
+    if(process_total_time(procs_info[i].pid) < min)
+    {
+      min = process_total_time(procs_info[i].pid);
+      pid = procs_info[i].pid;
+    }
+  }
+  return pid;
+}
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+  int min = __INT_MAX__;
+  int pid = procs_info[0].pid;
+  for (int i=0; i< procs_count; i++)
+  {
+    if(process_total_time(procs_info[i].pid)-procs_info[i].executed_time < min)
+    {
+      min = process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
+      pid = procs_info[i].pid;
+    }
+  }
+  return pid;
+}
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -59,12 +87,8 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
-
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
