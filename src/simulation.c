@@ -271,6 +271,9 @@ void start_new_simulation(process_t *processes, int process_count,
                          next_sim_time) == ENDED)
       {
         ended_processes++;
+        if (g_sim->curr_proc_pid == on_io[random_idx]) {
+          g_sim->curr_proc_pid = -1;
+        }
       }
     }
 
