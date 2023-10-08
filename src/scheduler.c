@@ -7,6 +7,7 @@
 
 #include "simulation.h"
 #include <limits.h>
+//#include "queue.c"
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -36,62 +37,136 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  // Ordenar los procesos por su tiempo de duración
-  for (int i = 0; i < procs_count - 1; i++) {
-    for (int j = i + 1; j < procs_count; j++) {
-      if (process_total_time(procs_info[i].pid) > process_total_time(procs_info[j].pid)) {
-        proc_info_t temp = procs_info[i];
-        procs_info[i] = procs_info[j];
-        procs_info[j] = temp;
+  static int index = 0;
+  int new_curr_pid = -1;
+  int temp = INT_MAX;
+  if (process_total_time(procs_info[index].pid) - procs_info[index].executed_time == 0){
+    for (int i = 0; i < procs_count; i++) {
+      if (process_total_time(procs_info[i].pid) < temp){
+
+        temp = process_total_time(procs_info[i].pid);
+
+        new_curr_pid = procs_info[i].pid;
+
       }
     }
   }
 
-  // Retornar el PID del proceso con el menor tiempo de duración
-  return procs_info[0].pid;
+  return new_curr_pid;
 }
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   
-  // Ordenar los procesos por su tiempo de ejecución restante
-  for (int i = 0; i < procs_count - 1; i++) {
-    for (int j = i + 1; j < procs_count; j++) {
-      if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time > process_total_time(procs_info[j].pid) - procs_info[j].executed_time) {
-        proc_info_t temp = procs_info[i];
-        procs_info[i] = procs_info[j];
-        procs_info[j] = temp;
-      }
+  int new_curr_pid = curr_pid;
+  int min_remaining_time = INT_MAX;
+  
+  for (int i = 0; i < procs_count; i++) {
+    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < min_remaining_time) {
+      min_remaining_time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+      new_curr_pid = procs_info[i].pid;
     }
   }
 
-  // Retornar el PID del proceso con el menor tiempo de ejecución restante
-  return procs_info[0].pid;
+  return new_curr_pid;
 }
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  static int current_process = 0;
-  static int time_slice = 10; // Time slice of 10 units
+    
+    static int last_index = 0;
+    int next_pid = -1;
 
-  // Check if the current process has finished executing
-  if (procs_info[current_process].executed_time == process_total_time(procs_info[current_process].pid)) {
-    current_process = (current_process + 1) % procs_count; // Move to the next process
-    time_slice = 10; // Reset the time slice
-  }
-
-  // Check if the current process has exceeded its time slice
-  if (time_slice == 0) {
-    current_process = (current_process + 1) % procs_count; // Move to the next process
-    time_slice = 10; // Reset the time slice
-  }
-
-  // Execute the current process for one unit of time
-  int pid = procs_info[current_process].pid;
-  //procs_info[current_process].executed_time++;
-  time_slice--;
-
-  return pid;
+    if (curr_pid == -1) {
+      next_pid = procs_info[last_index].pid;    
+    }
+    else if(last_index + 1 == procs_count) {
+      next_pid = procs_info[0].pid;
+      last_index = 0;
+    }
+    else {
+      next_pid = procs_info[last_index + 1].pid;
+      last_index += 1 ;
+    }
+    
+   
+    return next_pid;
+    
 }
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+    
+    int new_curr_pid = curr_pid;
+    int min_executed_time = INT_MAX;
+  
+    for (int i = 0; i < procs_count; i++) {
+      if (procs_info[i].executed_time < min_executed_time && procs_info[i].pid != curr_pid){ 
+        min_executed_time = procs_info[i].executed_time;
+        new_curr_pid = procs_info[i].pid;
+      }
+    }
+  
+    return new_curr_pid;
+}
+
+/*#define MAX_PROCESSES 100
+
+typedef struct {
+  int pid; // ID del proceso
+  int priority; // Prioridad del proceso
+  int executed_time; // Tiempo que el proceso se ha ejecutado
+} Process;
+
+Queue *queues[3]; // Tres colas con diferentes niveles de prioridad
+Process processes[MAX_PROCESSES]; // Arreglo que contiene los procesos
+int num_processes = 0; // Número de procesos en el arreglo
+
+// Función para agregar un proceso a la cola de nivel más bajo
+void add_process(Process process) {
+  enqueue(queues[0], num_processes);
+  processes[num_processes] = process;
+  num_processes++;
+}
+
+// Función para ejecutar la estrategia MLFQ
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  static Queue *queues[3];
+  static int current_process = 0;
+  // Verificar si el proceso actual ha terminado
+  if (procs_info[current_process].executed_time == process_total_time(procs_info[current_process].pid)) {
+    dequeue(queues[procs_info[current_process].on_io]); // Eliminar el proceso de la cola actual
+    return -1; // Indicar que se necesita un nuevo proceso
+  }
+
+  // Verificar si el proceso actual ha excedido su tiempo límite
+  if (curr_time % 10 == 0 && curr_time != 0) {
+    if (procs_info[current_process].on_io < 2) {
+      procs_info[current_process].on_io++; // Incrementar la prioridad del proceso
+      dequeue(queues[procs_info[current_process].on_io - 1]); // Eliminar el proceso de la cola actual
+      enqueue(queues[procs_info[current_process].on_io], curr_pid); // Agregar el proceso a la cola de prioridad más alta
+    }
+  }
+
+  // Obtener el siguiente proceso a ejecutar
+  int next_pid = -1;
+  for (int i = 0; i < 3; i++) {
+    if (!is_empty(queues[i])) {
+      next_pid = dequeue(queues[i]);
+      break;
+    }
+  }
+
+  // Si no hay procesos en las colas, continuar con el proceso actual
+  if (next_pid == -1) {
+    return curr_pid;
+  }
+
+  // Ejecutar el siguiente proceso
+  //processes[next_pid].executed_time++;
+  return next_pid;
+}*/
+
+
 
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -123,6 +198,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   if (strcmp(name, "round_robin") == 0) return *round_robin_scheduler;
+  //if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
