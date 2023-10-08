@@ -7,6 +7,8 @@
 
 #include "simulation.h"
 
+#include "auxiliar.h"
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
