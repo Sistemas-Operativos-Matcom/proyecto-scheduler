@@ -3,7 +3,7 @@
 #include "scheduler.h"
 #include "simulation.h"
 #include "queue.h"
-#define MAX 5000
+#define MAX 40000000
 
 void initQueue(struct Queue *q)
 {
@@ -36,6 +36,7 @@ void enqueue(struct Queue *q, proc_info_t value)
 }
 proc_info_t dequeue(struct Queue *q)
 {
+
     // asumimos que la cola no esta vacia
     proc_info_t item;
 

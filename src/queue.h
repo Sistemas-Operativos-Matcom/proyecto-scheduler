@@ -3,7 +3,7 @@
 
 #include "scheduler.h"
 #include "simulation.h"
-#define MAX 200
+#define MAX 40000000
 typedef struct Queue
 {
     proc_info_t items[MAX];
