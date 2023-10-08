@@ -75,10 +75,10 @@ int my_SJF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid
 int my_STCF(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   proc_info_t procmin = procs_info[0];
-  int TTmin = process_total_time(procmin.pid);
+  int TTmin = process_total_time(procmin.pid) - procmin.executed_time;
   for (int i = 1; i < procs_count; i++)
   {
-    int temp = process_total_time(procs_info[i].pid);
+    int temp = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
     if (temp < TTmin)
     {
       procmin = procs_info[i];
