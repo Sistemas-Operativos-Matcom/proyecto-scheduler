@@ -98,6 +98,13 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     return spid;
   }
 }
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{
+
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -107,8 +114,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
-
-
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  // if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
