@@ -112,10 +112,21 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   
   // si hay un proceso ejecutandose entonces se termina de ejecutar
                      //  de lo contario buscamos el proceso con menor tiempo de ejecucion y retornamos su pid
-  
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid)
+{
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if(procs_info[i].pid == curr_pid)
+    {
+      if(i == procs_count-1) return procs_info[0].pid;
+      return procs_info[i+1].pid;
+    }
+  }
   
 
-  return result;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -134,6 +145,8 @@ schedule_action_t get_scheduler(const char *name)
   if (strcmp(name, "stcf") == 0)
     return *stcf_scheduler;
 
+  if (strcmp(name, "rr") == 0)
+    return *rr_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
