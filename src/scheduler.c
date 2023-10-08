@@ -125,9 +125,20 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       return procs_info[i+1].pid;
     }
   }
-  
-
 }
+
+/*int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid)
+{
+  proc_info_t process = procs_info[0];
+  for (size_t i = 1; i < procs_count; i++)
+  {
+    procs_info[i-1] = procs_info[i];
+  }
+  procs_info[procs_count-1] = process;
+  return process.pid;
+  
+}*/
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
