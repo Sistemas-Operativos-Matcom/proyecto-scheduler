@@ -51,6 +51,32 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
     return shortest_job_pid;
 }
 
+// Función que devuelve el tiempo restante de ejecución dado un PID
+int process_remaining_time(proc_info_t process) {
+
+    return process_total_time(process.pid) - process.executed_time;
+}
+
+// Función que implementa la política STCF y devuelve el PID del proceso con el tiempo restante más corto
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+    int shortest_time_remaining_pid = curr_pid;
+    int shortest_time_remaining = -1;
+
+    for (int i = 0; i < procs_count; i++) {
+        // Verificar si el proceso está listo para ejecutarse y no es el proceso actual.
+        if (procs_info[i].pid != curr_pid) {
+            int time_remaining = process_remaining_time(procs_info[i]); // Obtener el tiempo restante
+            if (shortest_time_remaining_pid == -1 || time_remaining < shortest_time_remaining) {
+                shortest_time_remaining_pid = procs_info[i].pid;
+                shortest_time_remaining = time_remaining;
+            }
+        }
+    }
+
+    return shortest_time_remaining_pid;
+}
+
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -62,6 +88,8 @@ schedule_action_t get_scheduler(const char *name) {
   // Añade aquí los schedulers que implementes. Por ejemplo:
   
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
