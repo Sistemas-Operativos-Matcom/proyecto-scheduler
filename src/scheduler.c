@@ -53,6 +53,24 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
   return temp_pid;
 }
 
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+
+  int min_value = curr_time;
+  int current_index = -1;
+
+  for (int i = 0; i < procs_count; i++) {
+    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < min_value){
+      min_value = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+      current_index = i;
+    }
+  }
+
+  if (current_index != -1)
+    return procs_info[current_index].pid;
+
+  return curr_pid;
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -62,6 +80,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
 
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
