@@ -4,8 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 
 #include "simulation.h"
+
+#include<limits.h>
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -33,6 +36,32 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+
+int sjf(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  int shortest_time = INT_MAX;  // Valor inicial alto para encontrar el mínimo
+  int shortest_pid = -1;  // Valor inicial inválido para indicar que no se encontró ningún proceso
+
+  for (int i = 0; i < procs_count; i++) {
+    if (procs_info[i].on_io == 0 && procs_info[i].executed_time < shortest_time) {
+      shortest_time = procs_info[i].executed_time;
+      shortest_pid = procs_info[i].pid;
+    }
+  }
+
+  if (shortest_pid == -1) {
+    // No se encontró ningún proceso para ejecutar, devolver -1
+    return -1;
+  } else if (shortest_pid == curr_pid) {
+    // El proceso actual es el más corto, seguir ejecutándolo
+    return curr_pid;
+  } else {
+    // Se encontró un proceso más corto, devolver su PID
+    return shortest_pid;
+  }
+}
+
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -41,7 +70,7 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // Información que puedes obtener de un proceso
   int pid = procs_info[0].pid;      // PID del proceso
   int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
+                                    // realizando una operación IO
   int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
                                                 // ejecutado (en CPU o en I/O)
 
@@ -59,6 +88,7 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
