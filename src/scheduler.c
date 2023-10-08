@@ -76,14 +76,26 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-  int sdur = __INT_MAX__;
-  int spid = -1;
-
-  for(int i = 0; i < procs_count; i++)
+  if (curr_pid != -1)
   {
-    int cpid = procs_info[i].pid;
-    int duration = process_total_time(cpid);
-    
+    return curr_pid;
+  }
+  else
+  {
+    int sdur = __INT_MAX__;
+    int spid = -1;
+
+    for(int i = 0; i < procs_count; i++)
+    {
+      int cpid = procs_info[i].pid;
+      int duration = process_total_time(cpid);
+      if (duration < sdur)
+      {
+        sdur = duration;
+        spid = cpid;
+      }
+    }
+    return spid;
   }
 }
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
