@@ -149,7 +149,9 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
+  if (strcmp(name, "sjf") == 0) return *SJF_scheduler;
+  if (strcmp(name, "stcf") == 0) return *STCF_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
