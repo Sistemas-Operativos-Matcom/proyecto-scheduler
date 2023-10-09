@@ -115,7 +115,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     time_slice = 0;
     if(proc_index < procs_count - 1)
     {
-      return procs_info[proc_index + 1].pid;
+      return procs_info[proc_index].pid;
     }
     else
     {
