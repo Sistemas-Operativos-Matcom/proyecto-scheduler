@@ -39,11 +39,63 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
+  if(process_total_time(curr_pid) > 0)
+  {
+    // Mantenerse con el mismo proceso
+    return curr_pid;
+  }
+
   int shortest_time = INT_MAX;  // Valor inicial alto para encontrar el mínimo
   int shortest_pid = -1;  // Valor inicial inválido para indicar que no se encontró ningún proceso
 
   for (int i = 0; i < procs_count; i++) {
-    if (procs_info[i].on_io == 0 && procs_info[i].executed_time < shortest_time) {
+    if (process_total_time(procs_info[i].pid) < shortest_time) {
+      shortest_time = process_total_time(procs_info[i].pid);
+      shortest_pid = procs_info[i].pid;
+    }
+  }
+
+  if (shortest_pid == -1) {
+    // No se encontró ningún proceso para ejecutar, devolver -1
+    return -1;
+  } 
+  else {
+    // Se encontró el proceso más corto, devolver su PID
+    return shortest_pid;
+  }
+}
+
+int stcf(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+
+  int shortest_time = INT_MAX;  // Valor inicial alto para encontrar el mínimo
+  int shortest_pid = -1;  // Valor inicial inválido para indicar que no se encontró ningún proceso
+
+  for (int i = 0; i < procs_count; i++) {
+    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < shortest_time) {
+      shortest_time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+      shortest_pid = procs_info[i].pid;
+    }
+  }
+
+  if (shortest_pid == -1) {
+    // No se encontró ningún proceso para ejecutar, devolver -1
+    return -1;
+  } 
+  else {
+    // Se encontró el proceso más corto, devolver su PID
+    return shortest_pid;
+  }
+}
+
+int rr(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+
+  int shortest_time = INT_MAX;  // Valor inicial alto para encontrar el mínimo
+  int shortest_pid = -1;  // Valor inicial inválido para indicar que no se encontró ningún proceso
+
+  for (int i = 0; i < procs_count; i++) {
+    if (procs_info[i].executed_time < shortest_time) {
       shortest_time = procs_info[i].executed_time;
       shortest_pid = procs_info[i].pid;
     }
@@ -52,15 +104,12 @@ int sjf(proc_info_t *procs_info, int procs_count, int curr_time,
   if (shortest_pid == -1) {
     // No se encontró ningún proceso para ejecutar, devolver -1
     return -1;
-  } else if (shortest_pid == curr_pid) {
-    // El proceso actual es el más corto, seguir ejecutándolo
-    return curr_pid;
-  } else {
-    // Se encontró un proceso más corto, devolver su PID
+  } 
+  else {
+    // Se encontró el proceso que menos tiempo ha sido ejecutado, devolver su PID
     return shortest_pid;
   }
 }
-
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
@@ -89,6 +138,8 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf;
+  if (strcmp(name, "stcf") == 0) return *stcf;
+  if (strcmp(name, "rr") == 0) return *rr;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
