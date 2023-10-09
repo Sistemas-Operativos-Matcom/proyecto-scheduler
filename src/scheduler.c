@@ -85,7 +85,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     int sdur = __INT_MAX__;
     int spid = -1;
 
-    for(int i = 0; i < procs_count; i++)
+    for (int i = 0; i < procs_count; i++)
     {
       int cpid = procs_info[i].pid;
       int duration = process_total_time(cpid);
@@ -99,10 +99,45 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
 }
 
+int rr_index = 0;
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
+  int time_slice = 50;
+  int last;
 
+  //last es 1 si el proceso es el ultimo proceso; 0 en caso contrario
+  if (rr_index >= procs_count-1)
+    last = 1;
+  else
+    last = 0;
+
+  //Tiempo que se ha ejecutado un proceso
+  int exec_time = procs_info[rr_index].executed_time;
+
+  //Caso inicial. Como rr_index inicial es 0, si el proceso 0 no se ha ejecutado, comenzar a ejecutarlo.
+  if (exec_time == 0)
+  {
+    return procs_info[rr_index].pid;
+  }
+
+  //Si se cumple, no ha llegado al time slice y se sigue ejecutando el mismo proceso
+  if (exec_time % time_slice != 0)
+  {
+    if (curr_pid != -1)
+      return curr_pid;
+  }
+
+  //Si no hay un proceso siguiente, comienza por el proceso 0.
+  //De lo contrario, devuelve el pid del siguiente proceso.
+  if (last != 1)
+  {
+    rr_index++;
+    return procs_info[rr_index].pid;   
+  }
+  rr_index = 0;
+  return procs_info[rr_index].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
