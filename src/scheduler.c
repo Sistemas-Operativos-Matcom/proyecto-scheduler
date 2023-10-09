@@ -34,17 +34,14 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
-    int shortest_job_pid = curr_pid;
+    int shortest_job_pid = -1;
     int shortest_execution_time = -1;
 
     for (int i = 0; i < procs_count; i++) {
-        // Verificar si el proceso está listo para ejecutarse y no es el proceso actual.
-        if (procs_info[i].pid != curr_pid) {
-            int execution_time = process_total_time(procs_info[i].pid); // Obtener el tiempo de ejecución
-            if (shortest_job_pid == -1 || execution_time < shortest_execution_time) {
-                shortest_job_pid = procs_info[i].pid;
-                shortest_execution_time = execution_time;
-            }
+        int execution_time = process_total_time(procs_info[i].pid); // Obtener el tiempo de ejecución
+        if (shortest_job_pid == -1 || execution_time < shortest_execution_time) {
+            shortest_job_pid = procs_info[i].pid;
+            shortest_execution_time = execution_time;
         }
     }
 
@@ -59,17 +56,15 @@ int process_remaining_time(proc_info_t process) {
 
 // Función que implementa la política STCF y devuelve el PID del proceso con el tiempo restante más corto
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
-    int shortest_time_remaining_pid = curr_pid;
+    int shortest_time_remaining_pid = -1;
     int shortest_time_remaining = -1;
 
     for (int i = 0; i < procs_count; i++) {
-        // Verificar si el proceso está listo para ejecutarse y no es el proceso actual.
-        if (procs_info[i].pid != curr_pid) {
-            int time_remaining = process_remaining_time(procs_info[i]); // Obtener el tiempo restante
-            if (shortest_time_remaining_pid == -1 || time_remaining < shortest_time_remaining) {
-                shortest_time_remaining_pid = procs_info[i].pid;
-                shortest_time_remaining = time_remaining;
-            }
+   
+        int time_remaining = process_remaining_time(procs_info[i]); // Obtener el tiempo restante
+        if (shortest_time_remaining_pid == -1 || time_remaining < shortest_time_remaining) {
+            shortest_time_remaining_pid = procs_info[i].pid;
+            shortest_time_remaining = time_remaining;
         }
     }
 
