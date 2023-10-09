@@ -33,6 +33,41 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) 
+{
+  int PID = curr_pid;
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == curr_pid)
+    {
+      return curr_pid;
+    }
+    if (process_total_time(procs_info[i].pid) < process_total_time(PID))
+    {
+      PID = procs_info[i].pid;
+    }
+  }
+  return PID;
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) 
+{
+  int PID = curr_pid;
+  int time = process_total_time(curr_pid);
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < time)
+    {
+      PID = procs_info[i].pid;
+      time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+    }
+  }
+  return PID;
+}
+
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
