@@ -72,6 +72,45 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 }
 
 
+// Variables globales para el algoritmo Round Robin
+const int Time_slice = 4;
+
+int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según tus necesidades)
+int current_index = 0; // PID del proceso actual en ejecución
+
+// Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time) {
+
+    int current_process_id = procs_info[current_index].pid;
+    int current_process_finished = 0;
+    // Verificar si el proceso actual ha agotado su time_slice
+    for (int i = 0; i < procs_count; i++) {
+        if (procs_info[i].pid == current_process_id) {
+
+            current_process_finished = 1;
+
+            if (time_slice == 0) {
+                // El proceso actual ha agotado su time_slice, pasar al siguiente proceso
+                current_index = (i + 1) % procs_count;
+                current_process_id = procs_info[current_index].pid;
+
+                time_slice = Time_slice;
+            } else {
+                time_slice = time_slice - 1;
+            }
+            break;
+        }
+    }
+    if( !current_process_finished){
+        current_index = current_index + 1;  
+        time_slice = Time_slice;
+        procs_info[current_index].pid;
+    }
+    
+    // Devolver el PID del proceso actual
+    return current_process_id;
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -85,6 +124,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
 
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
   
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
