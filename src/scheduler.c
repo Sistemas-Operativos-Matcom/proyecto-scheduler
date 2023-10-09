@@ -91,13 +91,9 @@ int stcf(proc_info_t *procs_info, int procs_count, int curr_time,
 int rr(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
 
-  int shortest_time = INT_MAX;  // Valor inicial alto para encontrar el mínimo
-  int shortest_pid = -1;  // Valor inicial inválido para indicar que no se encontró ningún proceso
-
   for (int i = 0; i < procs_count; i++) {
-    if (procs_info[i].executed_time < shortest_time) {
-      shortest_time = procs_info[i].executed_time;
-      shortest_pid = procs_info[i].pid;
+    if (procs_info[i].pid != curr_pid) {
+        return procs_info[i].pid;
     }
   }
 
@@ -105,10 +101,6 @@ int rr(proc_info_t *procs_info, int procs_count, int curr_time,
     // No se encontró ningún proceso para ejecutar, devolver -1
     return -1;
   } 
-  else {
-    // Se encontró el proceso que menos tiempo ha sido ejecutado, devolver su PID
-    return shortest_pid;
-  }
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
