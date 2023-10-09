@@ -59,11 +59,12 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int sdur = __INT_MAX__;
   int spid = -1;
   
-  //Recorre el array para determinar el proceso más corto
+  //Recorre el array para determinar el proceso al que le queda menos.
   for (int i = 0; i < procs_count; i++)
   {
     int cpid = procs_info[i].pid;
     int duration = process_total_time(cpid);
+    
     if (duration < sdur)
     {
       sdur = duration;
@@ -76,27 +77,24 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
+  //Si no ha terminado el proceso, seguir ejecutándolo.
   if (curr_pid != -1)
-  {
     return curr_pid;
-  }
-  else
-  {
-    int sdur = __INT_MAX__;
-    int spid = -1;
+  
+  int sdur = __INT_MAX__;
+  int spid = -1;
 
-    for (int i = 0; i < procs_count; i++)
+  for (int i = 0; i < procs_count; i++)
+  {
+    int cpid = procs_info[i].pid;
+    int duration = process_total_time(cpid);
+    if (duration < sdur)
     {
-      int cpid = procs_info[i].pid;
-      int duration = process_total_time(cpid);
-      if (duration < sdur)
-      {
-        sdur = duration;
-        spid = cpid;
-      }
+      sdur = duration;
+      spid = cpid;
     }
-    return spid;
   }
+  return spid;
 }
 
 int rr_index = 0;
@@ -118,9 +116,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   //Caso inicial. Como rr_index inicial es 0, si el proceso 0 no se ha ejecutado, comenzar a ejecutarlo.
   if (exec_time == 0)
-  {
     return procs_info[rr_index].pid;
-  }
 
   //Si se cumple, no ha llegado al time slice y se sigue ejecutando el mismo proceso
   if (exec_time % time_slice != 0)
