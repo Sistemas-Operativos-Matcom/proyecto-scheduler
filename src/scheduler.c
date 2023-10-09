@@ -35,13 +35,16 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
     int shortest_job_pid = -1;
-    int shortest_execution_time = -1;
+    int shortest_total_time = -1;
+
+    if(curr_pid != -1)
+        return curr_pid;
 
     for (int i = 0; i < procs_count; i++) {
-        int execution_time = process_total_time(procs_info[i].pid); // Obtener el tiempo de ejecución
-        if (shortest_job_pid == -1 || execution_time < shortest_execution_time) {
+        int total_time = process_total_time(procs_info[i].pid); // Obtener el tiempo de ejecución
+        if (shortest_job_pid == -1 || total_time < shortest_total_time) {
             shortest_job_pid = procs_info[i].pid;
-            shortest_execution_time = execution_time;
+            shortest_total_time = total_time;
         }
     }
 
@@ -79,20 +82,20 @@ int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según 
 int current_index = 0; // PID del proceso actual en ejecución
 
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
-int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time) {
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-    int current_process_id = procs_info[current_index].pid;
-    int current_process_finished = 0;
-    // Verificar si el proceso actual ha agotado su time_slice
+    int last_process_id = curr_pid;
+        
+    int current_process_finished = 1;
     for (int i = 0; i < procs_count; i++) {
-        if (procs_info[i].pid == current_process_id) {
+        if (procs_info[i].pid == curr_pid) {
 
-            current_process_finished = 1;
+            current_process_finished = 0;
 
             if (time_slice == 0) {
                 // El proceso actual ha agotado su time_slice, pasar al siguiente proceso
                 current_index = (i + 1) % procs_count;
-                current_process_id = procs_info[current_index].pid;
+                last_process_id = procs_info[current_index].pid;
 
                 time_slice = Time_slice;
             } else {
@@ -101,14 +104,13 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time) {
             break;
         }
     }
-    if( !current_process_finished){
-        current_index = current_index + 1;  
+    if(current_process_finished){ 
         time_slice = Time_slice;
-        procs_info[current_index].pid;
+        return procs_info[current_index].pid;
     }
     
     // Devolver el PID del proceso actual
-    return current_process_id;
+    return last_process_id;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
