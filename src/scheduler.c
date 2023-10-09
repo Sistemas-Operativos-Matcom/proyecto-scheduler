@@ -54,14 +54,6 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 //   return -1;
 // }
 
-// Random Scheduler
-int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
-  // Ejecuta un proceso random
-  srand((unsigned)time(NULL));
-  return procs_info[rand() % procs_count].pid;
-}
-
 // SJF Shortest Job First
 int compare_sjf(const void *a, const void *b) // Criterio de Comparacion
 {
@@ -95,7 +87,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return procs_info[to_exec_index].pid;
 }
 
-// Round Robin
+// ROUND ROBIN
 int rr_time_slice(int timeInterrup) // parametrizar el rr
 {
   int mult = 2;
@@ -116,8 +108,19 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
   return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[pass_turn() % procs_count].pid : curr_pid;
 }
 
-// Round Robin plus
+//MLFQ
 
+
+// SCHEDULER OTRAS IMPLEMENTACIONES
+
+// RANDOM
+int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  srand((unsigned)time(NULL));
+  return procs_info[rand() % procs_count].pid;
+}
+
+// ROUND ROBIN PLUS
 // En el rr puede pasar el proceso ejecutado termine durante el time slice, entonces
 // el proceso que venia ocupa el index del que termino, y es saltado.
 // De forma general si algun proceso se encontra en i/o y termina durante el time slice,
@@ -133,15 +136,45 @@ void save_procs(proc_info_t dest[], proc_info_t *source, int *dest_count, int so
     dest[i] = source[i];
 }
 
-int next_turn(proc_info_t *current_procs)
+int find_match(proc_info_t past_procs[], proc_info_t *current_procs, int past_count, int current_count)
 {
-  
-  return 0;
+  int next_turn = 0;
+  int last_index = (turn_procs - 1) % past_count;
+
+  if (past_count == 0 || (last_index < current_count && current_procs[last_index].pid == past_procs[last_index].pid))
+  {
+    next_turn = turn_procs;
+  }
+
+  else // el orden fue alterado
+  {
+    for (int i = last_index; i < past_count; i++) // buscar el siguiente proceso
+    {
+      int temp = find_pid_array(current_procs, current_count, past_procs[i].pid);
+
+      if (temp >= 0)
+      {
+        next_turn = temp;
+        break;
+      }
+    }
+  }
+
+  save_procs(past_procs, current_procs, &past_procs_info_count, current_count);
+
+  return next_turn;
+}
+
+int next_proc(proc_info_t *current_procs, int count)
+{
+  int next = find_match(past_procs_info, current_procs, past_procs_info_count, count);
+  turn_procs = next + 1;
+  return next;
 }
 
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_turn(procs_info) % procs_count].pid : curr_pid;
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(procs_info, procs_count) % procs_count].pid : curr_pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -169,6 +202,10 @@ schedule_action_t get_scheduler(const char *name)
 
   if (strcmp(name, "rr") == 0)
     return *round_robin_scheduler;
+
+  // Variaciones
+  if (strcmp(name, "rr+") == 0)
+    return *round_robin_plus_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
