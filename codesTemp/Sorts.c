@@ -4,111 +4,81 @@
 #include <time.h>
 #include <string.h>
 
-void swap(void *x, void *y, int size)
+int past_procs[205];
+int past_procs_len;
+
+int property2(void *item)
 {
-    char resb[size];
-    memcpy(resb, x, size);
-    memcpy(x, y, size);
-    memcpy(y, resb, size);
+    int *prop = (int *)item;
+    return *prop;
 }
 
-int compare(const void *a, const void *b)
+void save_procs_info(int dest[], int *source, int *dest_count, int count)
 {
-    return *(int *)a - *(int *)b;
-}
-
-int getPivot(int li, int ls)
-{
-    srand((unsigned)time(NULL));
-    return rand() % (ls - li + 1) + li;
-}
-
-int isSorted(void *arr, int count, size_t size, int (*compare)(const void *, const void *))
-{
-    for (int i = 0; i < count - 1; i++)
+    for (int i = 0; i < count; i++)
     {
-        if (compare(arr + i * size, arr + (i + 1) * size) > 0)
-        {
-            return 1;
-        }
+        dest[i] = source[i];
     }
-    return 0;
+    *dest_count = count;
 }
 
-void qSort(void *arr, int count, size_t size, int (*compare)(const void *, const void *))
+void print_arr(int *array, int count)
 {
-    quickSort(arr, 0, count - 1, size, compare);
-
-    if (isSorted(arr, count, size, compare))
+    if (count == 0)
     {
-        printf("Error in qSort\n");
-    }
-    return;
-}
-
-void quickSort(void *arr, int li, int ls, size_t size, int (*compare)(const void *, const void *))
-{
-    if (ls <= li || li < 0)
-    {
+        printf("warning man");
         return;
     }
-    printf(" - - - - - - - - - \n");
-
-    swap(arr + ls * size, arr + getPivot(li, ls) * size, size); // pv -> last pos
-
-    int index = li;
-
-    printf("li: %d, ls: %d\n", li, ls + 1);
-
-    for (int i = li; i < ls; i++)
+    for (int i = 0; i < count; i++)
     {
-        printf(" %d %d %d\n", *(int *)(arr + i * size), *(int *)(arr + ls * size), compare(arr + i * size, arr + ls * size));
-        if (compare(arr + i * size, arr + ls * size) < 0)
-        {
-            printf("in");
-            swap(arr + index * size, arr + i * size, size);
-            index++;
-        }
-    }
-
-    printf("index: %d\n", index);
-
-    swap(arr + index * size, arr + ls * size, size);
-    for (int i = 0; i < 10; i++)
-    {
-        printf(" %d", *(int *)(arr + i * size));
+        printf(" %d", array[i]);
     }
     printf("\n");
-    quickSort(arr, li, index - 1, size, compare);
-    quickSort(arr, index + 1, ls, size, compare);
-    return;
 }
 
 int main()
 {
-    int a[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-    int *bp = a;
-
-    for (int i = 0; i < 10; i++)
-    {
-        swap(bp + i, bp + getPivot(0, 10), sizeof(int));
-    }
-
-    printf("Unordered: ");
-    for (int i = 0; i < 10; i++)
-    {
-        printf(" %d", *(bp + i));
-    }
-
-    printf("\n");
-    qSort(bp, 10, sizeof(int), compare);
-    printf("Ordered: ");
-
-    for (int i = 0; i < 10; i++)
-    {
-        printf(" %d", *(bp + i));
-    }
-    printf("\n");
-    return 0;
+    int arr[5] = {1, 2, 3, 4, 5};
+    int count = 5;
+    save_procs_info(past_procs, arr, &past_procs_len, 5);
+    count = 11;
+    arr[2] = 53;
+    printf("%d", past_procs_len);
+    print_arr(past_procs, past_procs_len);
+    //  arr[1] = 3;
+    //  count = 3;
+    //  save_procs_info(past_procs, arr, past_procs_len, count, sizeof(int), property2);
+    //  print_arr(past_procs, *past_procs_len);
 }
+
+// typedef struct queue
+// {
+//     int base;
+//     int count;
+//     int size;
+//     void *arr;
+// } queue_t;
+
+// void push_to_queue(queue_t *q, void *item)
+// {
+//     memcpy(q->arr + q->count * q->size, item, q->size);
+//     memcpy(q->count, q->count + 1, q->size);
+// }
+
+// void pop_from_queue(queue_t *q, void *item)
+// {
+//     memcpy(q->base, q->base + 1 * q->size, q->size);
+// }
+
+// void *front_queue(queue_t *q, char (*property)(void *item))
+// {
+//     if (q->count - q->base != 0)
+//         printf(property(q->arr + q->base * q->size));
+// }
+
+// char property(void *number)
+// {
+//     char value[1024];
+//     sprintf(value, "%d", (int)number);
+//     return value;
+// }

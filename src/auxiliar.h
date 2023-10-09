@@ -16,5 +16,4 @@ int select_item(void *arr, int count, size_t size, int (*selector)(const void *,
 
 void q_sort(void *arr, int count, size_t size, int (*compare)(const void *, const void *));
 
-
 #endif
