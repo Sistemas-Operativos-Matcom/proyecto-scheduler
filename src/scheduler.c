@@ -29,43 +29,12 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
-static bool contains_pid(proc_info_t* procs_info, int procs_count, int pid) {
-  for (int i = 0; i < procs_count; i++)
-    if (procs_info[i].pid == pid)return true;
-  return false; 
-}
+static bool contains_pid(proc_info_t* procs_info, int procs_count, int pid);
+static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int procs_count);
+static void concat_queues(queue_t* to, queue_t** from, int count);
+static bool is_on_io(int pid, proc_info_t* procs, int procs_count);
+static int get_executable_pid(queue_t* procs, proc_info_t* procs_info, int procs_count, int rr_time);
 
-static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int procs_count) {
-  for (int i = 0; i < q->len; i++) {
-    proc_info_t t = pop_item(q);
-    
-    if (contains_pid(procs_info, procs_count, t.pid))push_item(q, t);
-  }
-}
-
-static void concat_queues(queue_t* to, queue_t** from, int count) {
-  for (int j = 0; j < count; j++) {
-    queue_t* _from = from[j];
-
-    if (!_from->len)
-      continue;
-
-    else if (!to->len) {
-      to->head = _from->head;
-      to->tail = _from->tail;
-      to->len = _from->len;
-    }
-
-    else {
-      _from->tail->next = to->head;
-      to->head = _from->head;
-
-      to->len += _from->len;
-    }
-
-    start_queue(_from);
-  }
-}
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
@@ -122,6 +91,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
   static bool is_init = false;
   static queue_t prior_high, prior_mid,prior_low;
+  
   static int last_len = -1, l1 = -1, l2 = -1;
   static int update_count = 0;
 
@@ -139,10 +109,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   }
 
   //Add new procs
-  bool is_proc_ended = false;
   for (int i = last_len < 2 ? 0 : last_len - 2; i < procs_count; i++) {
     if (l1 == procs_info[i].pid || l2 == procs_info[i].pid){
-      is_proc_ended = true;
       continue;
     }
 
@@ -154,8 +122,12 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   l1 = procs_count - 1 >= 0 ? procs_info[procs_count - 1].pid : -1;
   l2 = procs_count - 2 >= 0 ? procs_info[procs_count - 2].pid : -1; 
 
+  //Delete completed procs
+  delete_completed_procs(&prior_high, procs_info, procs_count);
+  delete_completed_procs(&prior_mid , procs_info, procs_count);
+  delete_completed_procs(&prior_low , procs_info, procs_count);
 
-  //Update priority of old procs
+  // Update priority of old procs
   if (update_time == update_count) {
     update_count = 0;
 
@@ -165,43 +137,27 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   } update_count++;
 
   //Decrease priority if it reached the time_slice
-  if (prior_high.len && prior_high.head->value.executed_time == time_slice) {
-    proc_info_t tmp = pop_item(&prior_high);
-    tmp.executed_time = 0;
-
-    push_item(&prior_mid, tmp);
-  }
-  if (prior_mid.len && prior_mid.head->value.executed_time == time_slice) {
+  while (prior_mid.len && prior_mid.head->value.executed_time == time_slice) {
     proc_info_t tmp = pop_item(&prior_mid);
     tmp.executed_time = 0;
 
     push_item(&prior_low, tmp);
   }
+  while (prior_high.len && prior_high.head->value.executed_time == time_slice) {
+    proc_info_t tmp = pop_item(&prior_high);
+    tmp.executed_time = 0;
 
-  //Delete completed procs
-  if (is_proc_ended) {
-    delete_completed_procs(&prior_high, procs_info, procs_count);
-    delete_completed_procs(&prior_mid , procs_info, procs_count);
-    delete_completed_procs(&prior_low , procs_info, procs_count);
+    push_item(&prior_mid, tmp);
   }
 
   //Round-robin if the same priority, else go to lower priority
-  queue_t* rr = NULL;
-  if (prior_high.len)     rr = &prior_high;
-  else if (prior_mid.len) rr = &prior_mid;
-  else if (prior_low.len) rr = &prior_low;
+  //Ignore the procs performing IO operations
+  //If nothing can run, return -1
+  int ans = get_executable_pid(&prior_high, procs_info, procs_count, rr_time);
+  if (ans == -1) ans = get_executable_pid(&prior_mid, procs_info, procs_count, rr_time);
+  if (ans == -1) ans = get_executable_pid(&prior_low, procs_info, procs_count, rr_time);
 
-  if (rr != NULL && rr->len) {
-    rr->head->value.executed_time++;
-
-    if (rr->head->value.executed_time && rr->head->value.executed_time % rr_time == 0) {
-      proc_info_t tmp = pop_item(rr);
-      push_item(rr, tmp);
-    }
-    return rr->head->value.pid;
-  }
-  
-  return -1;
+  return ans;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -212,10 +168,63 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "rr")   == 0) return *rr_scheduler;
-  if (strcmp(name, "sfj")   == 0) return *sfj_scheduler;
+  if (strcmp(name, "sjf")   == 0) return *sfj_scheduler;
   if (strcmp(name, "stcf")   == 0) return *stcf_scheduler;
   if (strcmp(name, "mlfq")   == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
+}
+
+//Helper functions
+
+static bool contains_pid(proc_info_t* procs_info, int procs_count, int pid) {
+  for (int i = 0; i < procs_count; i++)
+    if (procs_info[i].pid == pid)return true;
+  return false; 
+}
+
+static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int procs_count) {
+  int n = q->len;
+  for (int i = 0; i < n; i++) {
+    proc_info_t t = pop_item(q);
+
+    if (contains_pid(procs_info, procs_count, t.pid))push_item(q, t);
+  }
+}
+
+static void concat_queues(queue_t* to, queue_t** from, int count) {
+  for (int j = 0; j < count; j++) {
+    queue_t* _from = from[j];
+
+    while (_from->len) {
+      proc_info_t proc = pop_item(_from);
+      proc.executed_time = 0;
+
+      push_item(to, proc);
+    }
+
+    start_queue(_from);
+  }
+}
+
+static bool is_on_io(int pid, proc_info_t* procs, int procs_count) {
+  for (int i = 0; i < procs_count; i++) {
+    if (procs[i].pid == pid)return procs[i].on_io != 0;
+  }
+  return false;
+}
+
+static int get_executable_pid(queue_t* procs, proc_info_t* procs_info, int procs_count, int rr_time) {
+  for (int i = 0; i < procs->len && (is_on_io(procs->head->value.pid, procs_info, procs_count) || (procs->head->value.executed_time % rr_time == 0 && i == 0)); i++) {
+    proc_info_t proc = pop_item(procs);
+    push_item(procs, proc);
+  }
+
+  if (procs->len && !is_on_io(procs->head->value.pid, procs_info, procs_count)) {
+    procs->head->value.executed_time++;
+    return procs->head->value.pid;
+  }
+  
+  return -1;
 }

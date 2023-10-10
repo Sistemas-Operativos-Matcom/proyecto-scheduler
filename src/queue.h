@@ -7,7 +7,6 @@ typedef struct node
 {
     proc_info_t value;
     struct node* next;
-    struct node* prev;
 }node_t;
 
 typedef struct queue
