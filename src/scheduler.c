@@ -92,9 +92,15 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return current_pid;
 }
 
+int ind = 0;
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  
+
+  ind = (procs_info[ind].pid == curr_pid) ? (1 + ind) % procs_count : ind % procs_count;
+
+  return procs_info[ind].pid;
+
 }
 
 
@@ -108,9 +114,9 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
 
-  if (strcmp(name, "rr") == 0) return *rr_scheduler;
-
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
