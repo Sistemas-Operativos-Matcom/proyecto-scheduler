@@ -8,11 +8,12 @@
 #include "simulation.h"
 
 // Metodos Auxialiares
-
 // Los metodos estan generales por flexibilidad del proyecto
+
+// Retorna el index de un processo en el array de procs_info o -1 si no se encuentra
 int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
 {
-  // Retorna el index de un processo en el array de procs_info o -1 si no se encuentra
+
   for (int i = 0; i < procs_count; i++)
   {
     if (procs_info[i].pid == pid)
@@ -23,15 +24,16 @@ int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
   return -1;
 }
 
+// Devuelve el index del elemento seleccionado por el metodo compare() entre dos
 int select_item(void *arr, int count, size_t size, int (*compare)(const void *, const void *))
 {
   // Siempre se queda con el menor segun compare
   // Args: array, length, sizeof(item), metodo para seleccionar
-  // retorna el index del item
+
   int selected = 0;
   for (int i = 0; i < count; i++)
   {
-    if (compare(arr + selected * size, arr + i * size) > 0) // arr[i] tiene mayor score que arr[selected]
+    if (compare(arr + selected * size, arr + i * size) > 0)
     {
       selected = i;
     }
