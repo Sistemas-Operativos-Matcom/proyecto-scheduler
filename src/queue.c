@@ -8,7 +8,7 @@ void start_queue(queue_t* q) {
     q->len = 0;
 }
 
-void push_item(queue_t* q, int value) {
+void push_item(queue_t* q, proc_info_t value) {
     if (q->tail != NULL) {
         q->tail->next = (node_t*) malloc(sizeof(node_t));
         q->tail->next->value = value;
@@ -24,10 +24,12 @@ void push_item(queue_t* q, int value) {
     q->len ++;
 }
 
-int pop_item(queue_t* q) {
-    int ans = q->tail->value;
-    q->tail = q->tail->prev;
+proc_info_t pop_item(queue_t* q) {
+    proc_info_t ans = q->head->value;
+    q->head = q->head->next;
     q->len --;
+
+    if (q->len == 0)q->head = q->tail = NULL;
 
     return ans;
 }
