@@ -83,27 +83,25 @@ int pass_turn(int *turn)
   turn += 1;
   return turn - 1;
 }
-int round_robin(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, int (*next_pid)(int *turn), int *turn)
-{
-  return procs_info[next_pid(&turn_procs) % procs_count].pid;
-}
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ?: curr_pid;
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[pass_turn(&turn_procs) % procs_count].pid : curr_pid;
 }
 
 // MLFQ
 // Parametros del MLFQ
 int depth = 3; // cantidad de colas de prioridad o niveles del mlfq
+int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[pass_turn(&turn_procs) % procs_count].pid : curr_pid;
+}
 
-int round_robin_mlfq(pro)
+// SCHEDULER OTRAS IMPLEMENTACIONES
 
-    // SCHEDULER OTRAS IMPLEMENTACIONES
-
-    // RANDOM
-    // Ejecuta un proceso random
-    random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+// RANDOM
+// Ejecuta un proceso random
+random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   srand((unsigned)time(NULL));
   return procs_info[rand() % procs_count].pid;
@@ -170,8 +168,6 @@ schedule_action_t get_scheduler(const char *name)
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   //
-  if (strcmp(name, "rand") == 0)
-    return *random_scheduler;
 
   if (strcmp(name, "sjf") == 0)
     return *sjf_scheduler;
@@ -183,6 +179,9 @@ schedule_action_t get_scheduler(const char *name)
     return *round_robin_scheduler;
 
   // Variaciones
+  if (strcmp(name, "rand") == 0)
+    return *random_scheduler;
+
   if (strcmp(name, "rr+") == 0)
     return *round_robin_plus_scheduler;
 
