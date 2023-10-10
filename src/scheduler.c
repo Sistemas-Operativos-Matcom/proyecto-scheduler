@@ -7,6 +7,8 @@
 
 #include "simulation.h"
 
+#define SLICE_TIME 30
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -97,12 +99,35 @@ int ind = 0;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
 
-  ind = (procs_info[ind].pid == curr_pid) ? (1 + ind) % procs_count : ind % procs_count;
+  ind = ind % procs_count; 
+
+  if(curr_time % SLICE_TIME == 0 && procs_info[ind].pid == curr_pid) 
+    ind = (1 + ind) % procs_count;
 
   return procs_info[ind].pid;
 
 }
 
+int io_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  ind = ind % procs_count;
+
+  int on_io = 0;
+
+  if(curr_time % SLICE_TIME == 0 && procs_info[ind].pid == curr_pid)
+    ind = (1 + ind) % procs_count;
+
+  while(procs_info[ind].on_io != 0)
+  {
+    on_io += 1;
+    
+    ind = (ind + 1) % procs_count;
+
+    if(on_io == procs_count) return -1;
+  }
+
+  return procs_info[ind].pid;
+}
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -117,6 +142,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
 
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+
+  if (strcmp(name, "io") == 0) return *io_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
