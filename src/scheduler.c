@@ -27,31 +27,12 @@
 //  proceso actual.
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
-//
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
-}
-
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
-
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
 }
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
@@ -129,9 +110,15 @@ int io_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[ind].pid;
 }
 
+int mlfq_scheduler()
+{
+  return -1;
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
+  
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
@@ -144,6 +131,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
 
   if (strcmp(name, "io") == 0) return *io_scheduler;
+
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
