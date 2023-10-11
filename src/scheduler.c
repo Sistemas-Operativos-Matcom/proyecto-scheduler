@@ -25,45 +25,62 @@
 //  proceso actual.
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
-//
-int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid) {
-  // Se devuelve el PID del primer proceso de todos los disponibles (los
-  // procesos están ordenados por orden de llegada).
+
+
+
+int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
+  // Se devuelve el PID del primer proceso de todos los disponibles
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
+  // Se devuelve el PID del proceso con menor tamaño
+  int id=0;
+  int PID=procs_info[0].pid;
+  for(int i=0;i<procs_count;i++){
+    if(process_total_time(procs_info[i].pid)<process_total_time(procs_info[id].pid)){
+      id=i;
+      PID=procs_info[i].pid;
+    }
+  } 
+  return PID;
+} 
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
+  // Se devuelve el PID con el menor tiempo a ser completado.
+  int id=0; 
+  int PID=procs_info[0].pid;
+  for(int i=0;i<procs_count;i++){
+    if(process_total_time(procs_info[i].pid)-procs_info[i].executed_time < process_total_time(procs_info[id].pid)-procs_info[id].executed_time){
+      id=i;
+      PID=procs_info[i].pid;
+    }
+  } 
+  return PID;
+} 
 
-  return -1;
+#define QUANTUM 5
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+    // Round Robin, en todo su esplendor 
+    static int prev_change = 0; 
+    static int id= 0; 
+
+    if( curr_pid==-1 || curr_time-prev_change >= QUANTUM) {
+        id= (id+1) % procs_count; 
+        prev_change = curr_time; 
+        return procs_info[id].pid;
+    }
+    return curr_pid;
 }
 
-// Esta función devuelve la función que se ejecutará en cada timer-interrupt
-// según el nombre del scheduler.
+
 schedule_action_t get_scheduler(const char *name) {
-  // Si necesitas inicializar alguna estructura antes de comenzar la simulación
-  // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
