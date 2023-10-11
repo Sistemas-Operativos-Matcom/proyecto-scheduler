@@ -1,43 +1,67 @@
 #include "queue.h"
+#include "simulation.h"
 
-int isEmpty(queue_t* q) {
-    return q->front == NULL ? 1 : 0;
+#define NUM_QUEUES 3
+
+void init_queue(int qid, int capacity) {
+  queues[qid]->procs = (proc_info_t *)malloc(capacity * sizeof(proc_info_t));
+  queues[qid]->count = 0;
+  queues[qid]->capacity = capacity;
 }
 
-queue_t createQueue() {
-    queue_t q = malloc(sizeof(queue_t));
-    q->front = NULL;
-    q->last = NULL;
+void enqueue(int qid, proc_info_t proc, int time) {
+  if (queues[qid]->count == queues[qid]->capacity) {
+    queues[qid]->capacity *= 2;
+    queues[qid]->procs = (proc_info_t *)realloc(queues[qid]->procs, queues[qid]->capacity * sizeof(proc_info_t));
+    queues[qid]->executed_time = (int *)realloc(queues[qid]->executed_time, queues[qid]->capacity * sizeof(int));
+  }
 
-    return q;
+  queues[qid]->executed_time[queues[qid]->count] = time;
+  queues[qid]->procs[queues[qid]->count++] = proc;
 }
 
-void insertQueue(queue_t* q, int pid) {
-    node_t newNode = malloc(sizeof(node_t));
-    newNode->pid = pid;
-    newNode->next = NULL;
+proc_info_t dequeue(int qid) {
+  proc_info_t proc = queues[qid]->procs[0];
 
-    if(isEmpty(q)) {
-        q->front = newNode;
-        q->last = newNode;
-    }
-    else {
-        q->last->next = newNode;
-        q->last = newNode;
-    }
+  for (int i = 0; i < queues[qid]->count - 1; i++) {
+    queues[qid]->procs[i] = queues[qid]->procs[i + 1];
+    queues[qid]->executed_time[i] = queues[qid]->executed_time[i + 1];
+
+  }
+  queues[qid]->count--;
+
+  return proc;
 }
 
-int popQueue(queue_t q){
-    if(isEmpty(q)){
-        return NULL;
-    }
+int update_queues(proc_info_t *procs_info, int procs_count, int last_max_pid) {
+    int time, count;
 
-    node_t* node = q->front;
+    for(int qid = 0; qid < NUM_QUEUES; qid++) {
+        count = queues[qid]->count;
+
+        for(int i = 0; i < count; i++) {
+            time = queues[qid]->executed_time[0];
+            proc_info_t proc = dequeue(qid);
+
+            for(int j = 0; j < procs_count; j++) {
+                if(procs_info[i].pid == proc.pid) {
+                    enqueue(qid, proc, time + 1);
+                    break;
+                }
+            }
+        }
+    }
     
-    int pid = node->pid;
-    q->front = node->next;
+    int max_pid = -1;
+    for(int i = 0; i < procs_count; i++) {
+        if(procs_info[i].pid > last_max_pid) {
+            enqueue(0, procs_info[i], 0);
 
-    free(node);
+            if(procs_info[i].pid > max_pid) {
+                max_pid = procs_info[i].pid;
+            }
+        }
+    }
 
-    return pid;
+    return max_pid;
 }
