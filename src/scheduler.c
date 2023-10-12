@@ -90,18 +90,27 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 }
 
 // MLFQ
+
 // Parametros del MLFQ
-int depth = 3; // cantidad de colas de prioridad o niveles del mlfq
-int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+int mlfq_depth = 3; // cantidad de colas de prioridad o niveles del mlfq
+int mlfq_priority_boot_time = 10;
+int mlfq_max_time_level = 10;
+
+// Info sobre los procesos
+int mlfq_past_pid[205];
+int mlfq_level_pid[205];
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[pass_turn(&turn_procs) % procs_count].pid : curr_pid;
+  return curr_pid;
 }
+
 
 // SCHEDULER OTRAS IMPLEMENTACIONES
 
 // RANDOM
 // Ejecuta un proceso random
-random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   srand((unsigned)time(NULL));
   return procs_info[rand() % procs_count].pid;
@@ -113,10 +122,10 @@ random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 // De forma general si varios procesos terminan durante el time slice
 // van a alterar el orden de los turnos del rr
 
-int past_procs_info[205]; // Array para guardar los procesos del ultimo time interrupt
-int past_procs_info_count = 0;
+// para evitar esto voy a buscar de los procesos que me quedaron en el interrupt anterior
+// el proximo a partir de donde me quede, que siga en los procesos actuales.
 
-// guardar una copia de los procesos anteriores
+// Guardar los procesos del ultimo t.interrupt
 void save_procs(int dest[], proc_info_t *source, int *dest_count, int source_count)
 {
   *dest_count = source_count;
@@ -142,16 +151,19 @@ int find_match(int past_pid[], proc_info_t *current_procs, int *past_count, int 
   return next_turn;
 }
 
-int next_proc(proc_info_t *current_procs, int count, int *turn)
+int next_proc(int past_proc[], proc_info_t *current_procs, int past_proc_count, int count, int *turn)
 {
-  int next = find_match(past_procs_info, current_procs, past_procs_info_count, count, *turn);
+  int next = find_match(past_proc, current_procs, past_proc_count, count, *turn);
   turn = next + 1;
   return next;
 }
 
+int rr_past_pid[205]; // Array para guardar los procesos del ultimo time interrupt
+int rr_past_pid_count = 0;
+
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(procs_info, procs_count, &turn_procs) % procs_count].pid : curr_pid;
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(rr_past_pid, procs_info, rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid : curr_pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt

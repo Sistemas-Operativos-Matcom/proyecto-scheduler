@@ -4,24 +4,6 @@
 #include <time.h>
 #include <string.h>
 
-int past_procs[205];
-int past_procs_len;
-
-int property2(void *item)
-{
-    int *prop = (int *)item;
-    return *prop;
-}
-
-void save_procs_info(int dest[], int *source, int *dest_count, int count)
-{
-    for (int i = 0; i < count; i++)
-    {
-        dest[i] = source[i];
-    }
-    *dest_count = count;
-}
-
 void print_arr(int *array, int count)
 {
     if (count == 0)
@@ -36,19 +18,24 @@ void print_arr(int *array, int count)
     printf("\n");
 }
 
+void save(int dest[], int source[])
+{
+    for(int i = 0 ; i < 5; i++)
+    {
+        dest[i] = source[i];
+    }
+    return;
+}
+
+int procs[200];
+int len;
+
 int main()
 {
     int arr[5] = {1, 2, 3, 4, 5};
-    int count = 5;
-    save_procs_info(past_procs, arr, &past_procs_len, 5);
-    count = 11;
-    arr[2] = 53;
-    printf("%d", past_procs_len);
-    print_arr(past_procs, past_procs_len);
-    //  arr[1] = 3;
-    //  count = 3;
-    //  save_procs_info(past_procs, arr, past_procs_len, count, sizeof(int), property2);
-    //  print_arr(past_procs, *past_procs_len);
+    save(procs, arr);
+    print_arr(procs, 5);
+    
 }
 
 // typedef struct queue

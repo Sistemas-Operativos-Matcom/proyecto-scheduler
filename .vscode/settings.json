@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "process.h": "c"
+        "process.h": "c",
+        "scheduler.h": "c"
     }
 }
