@@ -29,8 +29,6 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
-const int MAX_PROCS = 205;
-
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -100,9 +98,9 @@ int mlfq_priority_bost_time = 10;
 int mlfq_max_time_level = 10;
 
 // Info sobre los procesos
-int mlfq_past_pid[MAX_PROCS];  // array de los pid
-int mlfq_level_pid[MAX_PROCS]; // nivel de cada proceso
-int mlfq_time_pid[MAX_PROCS];  // tiempo de cada proceso en su nivel
+int mlfq_past_pid[MAX_PROCESS_COUNT];  // array de los pid
+int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
+int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
 int count = 0;
 
 // Actualizar los procesos, buscar nuevos
@@ -154,12 +152,10 @@ void priority_bost(int levels[], int time_level[], int count)
 
 void update_time(int past_pid[], int past_levels[], int past_time_level[], int pid)
 {
-
 }
 
 void check_time(int past_pid[], int past_levels[], int past_time_level[], int MAX_TIME, int pid)
 {
-  
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
@@ -212,19 +208,19 @@ int find_match(int past_pid[], proc_info_t *current_procs, int *past_count, int 
   return next_turn;
 }
 
-int next_proc(int past_proc[], proc_info_t *current_procs, int past_proc_count, int count, int *turn)
+int next_proc(int past_proc[], proc_info_t *current_procs, int *past_proc_count, int count, int *turn)
 {
   int next = find_match(past_proc, current_procs, past_proc_count, count, *turn);
-  turn = next + 1;
+  *turn = next + 1;
   return next;
 }
 
-int rr_past_pid[MAX_PROCS]; // Array para guardar los procesos del ultimo time interrupt
+int rr_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
 int rr_past_pid_count = 0;
 
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(rr_past_pid, procs_info, rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid : curr_pid;
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(rr_past_pid, procs_info, &rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid : curr_pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
