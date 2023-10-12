@@ -96,7 +96,7 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 
 // Parametros del MLFQ
 int mlfq_depth = 3; // cantidad de colas de prioridad o niveles del mlfq
-int mlfq_priority_boot_time = 10;
+int mlfq_priority_bost_time = 10;
 int mlfq_max_time_level = 10;
 
 // Info sobre los procesos
@@ -114,13 +114,13 @@ void merge_update(int past_pid[], int level_pid[], int time_pid[], proc_info_t *
 
   // buscar los procesos que aun se mantienen activos
   // como los procesos estan en orden de llegada, a partir de la posicion de un proceso nuevo hacia atras todos seran nuevos
-  while (ipp < past_count && icp < procs_count)
+  while (ipp < (*past_count) && icp < procs_count)
   {
-    if (past_pid[ipp] == current_procs[icp].pid)
+    if (past_pid[ipp] == current_procs[icp].pid) // actualizar los stats del proceso
     {
       past_pid[icopy] = past_pid[ipp];
-      level_pid[icopy] = past_pid[ipp];
-      time_pid[icopy] = past_pid[ipp];
+      level_pid[icopy] = level_pid[ipp];
+      time_pid[icopy] = time_pid[ipp];
       icp++;
       icopy++;
     }
@@ -132,9 +132,34 @@ void merge_update(int past_pid[], int level_pid[], int time_pid[], proc_info_t *
     past_pid[icopy] = current_procs[icp].pid;
     level_pid[icopy] = 0;
     time_pid[icopy] = 0;
+    icopy++;
+    icp++;
   }
-  *past_count = procs_count;
+  *past_count = procs_count; // actualizar el count valido
   return;
+}
+
+void priority_bost(int levels[], int time_level[], int count)
+{
+  for (int i = 0; i < count; i++)
+  {
+    if (levels[i] != 0)
+    {
+      levels[i] = 0;
+      time_level[i] = 0;
+    }
+  }
+  return;
+}
+
+void update_time(int past_pid[], int past_levels[], int past_time_level[], int pid)
+{
+
+}
+
+void check_time(int past_pid[], int past_levels[], int past_time_level[], int MAX_TIME, int pid)
+{
+  
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
