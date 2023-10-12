@@ -26,6 +26,30 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+
+
+// Method to get proccesses with lowest duration time in procs_info list
+proc_info_t getMin(proc_info_t *procs_info, int procs_count)
+{
+  
+  proc_info_t min = procs_info[0]; 
+  int minDuration = process_total_time(procs_info[0].pid);
+  int i;
+  for(i = 0; i < procs_count; i++)
+  {
+    int duration = process_total_time((procs_info[i].pid));
+    printf("%d", duration);
+    printf("%d", minDuration);
+    if(duration < minDuration)
+    {
+      min = procs_info[i];
+      minDuration = process_total_time(procs_info[i].pid);
+    }
+  }
+  return min;
+}
+
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -33,25 +57,32 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time =
-      procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
-                                    // (curr_time - arrival_time)
+  return getMin(procs_info, procs_count).pid;
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
 }
+
+
+// int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+//                      int curr_pid) {
+//   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+//   // cambiar)
+
+//   // Información que puedes obtener de un proceso
+//   int pid = procs_info[0].pid;      // PID del proceso
+//   int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+//                                     // realizando una opreación IO
+//   int exec_time =
+//       procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
+//                                     // (curr_time - arrival_time)
+
+//   // También puedes usar funciones definidas en `simulation.h` para extraer
+//   // información extra:
+//   int duration = process_total_time(pid);
+
+//   return -1;
+// }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -60,6 +91,7 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
