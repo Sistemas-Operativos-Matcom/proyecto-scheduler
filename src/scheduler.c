@@ -83,8 +83,8 @@ const int TIME_INTERRUPT = 10; // Time Interrump
 
 int pass_turn(int *turn)
 {
-  turn += 1;
-  return turn - 1;
+  *turn += 1;
+  return *turn - 1;
 }
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
