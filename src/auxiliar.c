@@ -8,7 +8,7 @@
 #include "simulation.h"
 
 // Metodos Auxialiares
-// Los metodos estan generales por flexibilidad del proyecto
+
 
 // Retorna el index de un processo en el array de procs_info o -1 si no se encuentra
 int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)

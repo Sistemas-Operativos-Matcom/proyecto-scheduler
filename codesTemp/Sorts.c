@@ -20,52 +20,54 @@ void print_arr(int *array, int count)
 
 void save(int dest[], int source[])
 {
-    for(int i = 0 ; i < 5; i++)
+    for (int i = 0; i < 5; i++)
     {
         dest[i] = source[i];
     }
     return;
 }
 
+void merge_update(int past_pid[], int *current_procs, int past_count, int procs_count)
+{
+    int ipp = 0;
+    int icp = 0;
+    int icopy = 0;
+
+    while (ipp < past_count && icp < procs_count)
+    {
+        if (past_pid[ipp] == current_procs[icp])
+        {
+            past_pid[icopy] = past_pid[ipp];
+            // level_pid[icopy] = past_pid[icopy];
+            // time_pid[icopy] = past_pid[icopy];
+            icp++;
+            icopy++;
+        }
+        ipp++;
+    }
+    // annadir  los nuevos
+    // while (icopy < procs_count)
+    // {
+    //     past_pid[icopy] = current_procs[icp];
+    //     // level_pid[icopy] = 0;
+    //     // time_pid[icopy] = 0;
+    // }
+    //*past_count = procs_count;
+    return;
+}
+
 int procs[200];
-int len;
+// int lv[200];
+// int timeppd[200];
+
+int len = 0;
 
 int main()
 {
+    printf("hello world");
     int arr[5] = {1, 2, 3, 4, 5};
-    save(procs, arr);
-    print_arr(procs, 5);
-    
+    // merge_update(procs, lv, timeppd, arr, &len, 5);
+    merge_update(procs, arr, len, 5);
+    // printf("%d", len);
+    // print_arr(procs,len);
 }
-
-// typedef struct queue
-// {
-//     int base;
-//     int count;
-//     int size;
-//     void *arr;
-// } queue_t;
-
-// void push_to_queue(queue_t *q, void *item)
-// {
-//     memcpy(q->arr + q->count * q->size, item, q->size);
-//     memcpy(q->count, q->count + 1, q->size);
-// }
-
-// void pop_from_queue(queue_t *q, void *item)
-// {
-//     memcpy(q->base, q->base + 1 * q->size, q->size);
-// }
-
-// void *front_queue(queue_t *q, char (*property)(void *item))
-// {
-//     if (q->count - q->base != 0)
-//         printf(property(q->arr + q->base * q->size));
-// }
-
-// char property(void *number)
-// {
-//     char value[1024];
-//     sprintf(value, "%d", (int)number);
-//     return value;
-// }

@@ -28,6 +28,9 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+
+const int MAX_PROCS = 205;
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -97,14 +100,47 @@ int mlfq_priority_boot_time = 10;
 int mlfq_max_time_level = 10;
 
 // Info sobre los procesos
-int mlfq_past_pid[205];
-int mlfq_level_pid[205];
+int mlfq_past_pid[MAX_PROCS];  // array de los pid
+int mlfq_level_pid[MAX_PROCS]; // nivel de cada proceso
+int mlfq_time_pid[MAX_PROCS];  // tiempo de cada proceso en su nivel
+int count = 0;
+
+// Actualizar los procesos, buscar nuevos
+void merge_update(int past_pid[], int level_pid[], int time_pid[], proc_info_t *current_procs, int *past_count, int procs_count)
+{
+  int ipp = 0;   // index of pid
+  int icp = 0;   // index of current pid
+  int icopy = 0; // index of copy to past_pid
+
+  // buscar los procesos que aun se mantienen activos
+  // como los procesos estan en orden de llegada, a partir de la posicion de un proceso nuevo hacia atras todos seran nuevos
+  while (ipp < past_count && icp < procs_count)
+  {
+    if (past_pid[ipp] == current_procs[icp].pid)
+    {
+      past_pid[icopy] = past_pid[ipp];
+      level_pid[icopy] = past_pid[ipp];
+      time_pid[icopy] = past_pid[ipp];
+      icp++;
+      icopy++;
+    }
+    ipp++;
+  }
+  // annadir  los nuevos
+  while (icopy < procs_count)
+  {
+    past_pid[icopy] = current_procs[icp].pid;
+    level_pid[icopy] = 0;
+    time_pid[icopy] = 0;
+  }
+  *past_count = procs_count;
+  return;
+}
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   return curr_pid;
 }
-
 
 // SCHEDULER OTRAS IMPLEMENTACIONES
 
@@ -138,7 +174,7 @@ int find_match(int past_pid[], proc_info_t *current_procs, int *past_count, int 
 {
   int next_turn = 0;
   int last_index = (turn) % (*past_count);
-  for (int i = last_index; i < past_count; i++)
+  for (int i = last_index; i < *past_count; i++)
   {
     int temp = find_pid_array(current_procs, current_count, past_pid[i]);
     if (temp > 0)
@@ -158,7 +194,7 @@ int next_proc(int past_proc[], proc_info_t *current_procs, int past_proc_count, 
   return next;
 }
 
-int rr_past_pid[205]; // Array para guardar los procesos del ultimo time interrupt
+int rr_past_pid[MAX_PROCS]; // Array para guardar los procesos del ultimo time interrupt
 int rr_past_pid_count = 0;
 
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
