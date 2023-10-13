@@ -7,39 +7,6 @@
 #include <time.h>
 #include "simulation.h"
 
-// Metodos Auxialiares
-
-
-// Retorna el index de un processo en el array de procs_info o -1 si no se encuentra
-int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
-{
-
-  for (int i = 0; i < procs_count; i++)
-  {
-    if (procs_info[i].pid == pid)
-    {
-      return i;
-    }
-  }
-  return -1;
-}
-
-// Devuelve el index del elemento seleccionado por el metodo compare() entre dos
-int select_item(void *arr, int count, size_t size, int (*compare)(const void *, const void *))
-{
-  // Siempre se queda con el menor segun compare
-  // Args: array, length, sizeof(item), metodo para seleccionar
-
-  int selected = 0;
-  for (int i = 0; i < count; i++)
-  {
-    if (compare( (arr + selected * size), arr + i * size) > 0)
-    {
-      selected = i;
-    }
-  }
-  return selected;
-}
 
 // quick sort
 void swap(void *x, void *y, int size) // error haciendo macro para el swap

@@ -36,36 +36,58 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return procs_info[0].pid;
 }
 
-// SJF Shortest Job First
-int compare_sjf(const void *a, const void *b) // Criterio de Comparacion
+// Metodos Auxiliares
+// Retorna el index de un processo en el array de procs_info o -1 si no se encuentra
+int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
 {
-  proc_info_t *x = (proc_info_t *)a;
-  proc_info_t *y = (proc_info_t *)b;
-  int xTComplete = (x->on_io) ? __INT32_MAX__ : process_total_time(x->pid);
-  int yTComplete = (x->on_io) ? __INT32_MAX__ : process_total_time(y->pid);
-  return xTComplete - yTComplete;
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == pid)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+// Recorre y retorna el proceso segun comparacion
+int select_item(proc_info_t *procs, int count, int comparer(proc_info_t, proc_info_t))
+{
+  int selected = 0;
+  for (int i = 0; i < count; i++)
+  {
+    if (comparer(procs[i], procs[selected]) < 0)
+    {
+      selected = i;
+    }
+  }
+  return selected;
+}
+
+// SJF Shortest Job First
+int compare_sjf(proc_info_t a, proc_info_t b) // Criterio de Comparacion
+{
+  int aTComplete = (a.on_io) ? __INT32_MAX__ : process_total_time(a.pid);
+  int bTComplete = (b.on_io) ? __INT32_MAX__ : process_total_time(b.pid);
+  return aTComplete - bTComplete;
 }
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int to_exec_index = select_item(procs_info, procs_count, sizeof(proc_info_t), compare_sjf);
+  int to_exec_index = select_item(procs_info, procs_count, compare_sjf);
   return procs_info[to_exec_index].pid;
 }
 
 // STCF Shortest Time to Completion First Schelduler
-int compare_stcf(const void *a, const void *b) // Criterio de Comparacion
+int compare_stcf(proc_info_t a, proc_info_t b) // Criterio de Comparacion
 {
-  proc_info_t *x = (proc_info_t *)a;
-  proc_info_t *y = (proc_info_t *)b;
-
-  int xTComplete = (x->on_io) ? __INT32_MAX__ : process_total_time(x->pid) - x->executed_time;
-  int yTComplete = (x->on_io) ? __INT32_MAX__ : process_total_time(y->pid) - y->executed_time;
-  return xTComplete - yTComplete;
+  int aTComplete = (a.on_io) ? __INT32_MAX__ : process_total_time(a.pid) - a.executed_time;
+  int bTComplete = (b.on_io) ? __INT32_MAX__ : process_total_time(b.pid) - b.executed_time;
+  return aTComplete - bTComplete;
 }
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int to_exec_index = select_item(procs_info, procs_count, sizeof(proc_info_t), compare_stcf);
+  int to_exec_index = select_item(procs_info, procs_count, compare_stcf);
   return procs_info[to_exec_index].pid;
 }
 
@@ -85,15 +107,28 @@ int pass_turn(int *turn)
   return *turn - 1;
 }
 
+int get_rr_index(proc_info_t *procs, int procs_count, int check_io) // check_io != 0 si se quiere escoger un proceso q  no esta en io
+{
+  int next = 0;
+  int current = pass_turn(&turn_procs) % procs_count;
+
+  while (check_io && procs[current].on_io && next < procs_count)
+  {
+    current = pass_turn(&turn_procs) % procs_count;
+    next++;
+  }
+  return current;
+}
+
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[pass_turn(&turn_procs) % procs_count].pid : curr_pid;
+  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[get_rr_index(procs_info, procs_count, 0) % procs_count].pid : curr_pid;
 }
 
 // MLFQ
 
 // Parametros del MLFQ
-int mlfq_depth = 3; // cantidad de colas de prioridad o niveles del mlfq
+int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
 int mlfq_priority_bost_time = 10;
 int mlfq_max_time_level = 10;
 
@@ -141,7 +176,7 @@ void priority_bost(int levels[], int time_level[], int count)
 {
   for (int i = 0; i < count; i++)
   {
-    if (levels[i] != 0)
+    if (levels[i] != 0) // Para no cambiar el time level, de los que ya estaban en el lv 0
     {
       levels[i] = 0;
       time_level[i] = 0;
@@ -150,13 +185,22 @@ void priority_bost(int levels[], int time_level[], int count)
   return;
 }
 
-void update_time(int past_pid[], int past_levels[], int past_time_level[], int pid)
+// update the level of a process and returns 1 if the process has consumed all the time of the level
+void update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
 {
+  int index = find_pid_array(pid, count, pid_selected);
+  time_level[index] += TIME_SLICE;
+  
+  if (time_level[index] >= MAX_TIME_LEVEL)
+  {
+    level[index] = (level[index] + 1 >= MAX_LEVEL) ? MAX_LEVEL : level[index] + 1;
+    time_level[index] = 0;
+    return 1;
+  }
+  return 0;
 }
 
-void check_time(int past_pid[], int past_levels[], int past_time_level[], int MAX_TIME, int pid)
-{
-}
+
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
