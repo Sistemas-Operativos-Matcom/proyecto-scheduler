@@ -49,6 +49,19 @@ int find_pid_array(proc_info_t *procs_info, int procs_count, int pid)
   }
   return -1;
 }
+
+int find_pid_int(int pid_procs[], int procs_count, int pid)
+{
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (pid_procs[i] == pid)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
 // Recorre y retorna el proceso segun comparacion
 int select_item(proc_info_t *procs, int count, int comparer(proc_info_t, proc_info_t))
 {
@@ -186,11 +199,11 @@ void priority_bost(int levels[], int time_level[], int count)
 }
 
 // update the level of a process and returns 1 if the process has consumed all the time of the level
-void update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
+int update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
 {
-  int index = find_pid_array(pid, count, pid_selected);
+  int index = find_pid_int(pid, count, pid_selected);
   time_level[index] += TIME_SLICE;
-  
+
   if (time_level[index] >= MAX_TIME_LEVEL)
   {
     level[index] = (level[index] + 1 >= MAX_LEVEL) ? MAX_LEVEL : level[index] + 1;
@@ -199,8 +212,6 @@ void update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL,
   }
   return 0;
 }
-
-
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
@@ -224,7 +235,7 @@ int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
 // van a alterar el orden de los turnos del rr
 
 // para evitar esto voy a buscar de los procesos que me quedaron en el interrupt anterior
-// el proximo a partir de donde me quede, que siga en los procesos actuales.
+// el proximo que siga en los procesos actuales es el que ejecuto
 
 // Guardar los procesos del ultimo t.interrupt
 void save_procs(int dest[], proc_info_t *source, int *dest_count, int source_count)
@@ -237,20 +248,28 @@ void save_procs(int dest[], proc_info_t *source, int *dest_count, int source_cou
 // buscar de los procesos que me faltaban por ejecutar, el primero que aun este en los procesos actuales
 int find_match(int past_pid[], proc_info_t *current_procs, int *past_count, int current_count, int turn)
 {
+
   int next_turn = 0;
-  int last_index = (turn) % (*past_count);
-  for (int i = last_index; i < *past_count; i++)
+
+  if (*past_count)
   {
-    int temp = find_pid_array(current_procs, current_count, past_pid[i]);
-    if (temp > 0)
+    int last_index = (turn) % (*past_count);
+    for (int i = last_index; i < *past_count; i++)
     {
-      next_turn = temp;
-      break;
+      int temp = find_pid_array(current_procs, current_count, past_pid[i]);
+      if (temp > 0)
+      {
+        next_turn = temp;
+        break;
+      }
     }
   }
   save_procs(past_pid, current_procs, past_count, current_count);
   return next_turn;
 }
+
+int rr_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
+int rr_past_pid_count = 0;
 
 int next_proc(int past_proc[], proc_info_t *current_procs, int *past_proc_count, int count, int *turn)
 {
@@ -259,12 +278,12 @@ int next_proc(int past_proc[], proc_info_t *current_procs, int *past_proc_count,
   return next;
 }
 
-int rr_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
-int rr_past_pid_count = 0;
-
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[next_proc(rr_past_pid, procs_info, &rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid : curr_pid;
+  if (!(curr_time % rr_time_slice(TIME_INTERRUPT)) || procs_count == 0)
+    return curr_pid;
+
+  return procs_info[next_proc(rr_past_pid, procs_info, &rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
