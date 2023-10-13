@@ -85,8 +85,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
       return procs_info[i+1].pid;
     }
   }
-  if(curr_pid == procs_info[procs_count-1].pid) return procs_info[0].pid;
-  return -1;
+  return procs_info[0].pid;
 }
 
 
