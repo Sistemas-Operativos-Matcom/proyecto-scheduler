@@ -111,7 +111,6 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   // a partir de aqui usare el executed time del proceso para llevar el tiempo de ejecucion en el cpu
   for (int i = 0; i < procs_count; i++)
   {
-    printf("%d\n", *procs_info[i].priority);
     if (procs_info[i].pid == curr_pid)
     {
       if (procs_info[i].on_io == 1)
