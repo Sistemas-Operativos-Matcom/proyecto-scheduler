@@ -7,7 +7,7 @@
 
 #include "simulation.h"
 
-const int time_lapse_rr=50;
+const int time_lapse_rr = 50;
 const int priority_boost_time = 100;
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -84,14 +84,15 @@ int RR_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   }
   if (finded == 1)
   {
-    if(curr_time%time_lapse_rr==0)
+    if (curr_time % time_lapse_rr == 0)
     {
       if (actual_proc_position == procs_count - 1) // si esta en la ultima posicion pues mando el pid de la primera posicion
         return procs_info[0].pid;
       else
         return procs_info[actual_proc_position + 1].pid; // sino pues mando el pid del proceso que esta en la posicion siguiente
     }
-    else return curr_pid;
+    else
+      return curr_pid;
   }
   else // en el caso de que ya no este en la lista de procesos pues busco el siguiente pid que le corresponderia ejecutarse
   {
@@ -110,15 +111,16 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   // a partir de aqui usare el executed time del proceso para llevar el tiempo de ejecucion en el cpu
   for (int i = 0; i < procs_count; i++)
   {
+    printf("%d\n", *procs_info[i].priority);
     if (procs_info[i].pid == curr_pid)
     {
       if (procs_info[i].on_io == 1)
       {
         procs_info[i].executed_time -= 10; // si el proceso esta en io no le cuento el tiempo de ejecucion
       }
-      if (procs_info[i].executed_time > 100 && procs_info[i].priority < 3) // actualizo la prioridad del proceso si alcanzo el limite de tiempo ejecutado en cpu
+      if (procs_info[i].executed_time > 100 && *procs_info[i].priority < 3) // actualizo la prioridad del proceso si alcanzo el limite de tiempo ejecutado en cpu
       {
-        procs_info[i].priority++;
+        *procs_info[i].priority = *procs_info[i].priority + 1;
         procs_info[i].executed_time = 0;
       }
       break;
@@ -129,24 +131,24 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   {
     for (int i = 0; i < procs_count; i++)
     {
-      procs_info[i].priority = 1;
+      *procs_info[i].priority = 1;
       procs_info[i].executed_time = 0;
     }
   }
 
-  int min_priority = procs_info[0].priority;
+  int min_priority = *procs_info[0].priority;
   int procs_same_priority = 0;
   // a partir de aqui voy a buscar de todos los procesos cual tiene la prioridad mas alta
 
   for (int i = 0; i < procs_count; i++)
-    min_priority = procs_info[i].priority < min_priority ? procs_info[i].priority : min_priority;
+    min_priority = *procs_info[i].priority < min_priority ? *procs_info[i].priority : min_priority;
 
   proc_info_t procs_priority[procs_count];
 
   // ahora solo debo llenar un array con todos los elementos con la prioridad mas alta y pasarselo a rr
   for (int i = 0; i < procs_count; i++)
   {
-    if (procs_info[i].priority == min_priority && procs_info[i].on_io == 0) // solo adiciono los procesos al array si no estan en io
+    if (*procs_info[i].priority == min_priority && procs_info[i].on_io == 0) // solo adiciono los procesos al array si no estan en io
     {
       procs_priority[procs_same_priority] = procs_info[i];
       procs_same_priority++;
