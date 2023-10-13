@@ -7,7 +7,6 @@
 mlfq new_mlfq()
 {
     mlfq _mlfq = (mlfq)malloc(sizeof(struct mlfq));
-    _mlfq->last_executed_pid = -1;
     _mlfq->time_slices = (int *)malloc(LEVELS_COUNT * sizeof(int));
     _mlfq->levels = (job_queue *)malloc(LEVELS_COUNT * sizeof(job_queue));
 
@@ -110,7 +109,7 @@ int mlfq_get(mlfq _mlfq, int io_pid, int interval_length)
             }
             else
             {
-                // Storing next job at the end of its current queue (level), for Round Robin purposes
+                // Storing next job at the end of its current queue (level), for Round-Robin purposes
                 mlfq_remove(_mlfq, next_job->pid);
                 enqueue_job(level, next_job);
             }
@@ -129,9 +128,7 @@ int mlfq_get(mlfq _mlfq, int io_pid, int interval_length)
         enqueue_job(_mlfq->levels[level_number + 1], next_job);
     }
 
-    _mlfq->last_executed_pid = (next_job == NULL) ? -1 : next_job->pid;
-
-    return _mlfq->last_executed_pid;
+    return next_job->pid;
 }
 
 void mlfq_boost(mlfq _mlfq)

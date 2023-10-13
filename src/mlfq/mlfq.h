@@ -6,7 +6,6 @@
 struct mlfq
 {
     job_queue *levels;
-    int last_executed_pid;
     int *time_slices;
 };
 typedef struct mlfq *mlfq;
