@@ -33,7 +33,7 @@ int select_item(void *arr, int count, size_t size, int (*compare)(const void *, 
   int selected = 0;
   for (int i = 0; i < count; i++)
   {
-    if (compare(arr + selected * size, arr + i * size) > 0)
+    if (compare( (arr + selected * size), arr + i * size) > 0)
     {
       selected = i;
     }
