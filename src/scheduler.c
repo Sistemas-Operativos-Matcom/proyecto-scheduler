@@ -51,7 +51,23 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
   
   return min;
 }
+struct queue{
+  int length;
+  proc_info_t *processes_info;
+  proc_info_t (*pop)(struct queue *q);
+  void (*push)(proc_info_t process, struct queue *q);
+};
 
+void push(proc_info_t process, struct queue *queue)
+{
+  queue->length+=1;
+}
+proc_info_t pop(struct queue *queue)
+{
+  return queue->processes_info[0];
+}
+
+struct queue q0;
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
@@ -88,11 +104,16 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[0].pid;
 }
 
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  
+  return -1;
+}
 
-// int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-//                      int curr_pid) {
-//   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-//   // cambiar)
+int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+  // cambiar)
 
   // Información que puedes obtener de un proceso
   // int pid = procs_info[0].pid;      // PID del proceso
@@ -102,23 +123,27 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   //     procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
   //                                   // (curr_time - arrival_time)
 
-//   // También puedes usar funciones definidas en `simulation.h` para extraer
-//   // información extra:
-//   int duration = process_total_time(pid);
+  // // También puedes usar funciones definidas en `simulation.h` para extraer
+  // // información extra:
+  // int duration = process_total_time(pid);
 
-//   return -1;
-// }
+  return -1;
+}
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
+  q0.length = 0;
+  q0.pop = pop;
+  q0.push = push;
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
 
 
