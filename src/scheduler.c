@@ -588,7 +588,29 @@ schedule_action_t get_scheduler(const char *name) {
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  //_scheduler
+
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0)
+  {
+    q = newQueue(1000);
+    return *rr_scheduler;
+  }
+  if (strcmp(name, "mlfq1") == 0)
+  {
+    // colas de prioridad
+    q1 = newQueue(1000);
+    q2 = newQueue(1000);
+    return *mlfq_scheduler_v1;
+  }
+  if (strcmp(name, "mlfq2") == 0)
+  {
+    // colas de prioridad
+    q1 = newQueue(1000);
+    q2 = newQueue(1000);
+    return *mlfq_scheduler_v2;
+  }
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
