@@ -27,17 +27,60 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
+void io_remover(proc_info_t *procs_info, int *procs_count)
+{
+  int procs_not_on_io_count = 0;
+  proc_info_t *procs_not_on_io_info = malloc(sizeof(proc_info_t) * (*procs_count));
+  int proc_index = 0;
+
+  for(int c=0; c<(*procs_count); c++)
+  {
+    if(!procs_info[c].on_io)
+    {
+      procs_not_on_io_count++;
+      procs_not_on_io_info[proc_index++] = procs_info[c];
+    }
+  }
+
+
+  //free(procs_info);
+  //procs_info = malloc(sizeof(proc_info_t) * procs_not_on_io_count);
+  memcpy(procs_info, procs_not_on_io_info, procs_not_on_io_count*sizeof(proc_info_t));
+  *procs_count = procs_not_on_io_count;
+
+  //procs_info = procs_not_on_io_info;
+
+  //for(int c=0; c<procs_not_on_io_count; c++)
+  //{
+  //  procs_info[c] = procs_not_on_io_info[c];
+  //}
+
+  //*procs_info = procs_not_on_io_info;
+}
+
 //First In First Out
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  io_remover(procs_info, &procs_count);
+  if(procs_count == 0)
+    return -1;
+
+  //if(procs_info[0].on_io && procs_count>1)
+  //  return procs_info[1].pid;
+  
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
+
   return procs_info[0].pid;
 }
 
 //Shortest Job First
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  io_remover(procs_info, &procs_count);
+  if(procs_count == 0)
+    return -1;
+
   int min_duration = process_total_time(procs_info[0].pid);
   int selected_proc = procs_info[0].pid;
 
@@ -51,12 +94,19 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
     }
   }
 
+  
+  if(procs_count == 0)
+    return -1;
   return selected_proc;
 }
 
 //Shortest Time to Completion First
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  io_remover(procs_info, &procs_count);
+  if(procs_count == 0)
+    return -1;
+
   int min_time_left = process_total_time(procs_info[0].pid)-procs_info[0].executed_time;
   int selected_proc = procs_info[0].pid;
 
@@ -70,6 +120,9 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     }
   }
 
+  
+  if(procs_count == 0)
+    return -1;
   return selected_proc;
 }
 
@@ -77,6 +130,10 @@ int rrindex = 0, slice_time = 1*10; // !!!!!!INVESTIGATE HOW TO ACCESS TIMER INT
 //Round Robin
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  io_remover(procs_info, &procs_count);
+  if(procs_count == 0)
+    return -1;
+
   if(curr_time % slice_time == 0)
   {
     rrindex++;
@@ -84,8 +141,13 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   
   rrindex %= procs_count;
   
+  
+  if(procs_count == 0)
+    return -1;
   return procs_info[rrindex].pid;
 }
+
+
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -122,7 +184,7 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
   // Información que puedes obtener de un proceso
   int pid = procs_info[0].pid;                 // PID del proceso
   int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
-                                               // realizando una opreación IO
+                                               // realizando una operación IO
   int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
                                                // ejecutado (en CPU o en I/O)
 
