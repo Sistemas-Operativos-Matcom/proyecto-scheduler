@@ -81,7 +81,10 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     if(pid==procs_info[i].pid)
     {
-      if(i==procs_count-1) pid = procs_info[0].pid;
+      if(i==procs_count-1) i=-1;
+      while(procs_info[i+1].on_io!=0 && i<procs_count-2){
+        i++;
+      }
       pid = procs_info[i+1].pid;
       break;
     }
@@ -89,26 +92,81 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return pid;
 }
 
-void init(Queue *q) {
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  int pid = curr_pid;
+  int max = -1;
+  int index=0;
+  if(curr_time % 150 == 0)
+  {
+    for(int z=0 ; z<procs_count ; z++)
+    {
+      procs_info[z].priority = 5;
+    }
+    pid = procs_info[0].pid;
+  }
+  
+  if(pid!=-1)
+  {
+    for(int j=0 ; j<procs_count ; j++)
+    {
+      if(procs_info[j].pid==pid)
+      {
+        if(procs_info[j].on_io==1) continue;
+        if(procs_info[j].executed_time % 10 == 0 && procs_info[j].executed_time % 3 == 0)
+        {
+          if(procs_info[j].priority==0 && procs_count>1)
+          {
+            if(j==procs_count-1) return procs_info[0].pid;
+            return procs_info[j+1].pid;
+          }else
+          if(procs_info[j].priority>0)
+          procs_info[j].priority--;
+        }
+        max = procs_info[j].priority;
+        index = j;
+      }
+    }
+  }
+  for(int i=0 ; i<procs_count ; i++)
+  {
+    int pr = procs_info[i].priority;
+    if(pr > 5 || pr < 0)
+    {
+      procs_info[i].priority = 5;
+      pr = 5;
+    }
+    if(pr > max && procs_info[i].on_io==0)
+    {
+      max = pr;
+      pid = procs_info[i].pid;
+      index = i;
+    }
+  }
+  
+  return pid;
+}
+
+/*void init(Queue *q) {
   q->front = -1;
   q->rear = -1;
 }
 
 int is_empty(Queue *q) {
-  return q.rear == -1;
+  return q->rear == -1;
 }
 
 void enqueue(Queue *q,int value) {
-  if(q.front == -1) q->front = 0;
+  if(q->front == -1) q->front = 0;
   q->rear++;
-  q->items[q.rear] = value;
+  q->items[q->rear] = value;
 }
 
 int dequeue(Queue *q) {
   if(!is_empty(q))
   {
-    int value = q->items[q.front];
-    if(q.front >= q.rear)
+    int value = q->items[q->front];
+    if(q->front >= q->rear)
     {
       q->front = -1;
       q->rear = -1;
@@ -116,7 +174,7 @@ int dequeue(Queue *q) {
     return value;
   }
   return 0;
-}
+}*/
 
 
 // Información que puedes obtener de un proceso
@@ -141,6 +199,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;

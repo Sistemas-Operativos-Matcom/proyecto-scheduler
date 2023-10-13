@@ -2,7 +2,6 @@
 #define SIMULATION_H
 
 #include "process.h"
-#define max_size 100
 
 enum {
   NOT_ARRIVED = 0x1,
@@ -25,6 +24,7 @@ typedef struct proc_info {
   int pid;
   int executed_time;
   int on_io;
+  int priority;
 } proc_info_t;
 
 typedef struct simulation {
@@ -33,14 +33,6 @@ typedef struct simulation {
   int curr_time;
   int curr_proc_pid;
 } simulation_t;
-
-//mis struct
-
-typedef struct queue {
-  int items[max_size];
-  int front;
-  int rear;
-} Queue;
 
 
 typedef int (*schedule_action_t)(proc_info_t *, int, int, int);
