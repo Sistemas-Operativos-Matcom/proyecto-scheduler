@@ -316,6 +316,265 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 }
 
 
+struct queue *q1;
+struct queue *q2;
+int mlfq_scheduler_v1(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  static int slide_time = 50;
+  static int priority_boost = 500;
+  static int last_pid = -1;
+
+  // Revisar a qué cola perteneció el proceso que finalizó
+  if (curr_pid == -1 && last_pid != -1)
+  {
+    if (!isEmpty(q1) && front_pid(q1) == last_pid && size(q1) > 0)
+    {
+      pop(q1);
+    }
+    else
+    {
+      pop(q2);
+    }
+  }  
+  
+  // insertar procesos nuevos en la cola de mayor prioridad
+  for (int i = 0; i < procs_count; i++) {
+    // asegurar que los procesos no hayan sido ejecutados y que no estén ya en la cola
+    if (procs_info[i].executed_time == 0 && !existInQueue(q1, procs_info[i].pid)) {
+      push(q1, procs_info[i].pid, 0);
+    }
+  }
+
+  // si toca el priority boost sube todo los procesos de la cola 2 a la cola 1
+  if (curr_time % priority_boost == 0) {
+    transfer_v1(q2, q1);
+  }
+
+  // Revisar slide time en cola 1
+  if (!isEmpty(q1) && front_time(q1) >= slide_time ) {
+    int pid = front_pid(q1);
+    pop(q1);
+    push(q2, pid, 0);
+  }
+
+  // Revisar slide time en cola 2
+  if (!isEmpty(q2) && front_time(q2) >= slide_time ) {
+    int pid2 = front_pid(q2);
+    pop(q2);
+    push(q2, pid2, 0);
+  }
+
+  if (!isEmpty(q1))  // Trabajando en la cola 1
+  {
+    for (int k = 0; k < size(q1); k++)
+    {
+      int pid = front_pid(q1);
+
+      // Recorrer la lista de procesos para saber a cual corresponde el primero de la cola 1
+      for (int i = 0; i < procs_count; i++)
+      {
+        // En esta posición el pid no coincide
+        if (procs_info[i].pid != pid)
+        {
+          // Si se acabaron los procesos y el primero de la cola no ha aparecido significa que este ya se ha finalizado por lo que hay que retirarlo de la cola y analizar el siguiente
+          if (i == procs_count - 1)
+          {
+            pop(q1);
+            break;
+          }
+          continue;
+        }
+
+        // Si el proceso se encuentra ejecutando io se analiza el siguiente proceso de la cola 1
+        if (procs_info[i].on_io)
+        {
+          pop(q1);
+          push(q1, pid, 0);
+          break;
+        }
+        else
+        {
+          updateTime(q1);
+          return pid;
+        }
+        
+      }
+
+    }
+  } 
+  
+  if(!isEmpty(q2))    // Trabajando en la cola 2
+  {
+    for (int k = 0; k < size(q2); k++)
+    {
+      int pid = front_pid(q2);
+
+      // Recorrer la lista de procesos para saber a cual corresponde el primero de la cola 2
+      for (int i = 0; i < procs_count; i++)
+      {
+        // En esta posición el pid no coincide
+        if (procs_info[i].pid != pid)
+        {
+          // Si se acabaron los procesos y el primero de la cola no ha aparecido significa que este ya se ha finalizado por lo que hay que retirarlo de la cola y analizar el siguiente
+          if (i == procs_count - 1)
+          {
+            pop(q2);
+            break;
+          }
+          continue;
+        }
+
+        // Si el proceso se encuentra ejecutando io se analiza el siguiente proceso de la cola 2
+        if (procs_info[i].on_io)
+        {
+          pop(q2);
+          push(q2, pid, 0);
+          break;
+        }
+        else
+        {
+          updateTime(q2);
+          return pid;
+        }
+        
+      }
+
+    }
+  }
+
+  // En este punto significa que ninguno de los procesos de las colas fue ejecutado
+  return -1;
+  
+}
+
+int mlfq_scheduler_v2(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  static int slide_time = 50;
+  static int priority_boost = 500;
+  static int last_pid = -1;
+
+  // Revisar a qué cola perteneció el proceso que finalizó
+  if (curr_pid == -1 && last_pid != -1)
+  {
+    if (!isEmpty(q1) && front_pid(q1) == last_pid && size(q1) > 0)
+    {
+      pop(q1);
+    }
+    else
+    {
+      pop(q2);
+    }
+  }  
+  
+  // insertar procesos nuevos en la cola de mayor prioridad
+  for (int i = 0; i < procs_count; i++) {
+    // asegurar que los procesos no hayan sido ejecutados y que no estén ya en la cola
+    if (procs_info[i].executed_time == 0 && !existInQueue(q1, procs_info[i].pid)) {
+      push(q1, procs_info[i].pid, 0);
+    }
+  }
+
+  // si toca el priority boost sube todo los procesos de la cola 2 a la cola 1
+  if (curr_time % priority_boost == 0) {
+    transfer_v2(q2, q1);
+  }
+
+  // Revisar slide time en cola 1
+  if (!isEmpty(q1) && front_time(q1) >= slide_time ) {
+    int pid = front_pid(q1);
+    pop(q1);
+    push(q2, pid, 0);
+  }
+
+  // Revisar slide time en cola 2
+  if (!isEmpty(q2) && front_time(q2) >= slide_time ) {
+    int pid2 = front_pid(q2);
+    pop(q2);
+    push(q2, pid2, 0);
+  }
+
+  if (!isEmpty(q1))  // Trabajando en la cola 1
+  {
+    for (int k = 0; k < size(q1); k++)
+    {
+      int pid = front_pid(q1);
+
+      // Recorrer la lista de procesos para saber a cual corresponde el primero de la cola 1
+      for (int i = 0; i < procs_count; i++)
+      {
+        if (procs_info[i].pid != pid)
+        {
+          // Si se acabaron los procesos y el primero de la cola no ha aparecido significa que este ya se ha finalizado por lo que hay que retirarlo de la cola y analizar el siguiente
+          if (i == procs_count - 1)
+          {
+            pop(q1);
+            break;
+          }
+          continue;
+        }
+
+        // Si el proceso se encuentra ejecutando io se analiza el siguiente proceso de la cola 1
+        if (procs_info[i].on_io)
+        {
+          pop(q1);
+          push(q1, pid, 0);
+          break;
+        }
+        else
+        {
+          updateTime(q1);
+          return pid;
+        }
+        
+      }
+
+    }
+  } 
+  
+  if(!isEmpty(q2))    // Trabajando en la cola 2
+  {
+    for (int k = 0; k < size(q2); k++)
+    {
+      int pid = front_pid(q2);
+
+      // Recorrer la lista de procesos para saber a cual corresponde el primero de la cola 2
+      for (int i = 0; i < procs_count; i++)
+      {
+        if (procs_info[i].pid != pid)
+        {
+          // Si se acabaron los procesos y el primero de la cola no ha aparecido significa que este ya se ha finalizado por lo que hay que retirarlo de la cola y analizar el siguiente
+          if (i == procs_count - 1)
+          {
+            pop(q2);
+            break;
+          }
+          continue;
+        }
+
+        // Si el proceso se encuentra ejecutando io se analiza el siguiente proceso de la cola 2
+        if (procs_info[i].on_io)
+        {
+          pop(q2);
+          push(q2, pid, 0);
+          break;
+        }
+        else
+        {
+          updateTime(q2);
+          return pid;
+        }
+        
+      }
+
+    }
+  }
+
+  // En este punto significa que ninguno de los procesos de las colas fue ejecutado
+  return -1;
+  
+}
+
+
 
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
