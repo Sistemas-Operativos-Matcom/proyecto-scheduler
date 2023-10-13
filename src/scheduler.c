@@ -28,24 +28,27 @@
 //
 
 
-// Method to get proccesses with lowest duration time in procs_info list
-proc_info_t getMin(proc_info_t *procs_info, int procs_count)
+// Method to get proccesses with shortest duration time in procs_info list
+proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
 {
-  
   proc_info_t min = procs_info[0]; 
+  int executed = 0;
   int minDuration = process_total_time(procs_info[0].pid);
   int i;
   for(i = 0; i < procs_count; i++)
   {
-    int duration = process_total_time((procs_info[i].pid));
-    printf("%d", duration);
-    printf("%d", minDuration);
+    if(stcf == 1)
+    {
+      executed = procs_info[i].executed_time;
+    }
+    int duration = process_total_time((procs_info[i].pid)) - executed;
     if(duration < minDuration)
     {
+      minDuration = duration;
       min = procs_info[i];
-      minDuration = process_total_time(procs_info[i].pid);
     }
   }
+  
   return min;
 }
 
@@ -59,8 +62,22 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-  return getMin(procs_info, procs_count).pid;
+  if(curr_pid != -1)
+  {
+    return curr_pid;
+  }
+  return getMin(procs_info, procs_count, 0).pid;
 
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  return getMin(procs_info, procs_count, 1).pid;
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  return -1;
 }
 
 
@@ -70,12 +87,12 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 //   // cambiar)
 
   // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time =
-      procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
-                                    // (curr_time - arrival_time)
+  // int pid = procs_info[0].pid;      // PID del proceso
+  // int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+  //                                   // realizando una opreación IO
+  // int exec_time =
+  //     procs_info[0].executed_time;  // Tiempo que lleva el proceso activo
+  //                                   // (curr_time - arrival_time)
 
 //   // También puedes usar funciones definidas en `simulation.h` para extraer
 //   // información extra:
@@ -92,11 +109,10 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
 
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
