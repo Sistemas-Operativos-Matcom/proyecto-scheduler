@@ -44,19 +44,19 @@ int SJF(proc_info_t *procs_info, int procs_count, int curr_time,
         int curr_pid)
 {
 
-  if (curr_pid != -1)
+  if (curr_pid != -1) // : si no has terminado de ejecutarte,mantente ejecutandote
   {
     return curr_pid;
   }
 
-  int min_total_time = process_total_time(procs_info[0].pid);
+  int min_total_time = process_total_time(procs_info[0].pid); // : minimo tiempo total de ejecucion
   int next_procs_pid = procs_info[0].pid;
   for (int i = 0; i < procs_count; i++)
   {
     if (min_total_time > process_total_time(procs_info[i].pid))
     {
       next_procs_pid = procs_info[i].pid;
-      min_total_time = process_total_time(procs_info[i].pid);
+      min_total_time = process_total_time(procs_info[i].pid); // : como no hay nadie ejecutandose,quedate con el q menos tiempo total demore en ejecucion
     }
   }
 
@@ -80,11 +80,11 @@ int STCF(proc_info_t *procs_info, int procs_count, int curr_time,
          int curr_pid)
 {
 
-  int min_duration_time_to_finish = process_total_time(procs_info[0].pid) - procs_info[0].executed_time;
+  int min_duration_time_to_finish = process_total_time(procs_info[0].pid) - procs_info[0].executed_time; // : tiempo minimo restante de ejecucion
   int next_procs_pid = procs_info[0].pid;
   for (int i = 0; i < procs_count; i++)
   {
-    int process_time_to_finish = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+    int process_time_to_finish = process_total_time(procs_info[i].pid) - procs_info[i].executed_time; // : tiempo minimo restante de ejecucion del proceso actual
     if (min_duration_time_to_finish > process_time_to_finish)
     {
       next_procs_pid = procs_info[i].pid;
@@ -101,19 +101,19 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
                 int curr_pid)
 {
 
-  // actual_time_interrupt_count_to_time_slice: es la cantidad d time interrupt que un proceso
-  // tiene permitido seguir ejecutandose(saltarse)
+  // actual_time_interrupt_count_to_time_slice: es la cantidad d time interrupt que un proceso se ha saltado mientras
+  // se ejecutaba.Variable Global
 
-  if (actual_time_interrupt_count_to_time_slice == Time_Slice / 10) // : si ya cumpliste con tu slice time...
+  if (actual_time_interrupt_count_to_time_slice == Time_Slice / 10) // : si ya completaste tu slice time...
   {
     actual_time_interrupt_count_to_time_slice = 0;
 
-    // round_robin_process_counter: es el index del proceso que se esta ejecutando en el array procs_info
+    // round_robin_process_counter: es el index del proceso que se esta ejecutando en el array procs_info.Variable Global
 
     if (round_robin_process_counter < procs_count - 1) // : si no eres el ultimo...
     {
       round_robin_process_counter++;
-      return procs_info[round_robin_process_counter].pid; // proceso q se va a ejecutar
+      return procs_info[round_robin_process_counter].pid; // : proceso q se va a ejecutar
     }
     else
     {
@@ -122,7 +122,7 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
 
-  if (curr_pid != -1) //= si todavia no has cumplido con tu slice time y no has terminado de ejecutarte...
+  if (curr_pid != -1) // : si todavia no has completado tu slice time y no has terminado de ejecutarte...
   {
     actual_time_interrupt_count_to_time_slice++;
     return curr_pid;
