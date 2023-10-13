@@ -53,7 +53,7 @@ void mlfq_remove(mlfq _mlfq, int pid)
     int *coordinates = search(_mlfq, pid);
 
     if (coordinates[0] == -1 || coordinates[1] == -1)
-        fprintf(stderr, "MLFQ does not contain that job \n");
+        fprintf(stderr, "MLFQ does not contain that job \n"), exit(1);
 
     job_queue_remove(_mlfq->levels[coordinates[0]], coordinates[1]);
 
@@ -118,7 +118,7 @@ int mlfq_get(mlfq _mlfq, int io_pid, int interval_length)
         }
     }
 
-    // If there's no runnable job (jobs on IO are not runnable), then execute none
+    // If there's no runnable job (note that jobs on IO are not runnable), then execute none
     if(next_job == NULL)
         return -1;
 
@@ -152,4 +152,17 @@ void mlfq_boost(mlfq _mlfq)
             enqueue_job(first_level, _job);
         }
     }
+}
+
+int* mlfq_processes(mlfq _mlfq, int* count)
+{
+    int* job_pids = (int*)malloc(MAX_JOBS * LEVELS_COUNT * sizeof(int));
+    int k = 0;
+    for(int i = 0; i < LEVELS_COUNT; i++)
+    {
+        job_queue level = _mlfq->levels[i];
+        for(int j = 0; j < level->count; j++)
+            job_pids[k++] = level->jobs[j]->pid, (*count)++;
+    }
+    return job_pids;
 }

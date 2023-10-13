@@ -6,44 +6,9 @@
 #include <time.h>
 
 #include "simulation.h"
-
-#include "./mlfq/mlfq.h"
+#include "auxiliar.h"
 
 #define BOOT_INTERVAL 500
-
-typedef int (*get_time_action)(proc_info_t *);
-
-int sjf_get_time(proc_info_t *process)
-{
-  return process_total_time(process->pid);
-}
-
-int stcf_get_time(proc_info_t *process)
-{
-  return process_total_time(process->pid) - process->executed_time;
-}
-
-// Finds the shortest process among the active ones
-int get_shortest_job(proc_info_t *procs_info, int procs_count, get_time_action get_time)
-{
-  int min_pid = procs_info[0].pid;
-  int min_time = get_time(&procs_info[0]);
-  // int min_time = process_total_time(min_pid) - procs_info[0].executed_time;
-
-  for (int i = 1; i < procs_count; i++)
-  {
-    int temp_pid = procs_info[i].pid;
-    // int temp_time = process_total_time(temp_pid) - procs_info[i].executed_time;
-    int temp_time = get_time(&procs_info[i]);
-
-    if (temp_time < min_time)
-    {
-      min_time = temp_time;
-      min_pid = temp_pid;
-    }
-  }
-  return min_pid;
-}
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -75,7 +40,10 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 // "Shortest Job First" (SJF) scheduler
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_pid == -1) ? get_shortest_job(procs_info, procs_count, sjf_get_time) : curr_pid;
+  int next_pid = (curr_pid == -1) ? get_shortest_job(procs_info, procs_count, sjf_get_time) : curr_pid;
+  if (!check_existence(procs_info, procs_count, next_pid))
+    return sjf_scheduler(procs_info, procs_count, curr_time, -1);
+  return next_pid;
 }
 
 // "Shortest Time-to-Completion First" (STCF) scheduler
@@ -102,9 +70,8 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 static mlfq scheduler;
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // Removing complete processes
-  if (curr_pid == -1 && scheduler->last_executed_pid != -1)
-    mlfq_remove(scheduler, scheduler->last_executed_pid);
+  // Removing already finished processes from mlfq
+  depurate_mlfq(scheduler, procs_info, procs_count);
 
   // Boosting processes on proper intervals
   if (curr_time % BOOT_INTERVAL == 0)
@@ -117,6 +84,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     // Adding new processes
     if (!mlfq_contains(scheduler, current_process.pid))
       mlfq_add(scheduler, current_process.pid);
+    // Storing current io process
     if (current_process.on_io)
       io_pid = current_process.pid;
   }
