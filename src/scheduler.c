@@ -51,12 +51,12 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
   
   return min;
 }
-struct queue{
+typedef struct queue{
   int length;
   proc_info_t *processes_info;
   proc_info_t (*pop)(struct queue *q);
   void (*push)(proc_info_t process, struct queue *q);
-};
+} queue_t;
 
 void push(proc_info_t process, struct queue *queue)
 {
@@ -67,7 +67,17 @@ proc_info_t pop(struct queue *queue)
   return queue->processes_info[0];
 }
 
-struct queue q0;
+queue_t queue_init()
+{
+  queue_t q0;
+  q0.length = 0;
+  q0.processes_info = (proc_info_t*)malloc(sizeof(proc_info_t));
+  q0.push = push;
+  q0.pop = pop;
+  return q0;
+}
+
+// queue_t queue = (queue_t *)malloc(sizeof(queue_t));
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
@@ -104,9 +114,13 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[0].pid;
 }
 
+queue_t *queues;
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  
+
+  queues[0].push(procs_info[0], &queues[0]);
+  printf("%d\n", queues[0].length);
   return -1;
 }
 
@@ -135,9 +149,9 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
-  q0.length = 0;
-  q0.pop = pop;
-  q0.push = push;
+
+  queues = (queue_t*) malloc(sizeof(queue_t));
+  queues[0] = queue_init();
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
