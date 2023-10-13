@@ -71,7 +71,7 @@ automáticamente. Puedes usarlos de la siguiente forma:
 ./test_all.sh CARPETA NOMBRE-DEL-SCHEDULER [OPCIONES]
 ```
 
-> Los parámetros necesarios para ejecutar directaemte el proyecto son los
+> Los parámetros necesarios para ejecutar directamente el proyecto son los
 > mismos que se usan para ejecutar el script `test_single.sh`.
 
 Por ejemplo:
