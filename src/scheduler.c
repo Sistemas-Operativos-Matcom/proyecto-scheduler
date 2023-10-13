@@ -7,6 +7,7 @@
 
 #include "simulation.h"
 
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -35,17 +36,20 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  int pid = procs_info[0].pid;          //inicializo el pid que devolvere con el pid del primer proceso
-  int min_process = process_total_time(pid);  //al igual que con el minimo de los tiempos de ejecucion
-  //int size = sizeof(procs_info) / sizeof(procs_info[0]);    //calculo el tamanno del array
-  for(int i=1 ; i<procs_count ; i++)               //busco en todo el array el de menor tiempo 
-  {
-    int new_pid = procs_info[i].pid;
-    int new_time = process_total_time(new_pid);
-    if(new_time < min_process)
+  int pid = curr_pid;   
+  if(curr_pid==-1) 
+  {     
+    pid = procs_info[0].pid;
+    int min_process = process_total_time(pid);  
+    for(int i=1 ; i<procs_count ; i++)               
     {
-      min_process = new_time;
-      pid = new_pid;
+      int new_pid = procs_info[i].pid;
+      int new_time = process_total_time(new_pid);
+      if(new_time < min_process)
+      {
+        min_process = new_time;
+        pid = new_pid;
+      }
     }
   }
   return pid;
@@ -53,10 +57,9 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  int pid = procs_info[0].pid;          //inicializo el pid que devolvere con el pid del primer proceso
-  int min_exec_process = process_total_time(pid) - procs_info[0].executed_time;  //al igual que con el minimo de los tiempos que quedan de ejecucion
-  //int size = sizeof(procs_info) / sizeof(procs_info[0]);    //calculo el tamanno del array
-  for(int i=1 ; i<procs_count ; i++)               //busco en todo el array el de menor tiempo de ejecucion faltante
+  int pid = procs_info[0].pid;          
+  int min_exec_process = process_total_time(pid) - procs_info[0].executed_time; 
+  for(int i=1 ; i<procs_count ; i++)              
   {
     int new_pid = procs_info[i].pid;
     int new_exec_time = process_total_time(new_pid) - procs_info[i].executed_time;
@@ -71,18 +74,48 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  if(curr_time % 5 == 0)
-  int pid;
+  int pid = curr_pid;
+  if(pid==-1) return procs_info[0].pid;
+  if(curr_time % 3 == 0)
   for(int i=0 ; i<procs_count ; i++)
   {
-    if(curr_pid == procs_info[i].pid)
+    if(pid==procs_info[i].pid)
     {
-      if(i==procs_count-1) pid = procs_info[0];
-      else pid = procs_info[i+1];
+      if(i==procs_count-1) pid = procs_info[0].pid;
+      pid = procs_info[i+1].pid;
       break;
     }
   }
   return pid;
+}
+
+void init(Queue *q) {
+  q->front = -1;
+  q->rear = -1;
+}
+
+int is_empty(Queue *q) {
+  return q.rear == -1;
+}
+
+void enqueue(Queue *q,int value) {
+  if(q.front == -1) q->front = 0;
+  q->rear++;
+  q->items[q.rear] = value;
+}
+
+int dequeue(Queue *q) {
+  if(!is_empty(q))
+  {
+    int value = q->items[q.front];
+    if(q.front >= q.rear)
+    {
+      q->front = -1;
+      q->rear = -1;
+    }else q->front++;
+    return value;
+  }
+  return 0;
 }
 
 
@@ -106,6 +139,8 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
