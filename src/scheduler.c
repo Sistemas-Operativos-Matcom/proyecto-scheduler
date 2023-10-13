@@ -136,30 +136,70 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[rr_index].pid;
 }
 
+
+// -------------------------  METODOS NECESARIOS PARA IMPLEMENTAR MLFQ---------------------------
+
+//Si un proceso terminó, devuelve 1, Else dedvuelve 0
+//Recibe el pid del proceso, la lista y la cantidad de procesos actuales activos
+int process_ended(proc_info_t *procs_info, int procs_count, int pid)
+{
+  for (int i = 0; i<procs_count; i++)
+  {
+    if (procs_info[i].pid == pid)
+      return 0;
+  }
+  return 1;
+}
+
+//Retorna el proceso que se está ejecutando actualmente
+proc_info_t get_current_process(proc_info_t *procs_info, int procs_count, int c_pid)
+{
+    for (int i = 0; i<procs_count; i++)
+    {
+      if (procs_info[i].pid == c_pid)
+        return procs_info[i];
+    }
+    proc_info_t error = {-1, -1, -1};
+    return error;
+}
+
+
+//--------------------------------    INICIALIZACIONES DE MLFQ -------------------------------------
+
 //Cola 0 menor prioridad, cola 2 mayor prioridad
   proc_info_t q0[200];
   proc_info_t q1[200];
   proc_info_t q2[200];
 
   proc_info_t *queues[3] = {q0, q1, q2};
+
+  //Define la cola del proceso que se está ejecutando:
+  int active_queue = -1;
   
   //array containing added processes pids. Size = 200
   int added[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
   //Me indica si se ha ejecutado o no algún proceso con mlfq. 0 es que no
   int mlfq_begin = 0;
+
+// -----------------------------------  -->     MLFQ   <--  ------------------------------------
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-  //TODO: tomar todos los procesos de la misma queue y hacerles RR.
+  //tomar todos los procesos de la misma queue y hacerles RR.
+  //cuando un proceso consuma el time slice, bajarle la prioridad = bajarlo de cola
 
   //EL PROCESO 0 SE EJECUTA COMPLETO. ARREGLAR ESTO
+
+  int time_slice = 50;
   //Punto de partida para mlfq. Ejecuta siempre el primer proceso de todos.
   if (mlfq_begin == 0)
   {
     mlfq_begin = 1;
     added[0] = 1;
     q2[0] = procs_info[0];
+    active_queue = 2;
     return procs_info[0].pid;
   }
 
@@ -170,15 +210,49 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     if (added[index] == 0)    //el proceso no está en cola
     {
       added[index] = 1;       //marcarlo como añadido
-      q2[index] = procs_info[i];  //añadirlo a la cola 2 en 
+      q2[index] = procs_info[i];  //añadirlo a la cola 2
     }
   }
   
 
   //Si hay algun proceso ejecutandose, seguir ejecutandolo:
   if (curr_pid != -1)
-    return curr_pid;
-  
+  {
+    //Obtengo el proceso actual
+    proc_info_t curr_process = get_current_process(procs_info, procs_count, curr_pid);
+    //Si no ha consumido el time_slice, seguir ejecutándolo
+    if (curr_process.executed_time % time_slice != 0)
+      return curr_pid;
+    else
+    {
+      //IMPLEMENTAR:
+      //si ya consumio el time slice, tengo que pasar al siguiente proceso si en la cola actual hay alguno.
+      //Si en la cola actual no hay ninguno, bajo de cola hasta que haya alguno
+      //Actualizar el active_queue si se modificó
+
+      
+      //Como ya consumio el time slice:
+      //Si la cola no es la de menor prioridad, baja la prioridad del proceso.
+      if (active_queue != 0)
+      {
+        //Quitar el proceso de la cola actual:
+        proc_info_t empty_process = {0,0,0};
+        queues[active_queue][curr_pid] = empty_process;
+
+        //Mover el proceso a la cola de abajo
+        queues[active_queue - 1][curr_pid] = curr_process;
+      }
+      else //IMPLEMENTAR QUE HACER SI LA COLA FUE LA DE MENOR PRIORIDAD
+      {
+
+      }
+
+
+    }
+  }
+    
+  //ESTO ES LO QUE SE VA A HACER SI NO HAY NINGUN PROCESO EJECUTANDOSE ACTUALMENTE:
+
   //Recorro las colas en orden a ver cual sera la primera con un proceso pendiente:
   for (int i = 2; i < 3; i--)
   {
@@ -196,17 +270,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
-//Si un proceso terminó, devuelve 1, Else dedvuelve 0
-//Recibe el pid del proceso, la lista y la cantidad de procesos actuales activos
-int process_ended(proc_info_t *procs_info, int procs_count, int pid)
-{
-  for (int i = 0; i<procs_count; i++)
-  {
-    if (procs_info[i].pid == pid)
-      return 0;
-  }
-  return 1;
-}
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
