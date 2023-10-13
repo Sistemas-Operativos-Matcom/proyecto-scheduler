@@ -88,6 +88,8 @@ int prr = -1;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
+  // aqui time slice = timer interrupt 
+  // es eso bueno?
   prr ++;
   if (prr == procs_count)
   {
@@ -95,6 +97,26 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
   return procs_info[prr].pid;
 }
+
+int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{
+  //time slice = 50
+  //que pasa cuando termina un proceso? 
+  // se ejectuta el proximo o el siguiente a el?
+  if (curr_time % 50 != 0)
+  {
+    return curr_pid;
+  }
+  prr ++;
+  if (prr == procs_count)
+  {
+    prr = 0;
+  }
+  return procs_info[prr].pid;
+}
+
+
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
@@ -122,12 +144,10 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
-
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  //if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
+  
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
