@@ -214,14 +214,17 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   // Esto busca hacia delante el primer proceso q no este en io con la mayor(menor, las puse al reves)
   for (int i = prevpidind + 1; i < prevpidind + procs_count + 1; i++)
   {
-    if (procs_info[i % procs_count].priority < actprior && !procs_info[i % procs_count].on_io)
+    //printf("(%d, %d, %d)", procs_info[i % procs_count].priority,actprior, i % procs_count);
+    if (procs_info[i % procs_count].priority < actprior && !(procs_info[i % procs_count].on_io))
     {
+      //printf("[selected] ");
       actprior = procs_info[i % procs_count].priority;
       retpid = procs_info[i % procs_count].pid;
       curr_execumulation = procs_info[i % procs_count].executed_time;
       prevpidind = i % procs_count;
     }
   }
+  printf("\n");
   return retpid;
 }
 
