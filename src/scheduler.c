@@ -121,14 +121,14 @@ int pass_turn(int *turn)
   return *turn - 1;
 }
 
-int get_rr_index(proc_info_t *procs, int procs_count, int check_io) // check_io != 0 si se quiere escoger un proceso q  no esta en io
+int rr_manager(proc_info_t *procs, int procs_count, int check_io, int *turn) // check_io != 0 si se quiere escoger un proceso q  no esta en io
 {
   int next = 0;
-  int current = pass_turn(&turn_procs) % procs_count;
+  int current = pass_turn(turn) % procs_count;
 
   while (check_io && procs[current].on_io && next < procs_count)
   {
-    current = pass_turn(&turn_procs) % procs_count;
+    current = pass_turn(&turn) % procs_count;
     next++;
   }
   return current;
@@ -136,12 +136,13 @@ int get_rr_index(proc_info_t *procs, int procs_count, int check_io) // check_io 
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % time_slice(2) == 0) ? procs_info[get_rr_index(procs_info, procs_count, 0) % procs_count].pid : curr_pid;
+  return (curr_time % time_slice(2) == 0) ? procs_info[rr_manager(procs_info, procs_count, 0, &turn_procs) % procs_count].pid : curr_pid;
 }
 
 // MLFQ
 
 // Metodos Utiles
+
 // Actualizar los procesos, buscar nuevos
 void mlfq_merge(int past_pid[], int level_pid[], int time_pid[], proc_info_t *current_procs, int *past_count, int procs_count)
 {
@@ -230,22 +231,30 @@ void mlfq_pass_turn(int *turn)
   *turn += 1;
 }
 
-int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int *turn)
+int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int *turn, int current_pid)
 {
   // actualizar los procesos
-  mlfq_merge
-      // buscar la cola actual
-      // aplicar rr, si el proceso regresa en io entoces no se corre el turno
-      // actualizar el proceso del rr
-      // priority boost
-      //
+  mlfq_merge(pid, level, time, procs, pid_count, procs_count);
 
-      return 0;
+  if (current_pid != -1) // verificar si el proceso esta en io durante el t.interrupt
+  {
+    int current_proc_index = find_pid_array(procs, procs_count, current_pid);
+  }
+  // buscar la cola actual
+  int depth_count = 0;
+  int depth = mlfq_find_lowest_depth(level, *pid_count, &depth_count, MAX_DEPTH);
+
+  // aplicar rr, si el proceso regresa en io entoces no se corre el turno
+  // actualizar el proceso del rr
+  // priority boost
+  //
+
+  return 0;
 }
 
 // Parametros del MLFQ
 int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
-int mlfq_priority_bost_time = 10;
+int mlfq_priority_bost_time = 4 * TIME_INTERRUPT;
 int mlfq_max_time_level = 10;
 int mlfq_time_slice = 2; // k / TIMER INTERRUPT
 
@@ -262,7 +271,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   if (curr_time % time_slice(mlfq_time_slice) != 0)
     return curr_pid;
 
-  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time, &mlfq_turn);
+  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time, &mlfq_turn, curr_pid);
   return -1;
 }
 
