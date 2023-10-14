@@ -83,17 +83,17 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 //
 // RR
 //
-#define INTERRUPTS_TO_CHANGE 3
-int current_process_interrupts = 0;
+#define RR_INTERRUPTS_TO_CHANGE 3
+int rr_current_process_interrupts = 0;
 int rr_proc_index = 0;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
   if(curr_pid == -1){
     return procs_info[rr_proc_index%procs_count].pid;
   }
 
-  current_process_interrupts += 1;
-  if(current_process_interrupts >= INTERRUPTS_TO_CHANGE){
-    current_process_interrupts = 0;
+  rr_current_process_interrupts += 1;
+  if(rr_current_process_interrupts >= RR_INTERRUPTS_TO_CHANGE){
+    rr_current_process_interrupts = 0;
     rr_proc_index = (rr_proc_index+1)%procs_count;
     return procs_info[rr_proc_index].pid;
   }
@@ -104,13 +104,88 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 //
 // MLFQ
 //
-#define QUEUE_COUNT 3
-
-#define INTERRUPTS_TO_BOOST 20
-int interrupts_since_boost = 0;
+#define MLFQ_QUEUE_COUNT 3
+#define MLFQ_INTERRUPTS_TO_BOOST 20
+#define MLFQ_INTERRUPTS_TO_DECREASE_PRIORITY 6
+int mlfq_interrupts_since_boost = 0;
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
-  return curr_pid; //TODO
+
+  // Asignar prioridad maxima a los procesos recien llegados
+  for (int i = 0; i < procs_count; i++){
+    if (procs_info[i].executed_time == 0){
+      procs_info[i].priority = MLFQ_QUEUE_COUNT-1;
+      procs_info[i].executed_interrupts_on_this_priority = 0;
+    }
+  }
+
+  // Priority boost
+  if (mlfq_interrupts_since_boost >= MLFQ_INTERRUPTS_TO_BOOST){
+    mlfq_interrupts_since_boost = 0;
+    for (int i = 0; i < procs_count; i++){
+      procs_info[i].priority = MLFQ_QUEUE_COUNT-1;
+      procs_info[i].executed_interrupts_on_this_priority = 0;
+    }
+  }
+  mlfq_interrupts_since_boost += 1;
+
+  // Encontrar la maxima prioridad que tiene un proceso que esta pidiendo tiempo de CPU, y si nadie pide cpu, no ejecutar a nadie
+  int max_priority_asking_for_cpu = -1;
+  for(int i = 0; i<procs_count; i++){
+    int p = procs_info[i].priority;
+    if (!procs_info[i].on_io && p > max_priority_asking_for_cpu){ 
+      max_priority_asking_for_cpu = p;
+    }
+  }
+  if(max_priority_asking_for_cpu == -1){
+    return -1;
+  }
+
+  // Determinar si sigo corriendo el proceso actual o hay que cambiarlo
+  int change_process_with_rr = 0;
+  int rr_displacement = 0;
+  if(curr_pid != -1){
+    
+    // Encontrar el indice del proceso que esta corriendo
+    for (int i = 0; i < procs_count; i++){
+      if(procs_info[i].pid == curr_pid){
+        rr_proc_index = i; 
+        break;
+      }
+    }
+
+    // Actualizar la cantidad de interrupts que ha corrido en esta prioridad, y en el rr
+    procs_info[rr_proc_index].executed_interrupts_on_this_priority += 1;
+    rr_current_process_interrupts += 1;
+
+    // Ver si tengo que cambiar el proceso que se esta ejecutando segun las reglas del mlfq
+    if(procs_info[rr_proc_index].priority < max_priority_asking_for_cpu || procs_info[rr_proc_index].on_io){
+      change_process_with_rr = 1;
+    }else if(procs_info[rr_proc_index].priority > 0 && procs_info[rr_proc_index].executed_interrupts_on_this_priority >= MLFQ_INTERRUPTS_TO_DECREASE_PRIORITY){
+      change_process_with_rr = 1;
+      procs_info[rr_proc_index].priority -= 1;
+      procs_info[rr_proc_index].executed_interrupts_on_this_priority = 0;
+    }else if(rr_current_process_interrupts >= RR_INTERRUPTS_TO_CHANGE){
+      change_process_with_rr = 1;
+      rr_displacement = 1;
+    }
+  }else{
+    change_process_with_rr = 1;
+  }
+
+  // Si se pide, retornar el "siguiente" segun RR
+  if(change_process_with_rr){
+    for(int i_t = rr_displacement; i_t<procs_count; i_t++){
+      int i = (rr_proc_index+i_t)%procs_count;
+      if(!procs_info[i].on_io && procs_info[i].priority == max_priority_asking_for_cpu){
+        rr_proc_index = i;
+        rr_current_process_interrupts = 0;
+        break;
+      }
+    }
+  }
+
+  return procs_info[rr_proc_index].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
