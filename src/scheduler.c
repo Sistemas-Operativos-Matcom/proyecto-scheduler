@@ -8,6 +8,8 @@
 #include "simulation.h"
 
 #define SLICE_TIME 30
+#define RESET_TIME 600
+#define LEVELS 4
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -37,6 +39,8 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  if(procs_count == 0) return -1;
+
   int current_pid = procs_info[0].pid;
   int current_time =  process_total_time(current_pid);
 
@@ -57,6 +61,8 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  if(procs_count == 0) return -1;
+
   int current_pid = procs_info[0].pid;
   int current_time =  process_total_time(current_pid) - procs_info[0].executed_time;
 
@@ -79,6 +85,7 @@ int ind = 0;
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  if(procs_count == 0) return -1;
 
   ind = ind % procs_count; 
 
@@ -91,6 +98,8 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 
 int io_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  if(procs_count == 0) return -1;
+
   ind = ind % procs_count;
 
   int on_io = 0;
@@ -110,9 +119,118 @@ int io_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[ind].pid;
 }
 
-int mlfq_scheduler()
+// mlfq arrays
+int mlfq_pid[5000];
+int mlfq_level[5000];
+int mlfq_slice_time[5000];
+int mlfq_arrive_time[5000];
+
+// hacer coincidir las posiciones de mis mlfq arrays con las de los procs info
+void update_mlfq_array(proc_info_t *procs_info, int procs_count, int curr_time)
 {
-  return -1;
+
+  for(int i=0, j=0; i<procs_count; i++, j++)
+  {
+    if(procs_info[i].pid == mlfq_pid[j])
+    {
+      mlfq_pid[i] = mlfq_pid[j];
+      mlfq_level[i] = mlfq_arrive_time[j];
+      mlfq_slice_time[i] = mlfq_slice_time[j];
+      mlfq_arrive_time[i] = mlfq_arrive_time[j]; 
+    }
+    else if(mlfq_pid[j] == -1)
+    {
+      mlfq_pid[i] = procs_info[i].pid;
+      mlfq_level[i] = 0;
+      mlfq_slice_time[i] = SLICE_TIME;
+      mlfq_arrive_time[i] = curr_time;
+    }
+    else
+      i--;
+  }
+}
+
+// variables auxiliares
+int last_pid = -1;
+int last_level = LEVELS + 1;
+int last_arrive_time = 0;
+int last_index = 0;
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  if(procs_count == 0) return -1;
+  
+  update_mlfq_array(procs_info, procs_count, curr_time);
+
+  // revisar el slice time para actualizar el nivel, el slice y el arrive time
+  if(last_pid == curr_pid)
+  {
+    if(mlfq_slice_time[last_index] > 0)
+    {
+      // Si cambia el timer interrupt period modificar
+      mlfq_slice_time[last_index] -= 10;
+      return curr_pid;
+    }
+    else
+    {
+      mlfq_level[last_index] = (mlfq_level[last_index] < LEVELS) ? mlfq_level[last_index] + 1 : LEVELS;
+      mlfq_arrive_time[last_index] = curr_time;
+      mlfq_slice_time[last_index] = SLICE_TIME;
+    }
+  }
+
+  // poner a todo el mundo para el primer nivel si estamos en un momento de hacerlo
+  if(curr_time % RESET_TIME == 0)
+  {
+    memset(mlfq_level, 0, sizeof(int) * procs_count);
+  }
+
+  // buscar el proximo elemento
+  int pid = -1;
+  int level = LEVELS + 1;
+  int arrive_time = 0;
+  
+  for(int i=0; i<procs_count; i++)
+  {
+    if(procs_info[i].on_io) continue;
+    if(procs_info[i].pid == curr_pid) continue;
+
+    if(mlfq_level[i] != last_level)
+    {
+      if(mlfq_level[i] < level)
+      {
+        pid = procs_info[i].pid;
+        level = mlfq_level[i];
+        arrive_time = mlfq_arrive_time[i];
+      }
+      else if(mlfq_arrive_time[i] > arrive_time && mlfq_level[i] == level)
+      {
+        pid = procs_info[i].pid;
+        level = mlfq_level[i];
+        arrive_time = mlfq_arrive_time[i];
+      }
+    }
+    else
+    {
+      if(mlfq_level[i] == level)
+      {
+        int compare = (mlfq_arrive_time[i] < last_arrive_time) ? mlfq_arrive_time[i] + curr_time : mlfq_arrive_time[i];
+        if(compare < arrive_time)
+        {
+          pid = procs_info[i].pid;
+          arrive_time = compare;
+        }
+      }
+      else if(mlfq_level[i] < level)
+      {
+        pid = procs_info[i].pid;
+        level = mlfq_level[i];
+        arrive_time = (mlfq_arrive_time[i] < last_arrive_time) ? mlfq_arrive_time[i] + curr_time : mlfq_arrive_time[i];
+      }
+    }
+  }
+  
+  return (pid != -1) ? pid : curr_pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -121,6 +239,8 @@ schedule_action_t get_scheduler(const char *name) {
   
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
+
+  memset(mlfq_pid, -1, 5000*sizeof(int));
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
 
