@@ -3,7 +3,6 @@
 #include "scheduler.h"
 #include "simulation.h"
 #include "queue.h"
-#define MAX 40000000
 
 void initQueue(struct Queue *q)
 {
@@ -12,7 +11,7 @@ void initQueue(struct Queue *q)
 }
 int isFull(struct Queue *q)
 {
-    return q->puntero == MAX - 1;
+    return q->puntero == __INT16_MAX__ - 1;
 }
 int isEmpty(struct Queue *q)
 {
@@ -51,11 +50,15 @@ proc_info_t dequeue(struct Queue *q)
 }
 int contains(struct Queue *q, proc_info_t item)
 {
-    for (int j = q->puntero; j < q->pop; j++)
+
+    for (int i = q->pop; i <= q->puntero; i++)
     {
-        if (q->items[j].pid == item.pid)
+        if (q->puntero != q->pop)
         {
-            return 1;
+            if (q->items[i].pid == item.pid)
+            {
+                return 1;
+            }
         }
     }
     return 0;
@@ -63,7 +66,7 @@ int contains(struct Queue *q, proc_info_t item)
 int length(struct Queue *q)
 {
     int count = 0;
-    for (int i = q->puntero; i < q->pop; i++)
+    for (int i = q->pop; i <= q->puntero; i++)
     {
         count++;
     }

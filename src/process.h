@@ -4,7 +4,8 @@
 #define MAX_PROCESS_COUNT 10000
 #define MAX_EV_PER_PROCESS 1000
 
-typedef struct process {
+typedef struct process
+{
   int *event_durations_msecs;
   int ev_count;
   int arrive_time;

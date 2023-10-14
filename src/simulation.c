@@ -36,7 +36,6 @@ static simulation_t new_simulation(process_t *processes, int process_count)
     sim.procs_exec_info[i].pid = i;
     sim.procs_exec_info[i].executed_time = 0;
     sim.procs_exec_info[i].state = NOT_ARRIVED;
-    sim.procs_exec_info[i].priority = 0;
   }
 
   return sim;
@@ -55,7 +54,6 @@ static void fill_proc_info(proc_execution_t *proc_exec,
   proc_info->pid = proc_exec->pid;
   proc_info->on_io = proc_exec->state == ON_IO;
   proc_info->executed_time = proc_exec->executed_time;
-  proc_info->priority = proc_exec->priority;
 }
 
 static int update_process(proc_execution_t *process_exec, int curr_time)
@@ -271,7 +269,8 @@ void start_new_simulation(process_t *processes, int process_count,
                          next_sim_time) == ENDED)
       {
         ended_processes++;
-        if (g_sim->curr_proc_pid == on_io[random_idx]) {
+        if (g_sim->curr_proc_pid == on_io[random_idx])
+        {
           g_sim->curr_proc_pid = -1;
         }
       }
