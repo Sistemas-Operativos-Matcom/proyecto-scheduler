@@ -72,30 +72,19 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int roundRobin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
 {
-  if(curr_pid == latest_rr) //sigue el mismo proceso
-  {
-    if(last_index_rr < procs_count -1)
+    //time slice = time interrupt
+    if(last_index_rr < procs_count - 1)
     {
       last_index_rr += 1;
+      latest_rr = procs_info[last_index_rr].pid;
       return procs_info[last_index_rr].pid;
     }
     else
     {
       last_index_rr = 0;
+      latest_rr = procs_info[last_index_rr].pid;
       return procs_info[last_index_rr].pid;
     }
-  }
-  else                      //el proceso anterior termino
-  {
-    if((procs_count - last_index_rr) > 0) 
-      return procs_info[last_index_rr].pid; //llego un nuevo proceso
-
-    else //final del array
-    {
-      last_index_rr = 0;
-      return procs_info[last_index_rr].pid;
-    }
-  }
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
