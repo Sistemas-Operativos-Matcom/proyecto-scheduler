@@ -83,40 +83,48 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return PID;
 }
 
-int prr = -1;
+int prr = 0;
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
   // aqui time slice = timer interrupt 
   // es eso bueno?
-  prr ++;
+  if (curr_pid != -1)
+  {
+    prr ++;
+  }
   if (prr == procs_count)
   {
     prr = 0;
   }
   return procs_info[prr].pid;
 }
+
+const Times = 5;
+int time = Times;
 
 int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
   //time slice = 50
   //que pasa cuando termina un proceso? 
-  // se ejectuta el proximo o el siguiente a el?
-  if (curr_time % 50 != 0)
+  if (time != 0 && curr_pid != -1)
   {
+    time --;
     return curr_pid;
   }
-  prr ++;
+  time = Times;
+  if (curr_pid != -1)
+  {
+    prr ++;
+  }
   if (prr == procs_count)
   {
     prr = 0;
   }
   return procs_info[prr].pid;
 }
-
-
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
