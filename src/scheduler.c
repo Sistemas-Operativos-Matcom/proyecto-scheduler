@@ -7,6 +7,24 @@
 
 #include "simulation.h"
 
+#define TIME_SLICE 30
+
+static process_stack_t *n_stack;
+
+static process_stack_t new_stack(process_t *processes, int process_count){
+  process_stack_t stack = {
+    (process_t *)malloc(process_count * (sizeof (process_t))),
+    process_count,
+  };
+
+  for (int i = 0; i < process_count; i++) {
+    stack.processes[i] = processes[i];
+  }
+
+  return stack;
+}
+
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -37,18 +55,22 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
 
   int ld = __INT_MAX__;
-  int pid = 0;
+  int pid = curr_pid;
 
-  for(int i = 0; i < procs_count; i++){
+  if(process_total_time(pid) == 0){
 
-    int proc_pid = procs_info[i].pid;
-    int duration = process_total_time(proc_pid);
-    
-    if(duration < ld){
-      pid = proc_pid;
-      ld = duration;
+    for(int i = 0; i < procs_count; i++){
+
+      int proc_pid = procs_info[i].pid;
+      int duration = process_total_time(proc_pid);
+      
+      if(duration < ld && duration > 0){
+        pid = proc_pid;
+        ld = duration;
+      }
     }
   }
+
   
   return pid;
 }
@@ -57,7 +79,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   
   int st = __INT_MAX__;
-  int pid = 0;
+  int pid = curr_pid;
 
   for(int i = 0; i < procs_count; i++){
 
@@ -75,21 +97,21 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+  
+  int pid = curr_pid;
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+  if(curr_time%TIME_SLICE == 0){
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
+    for(int i = 0; i< procs_count; i++){
+      if(procs_info[i].pid == curr_pid){
+        pid = procs_info[(i+1)%procs_count].pid;
+      }
+    }
 
-  return -1;
+    if(pid == curr_pid) return procs_info[0].pid;
+  }
+
+  return pid;
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
