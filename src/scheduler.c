@@ -14,6 +14,8 @@ fq_t *q0;
 fq_t *q1;
 fq_t *q2;
 
+int curr_pid_level = 0;
+
 // Array containing each feedback queue ordered from high to low
 fq_t *priority_array[PRIORITY_LEVELS];
 
@@ -245,14 +247,28 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                   int curr_pid) {
   int pid = curr_pid;
 
+  // Adds the process to the highest priority queue if not already on a feedback queue
   for (int i = 0; i < procs_count; i++) {
-    // Adds the process to the highest priority queue if not already on a feedback queue
-    if (!in_fq(procs_info[i].pid)) {
+    if (procs_info[i].pid != curr_pid && !in_fq(procs_info[i].pid)) {
       fq_enqueue(priority_array[0], procs_info[i].pid);      
     }
   }
 
-  // While the time matches the priority boost interval, resets the queues and re-enqueue each
+  // Checks curr_pid doesn't turns on_io before slice time
+  if (curr_time % ROUND_ROBIN_TIME_SLICE != 0) {
+    if (curr_pid == -1) return curr_pid;
+
+    int curr_index = find_proc_info_index_by_pid(procs_info, procs_count, curr_pid);
+
+    // If current process does I/O, will return to same priority if not already enqueued
+    if (procs_info[curr_index].on_io && !in_fq(curr_pid)) {
+      fq_enqueue(priority_array[curr_pid_level], curr_pid);
+    }
+
+    return curr_pid;
+  }  
+
+  // When the time matches the priority boost interval, resets the queues and re-enqueue each
   // process
   if (curr_time % MLFQ_PRIORITY_BOOST_TIME == 0) {
     reset_fqs();
@@ -263,8 +279,15 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
 
   // Checks for the next process to execute, if the process is already ended execution
-  // discards it, if the process is reading I/O, it re-enqueues it with the same priority
+  // it discards it, if the process is reading I/O, it re-enqueues it with the same priority
   if (curr_time % ROUND_ROBIN_TIME_SLICE == 0) {
+    // Lowers current process priority due to full time slice CPU execution
+    if (!in_fq(curr_pid)) {
+      if (curr_pid_level < PRIORITY_LEVELS - 1) curr_pid_level++;
+      fq_enqueue(priority_array[curr_pid_level], curr_pid);
+    }
+
+    // Finds each level in order searching for the next process to execute
     for (int level = 0; level < PRIORITY_LEVELS; level++) {
       pid = fq_dequeue(priority_array[level]);
       int proc_index = find_proc_info_index_by_pid(procs_info, procs_count, pid);
@@ -273,29 +296,29 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       // go to a lower priority level
       if (pid == -1) continue;
 
+      // The process is in the proc_info list
+      if (proc_index > -1) {
+        break;
+      }
+
       while (priority_array[level]->procs_count > 0) {
-        if (procs_info[proc_index].on_io)
-          fq_enqueue(priority_array[level], pid);
+        pid = fq_dequeue(priority_array[level]);
+        proc_index = find_proc_info_index_by_pid(procs_info, procs_count, pid);
         
         if (proc_index > -1) {
           break;
         }
-        
-        pid = fq_dequeue(priority_array[level]);
-        proc_index = find_proc_info_index_by_pid(procs_info, procs_count, pid);
       }
 
       // There's no valid process on current queue, go to a 
       // lower priority level
       if (pid == -1) continue;
 
-      // Makes sure the priority descent doesn't goes out of range
-      if (level == PRIORITY_LEVELS - 1) fq_enqueue(priority_array[level], pid);
-      else fq_enqueue(priority_array[level++], pid);
+      // Found a valid pid to schedule
+      curr_pid_level = level;
       break;
     }    
   }
-  
   return pid;
 }
 
