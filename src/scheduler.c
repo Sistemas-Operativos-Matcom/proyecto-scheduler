@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
 #include "simulation.h"
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -28,9 +27,9 @@
 //* - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //*     contexto y se ejecuta el proceso indicado.
 
-int latest_sj = -1;
-int latest_rr = -1;
-int last_index_rr = 0;
+static int latest_sj = -2;
+static int latest_rr = -1;
+static int last_index_rr = 0;
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {  
@@ -40,13 +39,13 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
 { 
   if(curr_pid == latest_sj) return curr_pid;
-
+ 
   int shortest_job = INT_MAX;
   for (size_t i = 0; i < procs_count; i++)
-  {
+  { 
     if (process_total_time(procs_info[i].pid) < shortest_job)
     {
-      shortest_job = process_total_time(procs_info[i].pid);
+      shortest_job = procs_info[i].pid;
     }
   }
   latest_sj = shortest_job;
