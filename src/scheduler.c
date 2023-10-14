@@ -62,7 +62,7 @@ int find_pid_int(int pid_procs[], int procs_count, int pid)
   return -1;
 }
 
-// Recorre y retorna el proceso segun comparacion
+// Buscar el menor proceso segun el criterio de comparacion
 int select_item(proc_info_t *procs, int count, int comparer(proc_info_t, proc_info_t))
 {
   int selected = 0;
@@ -177,7 +177,7 @@ void mlfq_merge(int past_pid[], int level_pid[], int time_pid[], proc_info_t *cu
   return;
 }
 
-void priority_bost(int levels[], int time_level[], int count)
+void mlfq_priority_bost(int levels[], int time_level[], int count)
 {
   for (int i = 0; i < count; i++)
   {
@@ -191,12 +191,12 @@ void priority_bost(int levels[], int time_level[], int count)
 }
 
 // update the level of a process and returns 1 if the process has consumed the time of the level
-int update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
+int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
 {
   int index = find_pid_int(pid, count, pid_selected);
   time_level[index] += TIME_SLICE;
 
-  if (time_level[index] >= MAX_TIME_LEVEL)
+  if (time_level[index] > MAX_TIME_LEVEL)
   {
     level[index] = (level[index] + 1 >= MAX_LEVEL) ? MAX_LEVEL : level[index] + 1;
     time_level[index] = 0;
@@ -205,10 +205,42 @@ int update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX
   return 0;
 }
 
-int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME)
+int mlfq_find_lowest_depth(int level[], int count, int *temp, int MAX_DEPTH) // buscar el nivel de mas prioridad, temp devuelve la cantidad de items en ese level
 {
+  int current_depth = MAX_DEPTH;
+  *temp = 0;
+  for (int i = 0; i < count; i++)
+  {
+    if (level[i] < current_depth)
+    {
+      current_depth = level[i];
+      *temp = 0;
+    }
 
-  return 0;
+    if (level[i] == current_depth)
+    {
+      (*temp)++;
+    }
+  }
+  return current_depth;
+}
+
+void mlfq_pass_turn(int *turn)
+{
+  *turn += 1;
+}
+
+int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int *turn)
+{
+  // actualizar los procesos
+  mlfq_merge
+      // buscar la cola actual
+      // aplicar rr, si el proceso regresa en io entoces no se corre el turno
+      // actualizar el proceso del rr
+      // priority boost
+      //
+
+      return 0;
 }
 
 // Parametros del MLFQ
@@ -221,14 +253,16 @@ int mlfq_time_slice = 2; // k / TIMER INTERRUPT
 int mlfq_pid[MAX_PROCESS_COUNT];       // array de los pid
 int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
 int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
-int count = 0;
+int mlfq_count = 0;
+int mlfq_turn = 0; // round robin
+int mlfq_qeue = 0; // current qeue
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   if (curr_time % time_slice(mlfq_time_slice) != 0)
     return curr_pid;
 
-  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time);
+  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time, &mlfq_turn);
   return -1;
 }
 
