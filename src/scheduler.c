@@ -229,11 +229,16 @@ int push_all_procs(proc_info_t *procs_info, int procs_count, struct queue *q) {
 int is_on_io(proc_info_t *procs_info, int procs_count, int pid) {
   for (int i = 0; i < procs_count; i++) {
     int pid = procs_info[i].pid;
-    if ( procs_info[i].pid == pid && procs_info[i].on_io == 1) {
+    if ( procs_info[i].pid == pid) {
+      if (procs_info[i].on_io == 1) {
+      // printf("%i\n", pid);
       return 1;
+      } else {
+        return 0;
+      }
     }
   }
-  return 0;
+  return -1;
 }
 
 // mueve el elemento del principio al final
@@ -284,9 +289,23 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   while (!exist_in_procs(qr, procs_info, procs_count)) {
     dequeue(qr);
   }
- 
 
-  // printf("%i \n", size(qr));
+  // implementacion de io
+  int cant = 0;
+  while (is_on_io(procs_info, procs_count, front(qr)) && cant < size(qr)) {
+    // printf("%i ", front(qr));
+    if (is_on_io(procs_info, procs_count, front(qr)) == -1) {
+      dequeue(qr);
+    } else {
+      int t = get_proc_time(qr);
+      changeQueue(qr);
+      qr->proc_time[qr->last] = t;
+    }
+    // printf("%i \n", front(qr));
+    cant++;
+    // printf("%i\n", front(q1));
+  }
+ 
   // manda a ejecutar el proceso en el front de la cola
   last_pid = front(qr);
   add_slide_time(qr);
@@ -345,7 +364,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     }
   }
 
-  
+  int all_io = 0;
   // decide que proceso ejecutar primero coje de la cola 1 y si esta vacia de la cola 2
   if (!is_empty(q1)) {
     // cojo el front aumento su proc_time y lo mando para el final de la queue 
@@ -354,7 +373,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       dequeue(q1);
     }
  
-  for (int i = 0; i < procs_count; i++) {
+    for (int i = 0; i < procs_count; i++) {
       int pid = procs_info[i].pid;
       if (exist_in_queue(q1, pid) == 0) {
         // printf("%i ", pid);
@@ -362,6 +381,26 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         continue;
       }
       // printf("%i\n", exist_in_queue(q1, procs_info[i].pid));
+    }
+
+    // implementacion de io 
+    int cant = 0;
+    while (is_on_io(procs_info, procs_count, front(q1)) && cant < size(q1)) {
+      // printf("%i ", front(qr));
+      if (is_on_io(procs_info, procs_count, front(q1)) == -1) {
+        dequeue(q1);
+      } else {
+        int t = get_proc_time(q1);
+        changeQueue(q1);
+        q1->proc_time[q1->last] = t;
+      }
+      // printf("%i \n", front(qr));
+      cant++;
+      // printf("%i\n", front(q1));
+    }
+
+    if (cant == size(q1)) {
+      all_io = 1;
     }
 
     // printf("%i", size(q1)); 
