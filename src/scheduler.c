@@ -7,9 +7,9 @@
 
 #include "simulation.h"
 
-#define SLICE_TIME 30
-#define RESET_TIME 600
-#define LEVELS 4
+#define SLICE_TIME 20
+#define RESET_TIME 100
+#define LEVELS 3
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
