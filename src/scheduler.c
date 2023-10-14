@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <limits.h>
 #include "simulation.h"
+
+
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -26,11 +28,79 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+
+int currentIndexRR = 0;
+int amountTimerInterrupts = 0;
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
+}
+
+//testear
+
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid) {
+  int minTime = INT_MAX;
+  int index = 0;
+
+  for(int i = 0; i < procs_count; i++){ //buscar el proceso con menor tiempo de ejecucion total
+    int _processTotalTime = process_total_time(procs_info[i].pid);
+    if(_processTotalTime < minTime){
+      index = i;
+      minTime = _processTotalTime;
+    }
+  }                  
+
+  return procs_info[index].pid;
+}
+
+//testear
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid) {
+  int minTime = INT_MAX;
+  int index = 0;
+
+  for(int i = 0; i < procs_count; i++){ // buscar el proceso con menor tiempo restante (total - transcurrido)
+    int _processTotalTime = process_total_time(procs_info[i].pid);
+    if(_processTotalTime-procs_info[i].executed_time < minTime){
+      index = i;
+      minTime = _processTotalTime-procs_info[i].executed_time; 
+    }
+  }                  
+
+  return procs_info[index].pid;
+}
+
+//testear
+//como averiguo cuanto le falta por terminar al proceso curr_pid
+
+int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                  int curr_pid, int time_slice) { //time_slice sería cuantos timer-interupt son necesarios para cambiar de proceso
+  if(amountTimerInterrupts < time_slice - 1){ // si aun no se cumple el time slice seguimos con el mismo proceso
+    amountTimerInterrupts++;
+    return curr_pid;
+  }
+  else{ // toca cambiar de proceso
+    int _pid;
+   
+     // aqui se contempla la posibilidad de que el proceso termino en el time slice pasado entonces no es necessario 
+     // actualizar el index solo si el proceso se mantiene en su posicion en el array
+    if(procs_info[currentIndexRR].pid == curr_pid){
+      currentIndexRR++;
+    }
+    
+    if(currentIndexRR >= procs_count){ // cuando ejecutamos el ultimo en la lista le toca al del incio otra vez
+      currentIndexRR = 0;
+    }
+    
+    _pid = procs_info[currentIndexRR].pid;
+    amountTimerInterrupts = 0;
+
+    return _pid;
+  }
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -59,7 +129,9 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0) return *round_robin_scheduler;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
