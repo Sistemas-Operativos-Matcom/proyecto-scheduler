@@ -181,43 +181,40 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
  
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
-  int min = 1e9;
-
-  if (curr_pid != -1)
-  {
+  // ejecuta el mismo mientras no termine
+  if (curr_pid != -1) {
     return curr_pid;
   }
-
-  int newPid = -1;
-  for (int i = 0; i < procs_count; i++)
-  {
-    if (process_total_time(procs_info[i].pid) < min)
-    {
-      min = process_total_time(procs_info[i].pid);
-      newPid = procs_info[i].pid;
+  int min = 1e9;
+  int send = -1;
+  int pos = 0;
+  while (pos < procs_count) {
+    int pid = procs_info[pos].pid;
+    int duration = process_total_time(pid);
+    if (duration < min) {
+      min = duration;
+      send = pid;
     }
+    pos++;
   }
-
-  return newPid;
-  
+  return send;
 }
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {  
-  int index_next_process = -1;
-  int min_time = 1e9;
-  
-  for (int i = 0; i < procs_count; i++)
-  {
-    int aux = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
-
-    if (aux < min_time)
-    {
-      min_time = aux;
-      index_next_process = i;
+  // en cada momento seleciona el proceso que menos tiempo le quede
+  int min = 1e9;
+  int send = -1;
+  int pos = 0;
+  while (pos < procs_count) {
+    int pid = procs_info[pos].pid;
+    int duration = process_total_time(pid) - procs_info[pos].executed_time;
+    if (duration < min) {
+      min = duration;
+      send = pid;
     }
+    pos++;
   }
-  
-  return procs_info[index_next_process].pid;
+  return send;
 }
 
 int push_all_procs(proc_info_t *procs_info, int procs_count, struct queue *q) {
@@ -415,7 +412,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler; 
   if (strcmp(name, "rr") == 0){ 
-    qr = new_queue(1000);
+    qr = new_queue(10000);
     return *rr_scheduler;
   }
   if (strcmp(name, "mlfq") == 0) {
