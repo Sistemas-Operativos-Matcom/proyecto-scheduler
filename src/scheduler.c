@@ -93,6 +93,11 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[0].pid;
 }  
 
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  
+}
+
 
 
 
