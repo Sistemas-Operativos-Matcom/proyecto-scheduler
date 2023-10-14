@@ -105,14 +105,15 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 }
 
 // ROUND ROBIN
-int rr_time_slice(int timeInterrup) // parametrizar el rr
+const int TIME_INTERRUPT = 10; // Time Interrump
+
+int time_slice(int k) // parametrizar el rr
 {
-  int mult = 2;
-  return timeInterrup * mult;
+  k = (k == 0) ? 1 : k;
+  return TIME_INTERRUPT * k;
 }
 
 int turn_procs = 0;
-const int TIME_INTERRUPT = 10; // Time Interrump
 
 int pass_turn(int *turn)
 {
@@ -135,7 +136,7 @@ int get_rr_index(proc_info_t *procs, int procs_count, int check_io) // check_io 
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return (curr_time % rr_time_slice(TIME_INTERRUPT) == 0) ? procs_info[get_rr_index(procs_info, procs_count, 0) % procs_count].pid : curr_pid;
+  return (curr_time % time_slice(2) == 0) ? procs_info[get_rr_index(procs_info, procs_count, 0) % procs_count].pid : curr_pid;
 }
 
 // MLFQ
@@ -189,8 +190,8 @@ void priority_bost(int levels[], int time_level[], int count)
   return;
 }
 
-// update the level of a process and returns 1 if the process has consumed all the time of the level
-int update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
+// update the level of a process and returns 1 if the process has consumed the time of the level
+int update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int count, int pid_selected)
 {
   int index = find_pid_int(pid, count, pid_selected);
   time_level[index] += TIME_SLICE;
@@ -204,25 +205,31 @@ int update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, 
   return 0;
 }
 
+int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME)
+{
+
+  return 0;
+}
+
 // Parametros del MLFQ
 int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
 int mlfq_priority_bost_time = 10;
 int mlfq_max_time_level = 10;
+int mlfq_time_slice = 2; // k / TIMER INTERRUPT
 
 // Info sobre los procesos
-int mlfq_past_pid[MAX_PROCESS_COUNT];  // array de los pid
+int mlfq_pid[MAX_PROCESS_COUNT];       // array de los pid
 int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
 int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
 int count = 0;
 
-int mlfq_manager()
-{
-  return 0;
-}
-
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  return curr_pid;
+  if (curr_time % time_slice(mlfq_time_slice) != 0)
+    return curr_pid;
+
+  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time);
+  return -1;
 }
 
 // SCHEDULER OTRAS IMPLEMENTACIONES:
@@ -343,7 +350,7 @@ int next_proc(int past_proc[], int was_io[], proc_info_t *current_procs, int *pa
 
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  if (curr_time % rr_time_slice(TIME_INTERRUPT) != 0 || procs_count == 0)
+  if (curr_time % time_slice(2) != 0 || procs_count == 0)
     return curr_pid;
 
   int index = next_proc(rrplus_past_pid, rrplus_was_io, procs_info, &rrplus_past_pid_count, procs_count, &turn_procs);
