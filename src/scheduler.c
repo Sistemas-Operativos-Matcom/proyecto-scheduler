@@ -140,26 +140,17 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 
 // MLFQ
 
-// Parametros del MLFQ
-int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
-int mlfq_priority_bost_time = 10;
-int mlfq_max_time_level = 10;
-
-// Info sobre los procesos
-int mlfq_past_pid[MAX_PROCESS_COUNT];  // array de los pid
-int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
-int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
-int count = 0;
-
+// Metodos Utiles
 // Actualizar los procesos, buscar nuevos
-void merge_update(int past_pid[], int level_pid[], int time_pid[], proc_info_t *current_procs, int *past_count, int procs_count)
+void mlfq_merge(int past_pid[], int level_pid[], int time_pid[], proc_info_t *current_procs, int *past_count, int procs_count)
 {
   int ipp = 0;   // index of pid
   int icp = 0;   // index of current pid
   int icopy = 0; // index of copy to past_pid
 
   // buscar los procesos que aun se mantienen activos
-  // como los procesos estan en orden de llegada, a partir de la posicion de un proceso nuevo hacia atras todos seran nuevos
+  // como los procesos estan en orden de llegada, a partir de la posicion que este proceso nuevo hacia atras todos
+  // seran nuevos en mi t.interrp
   while (ipp < (*past_count) && icp < procs_count)
   {
     if (past_pid[ipp] == current_procs[icp].pid) // actualizar los stats del proceso
@@ -213,12 +204,28 @@ int update_select_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, 
   return 0;
 }
 
+// Parametros del MLFQ
+int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
+int mlfq_priority_bost_time = 10;
+int mlfq_max_time_level = 10;
+
+// Info sobre los procesos
+int mlfq_past_pid[MAX_PROCESS_COUNT];  // array de los pid
+int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
+int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
+int count = 0;
+
+int mlfq_manager()
+{
+  return 0;
+}
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   return curr_pid;
 }
 
-// SCHEDULER OTRAS IMPLEMENTACIONES
+// SCHEDULER OTRAS IMPLEMENTACIONES:
 
 // RANDOM
 // Ejecuta un proceso random
@@ -237,53 +244,110 @@ int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
 // para evitar esto voy a buscar de los procesos que me quedaron en el interrupt anterior
 // el proximo que siga en los procesos actuales es el que ejecuto
 
-// Guardar los procesos del ultimo t.interrupt
-void save_procs(int dest[], proc_info_t *source, int *dest_count, int source_count)
+// para mejorar el tournaround, ademas voy guardando los procesos que son saltados por estan en io
+// para ejecutarlos cuando dejen de estarlo
+
+void rr_merge(int past_pid[], int was_io[], proc_info_t *current_procs, int *past_count, int procs_count)
 {
-  *dest_count = source_count;
-  for (int i = 0; i < source_count; i++)
-    dest[i] = source[i].pid;
+  int ipp = 0;
+  int icp = 0;
+  int icopy = 0;
+
+  while (ipp < (*past_count) && icp < procs_count)
+  {
+    if (past_pid[ipp] == current_procs[icp].pid) // actualizar los stats del proceso
+    {
+      past_pid[icopy] = past_pid[ipp];
+      was_io[icopy] = was_io[icopy];
+      icp++;
+      icopy++;
+    }
+    ipp++;
+  }
+  // annadir  los nuevos
+  while (icopy < procs_count)
+  {
+    past_pid[icopy] = current_procs[icp].pid;
+    was_io[icopy] = 0;
+    icopy++;
+    icp++;
+  }
+  *past_count = procs_count; // actualizar el count valido
+  return;
 }
 
 // buscar de los procesos que me faltaban por ejecutar, el primero que aun este en los procesos actuales
-int find_match(int past_pid[], proc_info_t *current_procs, int *past_count, int current_count, int turn)
+// para evitar el corrimiento de los turnos
+int find_match(int past_pid[], int was_io[], proc_info_t *current_procs, int *past_count, int current_count, int turn)
 {
-
-  int next_turn = 0;
+  int next_proc = 0;
 
   if (*past_count)
   {
     int last_index = (turn) % (*past_count);
-    for (int i = last_index; i < *past_count; i++)
+    for (int i = last_index + 1; i < *past_count; i++)
     {
-      int temp = find_pid_array(current_procs, current_count, past_pid[i]);
-      if (temp > 0)
+      int temp = find_pid_array(current_procs, i + 1, past_pid[i]);
+      if (temp >= 0)
       {
-        next_turn = temp;
-        break;
+        if (current_procs[temp].on_io)
+          was_io[i] = 1;
+        else
+        {
+          next_proc = temp;
+          break;
+        }
       }
     }
   }
-  save_procs(past_pid, current_procs, past_count, current_count);
-  return next_turn;
+  return next_proc;
 }
 
-int rr_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
-int rr_past_pid_count = 0;
-
-int next_proc(int past_proc[], proc_info_t *current_procs, int *past_proc_count, int count, int *turn)
+// buscar el primer proceso que no se ejecuto por estar en i/o
+int rr_find_lostProcess(int pid[], int was_io[], int count, proc_info_t *currents_procs, int current_count)
 {
-  int next = find_match(past_proc, current_procs, past_proc_count, count, *turn);
-  *turn = next + 1;
-  return next;
+  for (int i = 0; i < count; i++)
+  {
+    int temp = find_pid_array(currents_procs, current_count, pid[i]);
+
+    if (was_io[i] && temp >= 0 && !currents_procs[temp].on_io)
+    {
+      was_io[i] = 0;
+      return temp;
+    }
+  }
+  return -1;
+}
+
+int rrplus_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
+int rrplus_was_io[MAX_PROCESS_COUNT];   // procesos que no se ejecutaron por estan io
+int rrplus_past_pid_count = 0;
+
+int next_proc(int past_proc[], int was_io[], proc_info_t *current_procs, int *past_proc_count, int current_count, int *turn)
+{
+  // priorizar la ejecucion de procesos que no se ejecutaron x estan en io por encima de los turnos de rr,
+  // puede aumentar el response time, pero disminuira el turnaround time
+
+  // buscar primero si queda algun proceso pendiente
+  int left = rr_find_lostProcess(past_proc, was_io, *past_proc_count, current_procs, current_count);
+  if (left >= 0)
+  {
+    return left;
+  }
+  // si no hay procesos pendientes ejecuto rr normal
+  int rr = find_match(past_proc, was_io, current_procs, past_proc_count, current_count, *turn);
+  rr_merge(past_proc, was_io, current_procs, past_proc_count, current_count);
+  *turn = rr;
+  return rr;
 }
 
 int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  if (!(curr_time % rr_time_slice(TIME_INTERRUPT)) || procs_count == 0)
+  if (curr_time % rr_time_slice(TIME_INTERRUPT) != 0 || procs_count == 0)
     return curr_pid;
 
-  return procs_info[next_proc(rr_past_pid, procs_info, &rr_past_pid_count, procs_count, &turn_procs) % procs_count].pid;
+  int index = next_proc(rrplus_past_pid, rrplus_was_io, procs_info, &rrplus_past_pid_count, procs_count, &turn_procs);
+  return procs_info[index % procs_count].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
