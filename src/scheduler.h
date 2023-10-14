@@ -6,4 +6,10 @@
 // Devuelve el scheduler implementado según el nombre del mismo
 schedule_action_t get_scheduler(const char *name);
 
+typedef struct queue
+{
+   
+};
+
+
 #endif
