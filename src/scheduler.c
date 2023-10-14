@@ -449,6 +449,9 @@ schedule_action_t get_scheduler(const char *name)
   if (strcmp(name, "rr") == 0)
     return *round_robin_scheduler;
 
+  if (strcmp(name, "mlfq") == 0)
+    return *mlfq_scheduler;
+
   // Variaciones
   if (strcmp(name, "rand") == 0)
     return *random_scheduler;
