@@ -7,21 +7,30 @@
 
 #include "simulation.h"
 
-#define TIME_SLICE 30
+#define TIME_SLICE 50
 
-static process_stack_t *n_stack;
+static process_queue_t *l_queue;
 
-static process_stack_t new_stack(process_t *processes, int process_count){
-  process_stack_t stack = {
+static process_queue_t new_queue(process_t *processes, int process_count){
+  process_queue_t queue = {
     (process_t *)malloc(process_count * (sizeof (process_t))),
-    process_count,
+    process_count
   };
 
-  for (int i = 0; i < process_count; i++) {
-    stack.processes[i] = processes[i];
+  return queue;
+}
+
+static ml_queue_t new_ml_queue(process_t *processes, int process_count, int levels){
+  ml_queue_t ml_queue = {
+    (process_queue_t *)malloc(levels * (sizeof (process_queue_t))),
+    levels,
+  };
+
+  for(int i = 0; i<levels; i++){
+    ml_queue.process_queue[i] = new_queue(processes, process_count);
   }
 
-  return stack;
+  
 }
 
 
