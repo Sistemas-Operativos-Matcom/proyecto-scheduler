@@ -7,6 +7,7 @@
 
 #include "simulation.h"
 
+int curr_pointer=0;
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -52,6 +53,50 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid){
+
+  int sj_pid = procs_info[0].pid;
+
+  // Buscar el proceso activo con menor duracion
+  for(int i=1; i < procs_count; i++)
+      if(process_total_time(procs_info[i].pid) < process_total_time(sj_pid))
+        sj_pid=procs_info[i].pid;
+
+  
+  return sj_pid;
+
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid){
+
+  proc_info_t stc = procs_info[0];
+
+  for(int i=1; i < procs_count; i++){
+      int tci = process_total_time(procs_info[i].pid) -procs_info[i].executed_time;
+      int tcc = process_total_time(stc.pid) - stc.executed_time;
+      if(tci<tcc)
+        stc = procs_info[i];
+
+  }
+  return stc.pid;
+
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid){
+  
+  if(curr_pointer>=procs_count)
+    curr_pointer=0;
+
+  int rr_pid= procs_info[curr_pointer].pid;
+  curr_pointer++; 
+
+  return rr_pid;
+
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -59,7 +104,9 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
