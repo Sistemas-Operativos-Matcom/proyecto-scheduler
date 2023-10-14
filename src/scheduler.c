@@ -147,6 +147,29 @@ int roundrobin_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   }
   return procs_info[curr].pid;
 }
+int prev = 0;
+int rr_sch(proc_info_t *procs_info, int procs_count, int curr_time,
+           int curr_pid)
+{
+  prev=prev%procs_count;
+  while (!(curr_time % slicerr == 0) && !(curr_pid == -1) && !(procs_info[prev].on_io))
+  {
+    return procs_info[prev].pid;
+  }
+  prev += 1;
+  int a = prev;
+  int b = a + procs_count;
+  int saspid=-1;
+  for (int i = a; i < b; i++)
+  {
+    if (!(procs_info[i % procs_count].on_io))
+    {
+      prev = i % procs_count;
+      saspid = procs_info[i % procs_count].pid;
+    }
+  }
+  return saspid;
+}
 
 #define cantidad_de_prioridades 10
 #define slice_time 30
@@ -212,16 +235,16 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   int actprior = cantidad_de_prioridades;
 
   // Esto busca hacia delante el primer proceso q no este en io con la mayor(menor, las puse al reves) prioridad
-  //printf("prev= %d and count= %d, iterate from %d to < %d", prevpidind, procs_count, prevpidind + 1, prevpidind + procs_count + 1);
-  //printf("\n");
-  int a=prevpidind + 1;
-  int b=prevpidind + procs_count + 1;
+  // printf("prev= %d and count= %d, iterate from %d to < %d", prevpidind, procs_count, prevpidind + 1, prevpidind + procs_count + 1);
+  // printf("\n");
+  int a = prevpidind + 1;
+  int b = prevpidind + procs_count + 1;
   for (int i = a; i < b; i++)
   {
-    //printf("(p= %d,c= %d,i= %d) ,", procs_info[i % procs_count].priority, actprior, i % procs_count);
+    // printf("(p= %d,c= %d,i= %d) ,", procs_info[i % procs_count].priority, actprior, i % procs_count);
     if (procs_info[i % procs_count].priority < actprior && !(procs_info[i % procs_count].on_io))
     {
-      //printf("[selected] ");
+      // printf("[selected] ");
       actprior = procs_info[i % procs_count].priority;
       retpid = procs_info[i % procs_count].pid;
       curr_execumulation = procs_info[i % procs_count].executed_time;
@@ -229,21 +252,21 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
 
-     /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
+  /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
 PONGALE UN COMENTARIO DE UNA LINEA AL INICIO DE LA LINEA ANTERIOR
 
 for (int i = 0; i < procs_count; i++)
 {
- if (i==prevpidind)
- {
-  printf("[%d] ,", procs_info[i].priority);
- }else
- {
-    printf("%d ,", procs_info[i].priority);
- }
+if (i==prevpidind)
+{
+printf("[%d] ,", procs_info[i].priority);
+}else
+{
+ printf("%d ,", procs_info[i].priority);
 }
-  printf("\n");
-  printf("\n");
+}
+printf("\n");
+printf("\n");
 //*/
 
   return retpid;
@@ -268,6 +291,8 @@ schedule_action_t get_scheduler(const char *name)
     return *rounr_sch;
   if (strcmp(name, "rr") == 0)
     return *roundrobin_sch;
+  if (strcmp(name, "rrii") == 0)
+    return *rr_sch;
   if (strcmp(name, "mlfq") == 0)
     return *mqmf_sch;
 
