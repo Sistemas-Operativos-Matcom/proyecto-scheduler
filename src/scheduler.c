@@ -150,7 +150,7 @@ int roundrobin_sch(proc_info_t *procs_info, int procs_count, int curr_time,
 
 #define cantidad_de_prioridades 10
 #define slice_time 30
-int boost = slice_time * 10;
+int boost = slice_time * 69;
 int curr_execumulation = 0;
 int prevpidind = 0;
 
@@ -195,6 +195,7 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
       if (procs_info[i].acumulativetime >= slice_time && procs_info[i].priority < cantidad_de_prioridades - 1)
       {
         procs_info[i].priority += 1;
+        procs_info[i].acumulativetime = 0;
       }
     }
   }
@@ -205,7 +206,7 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     printf("%d ", procs_info[i].priority);
   }
   printf("\n");
-  */
+  //*/
 
   int retpid = -1;
   int actprior = cantidad_de_prioridades;
