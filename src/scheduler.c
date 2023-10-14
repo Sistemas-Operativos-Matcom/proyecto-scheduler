@@ -152,10 +152,10 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 
 // Información que puedes obtener de un proceso
-int pid = procs_info[0].pid;      // PID del proceso
-int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+// int pid = procs_info[0].pid;      // PID del proceso
+// int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
                                   // realizando una opreación IO
-int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
+// int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
                                               // ejecutado (en CPU o en I/O)
 
 
