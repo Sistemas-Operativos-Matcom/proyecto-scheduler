@@ -253,7 +253,7 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   }
 
   /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
-PONGALE UN COMENTARIO DE UNA LINEA AL INICIO DE LA LINEA ANTERIOR
+// PONGALE UN COMENTARIO DE UNA LINEA AL INICIO DE LA LINEA ANTERIOR
 
 for (int i = 0; i < procs_count; i++)
 {
