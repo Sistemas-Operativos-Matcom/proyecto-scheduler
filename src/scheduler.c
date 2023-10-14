@@ -108,19 +108,18 @@ int RR_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 
 int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // a partir de aqui usare el executed time del proceso para llevar el tiempo de ejecucion en el cpu
   for (int i = 0; i < procs_count; i++)
   {
     if (procs_info[i].pid == curr_pid)
     {
-      if (procs_info[i].on_io == 1)
+      if (procs_info[i].on_io == 0)
       {
-        procs_info[i].executed_time -= 10; // si el proceso esta en io no le cuento el tiempo de ejecucion
+        *procs_info[i].cpu_time += 10; // si el proceso esta en io no le cuento el tiempo de ejecucion
       }
-      if (procs_info[i].executed_time > 100 && *procs_info[i].priority < 3) // actualizo la prioridad del proceso si alcanzo el limite de tiempo ejecutado en cpu
+      if (*procs_info[i].cpu_time > 100 && *procs_info[i].priority < 3) // actualizo la prioridad del proceso si alcanzo el limite de tiempo ejecutado en cpu
       {
         *procs_info[i].priority = *procs_info[i].priority + 1;
-        procs_info[i].executed_time = 0;
+        *procs_info[i].cpu_time = 0;
       }
       break;
     }

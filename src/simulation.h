@@ -18,6 +18,7 @@ typedef struct proc_execution
   int executed_time;
   int state;
   int priority;
+  int cpu_time;
 
   int turnaround;
   int response_time;
@@ -29,6 +30,7 @@ typedef struct proc_info
   int executed_time;
   int on_io;
   int *priority;
+  int *cpu_time;
 } proc_info_t;
 
 typedef struct simulation
