@@ -110,10 +110,17 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
 
     // round_robin_process_counter: es el index del proceso que se esta ejecutando en el array procs_info.Variable Global
 
-    if (round_robin_process_counter < procs_count - 1) // : si no eres el ultimo...
+    if (round_robin_process_counter < procs_count - 1) // : si no eres el ultimo ...
     {
-      round_robin_process_counter++;
-      return procs_info[round_robin_process_counter].pid; // : proceso q se va a ejecutar
+      if (curr_pid != -1)
+      {
+        round_robin_process_counter++;
+        return procs_info[round_robin_process_counter].pid; // : proceso q se va a ejecutar}
+      }
+      else
+      {
+        return procs_info[round_robin_process_counter].pid; // : proceso q se va a ejecutar
+      }
     }
     else
     {
@@ -127,10 +134,19 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
     actual_time_interrupt_count_to_time_slice++;
     return curr_pid;
   }
-  else
+  else // : si todavia no has completado tu slice time y ya terminaste de ejecutarte...
   {
     actual_time_interrupt_count_to_time_slice = 0;
-    return procs_info[round_robin_process_counter].pid;
+
+    if (round_robin_process_counter < procs_count - 1) // : si no eres el ultimo...
+    {
+      return procs_info[round_robin_process_counter].pid;
+    }
+    else
+    {
+      round_robin_process_counter = 0;
+      return procs_info[0].pid
+    }
   }
 }
 
