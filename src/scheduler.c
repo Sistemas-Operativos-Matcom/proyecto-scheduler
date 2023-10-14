@@ -149,8 +149,8 @@ int roundrobin_sch(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 
 #define cantidad_de_prioridades 10
-#define slice_time 30
-int boost = slice_time * 23;
+#define slice_time 20
+int boost = slice_time * 13;
 int curr_execumulation = 0;
 int prevpidind = 0;
 
@@ -198,8 +198,11 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
       }
     }
   }
+
   int retpid = -1;
   int actprior = cantidad_de_prioridades;
+
+  // Esto busca hacia delante el primer proceso q no este en io con la mayor(menor, las puse al reves)
   for (int i = prevpidind + 1; i < prevpidind + procs_count + 1; i++)
   {
     if (procs_info[i % procs_count].priority < actprior && !procs_info[i % procs_count].on_io)
@@ -209,31 +212,6 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
   return retpid;
-  // int selectedpid = -1;
-  // int encontrada = 0;
-  // int thlvl = 0;
-  // int inlvl = 0;
-
-  // for (int i = 0; i < cantidad_de_prioridades; i++)
-  // {
-  //   if (!encontrada)
-  //   {
-  //     thlvl = i;
-  //     inlvl = 0;
-  //     for (int j = 0; j < procs_count; j++)
-  //     {
-  //      if (procs_info[j].priority==i && !procs_info[j].on_io)
-  //      {
-  //       /* code */
-  //      }
-
-  //     }
-  //   }else
-  //   {
-  //     break;
-  //   }
-
-  // }
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
