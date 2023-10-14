@@ -145,7 +145,7 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
     else
     {
       round_robin_process_counter = 0;
-      return procs_info[0].pid
+      return procs_info[0].pid;
     }
   }
 }
