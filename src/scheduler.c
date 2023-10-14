@@ -212,9 +212,11 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   int actprior = cantidad_de_prioridades;
 
   // Esto busca hacia delante el primer proceso q no este en io con la mayor(menor, las puse al reves) prioridad
-  //printf("prev= %d and count= %d, iterate from %d to %d", prevpidind, procs_count, prevpidind + 1, prevpidind + procs_count);
+  //printf("prev= %d and count= %d, iterate from %d to < %d", prevpidind, procs_count, prevpidind + 1, prevpidind + procs_count + 1);
   //printf("\n");
-  for (int i = prevpidind + 1; i < prevpidind + procs_count + 1; i++)
+  int a=prevpidind + 1;
+  int b=prevpidind + procs_count + 1;
+  for (int i = a; i < b; i++)
   {
     //printf("(p= %d,c= %d,i= %d) ,", procs_info[i % procs_count].priority, actprior, i % procs_count);
     if (procs_info[i % procs_count].priority < actprior && !(procs_info[i % procs_count].on_io))
@@ -226,8 +228,23 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
       prevpidind = i % procs_count;
     }
   }
-  //printf("\n");
-  //printf("\n");
+
+     /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
+PONGALE UN COMENTARIO DE UNA LINEA AL INICIO DE LA LINEA ANTERIOR
+
+for (int i = 0; i < procs_count; i++)
+{
+ if (i==prevpidind)
+ {
+  printf("[%d] ,", procs_info[i].priority);
+ }else
+ {
+    printf("%d ,", procs_info[i].priority);
+ }
+}
+  printf("\n");
+  printf("\n");
+//*/
 
   return retpid;
 }
