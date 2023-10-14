@@ -125,6 +125,12 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       return curr_pid;
   }
 
+  //En el caso del MLFQ, si el proceso actual se encuentra marcado es porque pertenece a una cola
+  //Por tanto, cuando consuma el time slice hay que bajarle la prioridad
+  //Esto es: sacarlo de la cola actual y ponerlo en la cola siguente
+
+  
+
   //Si no hay un proceso siguiente, comienza por el proceso 0.
   //De lo contrario, devuelve el pid del siguiente proceso.
   if (last != 1)
@@ -139,7 +145,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 // -------------------------  METODOS NECESARIOS PARA IMPLEMENTAR MLFQ---------------------------
 
-//Si un proceso terminó, devuelve 1, Else dedvuelve 0
+//Si un proceso terminó, devuelve 1, Else devuelve 0
 //Recibe el pid del proceso, la lista y la cantidad de procesos actuales activos
 int process_ended(proc_info_t *procs_info, int procs_count, int pid)
 {
@@ -162,7 +168,6 @@ proc_info_t get_current_process(proc_info_t *procs_info, int procs_count, int c_
     proc_info_t error = {-1, -1, -1};
     return error;
 }
-
 
 //--------------------------------    INICIALIZACIONES DE MLFQ -------------------------------------
 
