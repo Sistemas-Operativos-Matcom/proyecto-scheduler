@@ -14,6 +14,7 @@ fq_t *q0;
 fq_t *q1;
 fq_t *q2;
 
+// Tracks the priority level of the current process
 int curr_pid_level = 0;
 
 // Array containing each feedback queue ordered from high to low
