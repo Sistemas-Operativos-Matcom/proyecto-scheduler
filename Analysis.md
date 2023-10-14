@@ -16,13 +16,13 @@ int scheduler_name(proc_info_t *procs_info, int procs_count, int curr_time,
 La interfaz que me es dada está compuesta por:
 
 - un array de procesos, que serían los dos primeros argumentos, lo que contiene ese array son procesos que han arrived al sistema y no han finalizado yet, so podrían estar en:
-	- modo *I/O*   
+	- modo *I/O*
 	- inactivos en modo starving
 	- ejecutándose actualmente.
 
-- el segundo argumento es el tiempo que ha trnascurrido desde que la simuación comenzó.
+- el segundo argumento es el tiempo que ha trnascurrido desde que la simulación comenzó.
 
-- el tercer argumento es el *curr_pid* de el último proceso que se ejecutó en el CPU, si llega $-1$ significa que en este último time slice no hubo nada en el CPU, por otro lado si me llega un *curr_pid* válido debo tener en cuenta que ese proceso pueda estar ahora en i/o, so no tendría sentido volver a enviarlo a el CPU si hay algún otro proceso que esté activo y no en i/o.
+- el tercer argumento es el *curr_pid* de el último proceso que se ejecutó en el CPU, si llega $-1$ significa que en este último time slice no hubo nada en el CPU, por otro lado si me llega un *curr_pid* válido debo tener en cuenta que ese proceso puede estar ahora en i/o, so no tendría sentido volver a enviarlo a el CPU si hay algún otro proceso que esté activo y no en i/o.
 
 Más alla de los argumentos de esa función:
 
@@ -31,11 +31,14 @@ Más alla de los argumentos de esa función:
 	- si un proceso está en i/o en ese momento específico, que es un `bool`.
 - existe una función `process_total_time` que me devuelve el tiempo que durará un proceso en específico notar que esto es una de las asumptions.
 - el time interrupt se realiza cada 10 ms, eso significa que en la simulación mi función `scheduler` va a ser llamada cada 10 ms.
+otro.
 
 El scheduler debe devolver:
 
 - $-1$: No se ejecuta ningún proceso.	
 - curr_pid: se vuelve a ejecutar el último proceso que estuvo en el CPU, por lo que puede que no sea necesario hacer un context switch.
-- PID diferente al curr_pid ( entre los PID que están en el array ): Simula un cambio de contexto y se ejecuta el proceso indicado.
+- PID diferente al *curr_pid* (entre los PID que están en el array): Simula un cambio de contexto y se ejecuta el proceso indicado.
 
 ## Implementación Details:
+
+En mi $DS$ always los procesos que tengo tienen que ser un subset de los procesos que están en el array de procesos. Eso tiene que ser chequeado inicialmente por consistencia. That allows only  necesario guardar el *pid* del proceso, cualquier otra información relevante se puede obtener del array de procesos que le es pasado al scheduler.
