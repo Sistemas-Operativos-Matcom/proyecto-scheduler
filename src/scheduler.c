@@ -149,8 +149,8 @@ int roundrobin_sch(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 
 #define cantidad_de_prioridades 10
-#define slice_time 20
-int boost = slice_time * 13;
+#define slice_time 30
+int boost = slice_time * 46;
 int curr_execumulation = 0;
 int prevpidind = 0;
 
@@ -209,6 +209,7 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     {
       actprior = procs_info[i % procs_count].priority;
       retpid = procs_info[i % procs_count].pid;
+      curr_execumulation=procs_info[i % procs_count].executed_time;
     }
   }
   return retpid;
