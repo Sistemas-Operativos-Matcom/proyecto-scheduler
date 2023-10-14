@@ -291,13 +291,14 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
   int c;
   c = procs_info[indice].on_io;
-  if(tiempo[procs_info[indice].pid] != 40 && tiempo[procs_info[indice].pid] != 80 && curr_pid != -1 && prioridad[procs_info[indice].pid] == 1 && procs_info[indice].on_io == 0)
-  {
-    return curr_pid;
-  }
+  
   //busca el proceso de mayor prioridad a devolver
   if(prioridad[procs_info[indice].pid] == 1)
   {   
+    if(tiempo[procs_info[indice].pid] != 40 && tiempo[procs_info[indice].pid] != 80 && procs_info[indice].on_io == 0)
+    {
+      return procs_info[indice].pid;
+    }
     if(tiempo[procs_info[indice].pid] == 80){
     tiempo[procs_info[indice].pid] = 0;
     prioridad[procs_info[indice].pid]++;}
@@ -364,7 +365,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     {
       return e;
     }
-  if(tiempo[procs_info[indice].pid] != 40 && procs_info[indice].pid == 0 && procs_info[indice].on_io == 0)
+  if(tiempo[procs_info[indice].pid] != 40 /*&& procs_info[indice].pid == 0 */&& procs_info[indice].on_io == 0)
   {
     return curr_pid;
   }
