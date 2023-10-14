@@ -14,8 +14,9 @@ int *my_array_count;
 
 int *rr_slice;
 
-void add_new_processes(proc_info_t *proc_info, int procs_count);
-void remove_already_finished(proc_info_t *proc_info, int procs_count);
+void sync_ds(proc_info_t *proc_info, int procs_count);
+
+int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid);
 
 int my_fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid);
 
@@ -69,53 +70,44 @@ schedule_action_t get_scheduler(const char *name)
     exit(1);
 }
 
-void remove_already_finished(proc_info_t *proc_info, int procs_count)
+void sync_ds(proc_info_t *proc_info, int procs_count)
 {
-    /*
-    1 - remove from my data structure all the processes that already finished.
-    */
-    for (int i = 0; i < procs_count; i++)
+    int index = 0;
+    for (int i = 0; i < *my_array_count; i++)
     {
-        int pid = proc_info[i].pid;
         int j = 0;
-        for (; j < *my_array_count; j++)
+        int pid = my_array[i];
+        for (; j < procs_count; j++)
         {
-            if (my_array[j] == pid)
+            if(proc_info[j].pid == my_array[i])
             {
                 break;
             }
         }
-        if (j < *my_array_count)
+        if(j < procs_count)
         {
-            for (int l = j; l < *my_array_count - 1; l++)
-            {
-                my_array[l] = my_array[l + 1];
-            }
-            (*my_array_count)--;
+            my_array[index] = pid;
+            index++;
         }
     }
-}
 
-void add_new_processes(proc_info_t *proc_info, int procs_count)
-{
     for (int i = 0; i < procs_count; i++)
     {
-        int pid = proc_info[i].pid;
         int j = 0;
-        for (; j < *my_array_count; j++)
+        for (; j < index; j++)
         {
-            if (my_array[j] == pid)
+            if(proc_info[i].pid == my_array[j])
             {
                 break;
             }
         }
-
-        if (j == *my_array_count)
+        if(j == index)
         {
-            my_array[j] = pid;
-            (*my_array_count)++;
+            my_array[index] = proc_info[i].pid;
+            index++;
         }
     }
+    *my_array_count = index;
 }
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
@@ -127,8 +119,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
 int my_fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-    remove_already_finished(procs_info, procs_count);
-    add_new_processes(procs_info, procs_count);
+    sync_ds(procs_info, procs_count);
     for (int i = 0; i < *my_array_count; i++)
     {
         int pid_to_locate = my_array[i];
@@ -144,14 +135,13 @@ int my_fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, i
 }
 
 int my_round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
-    remove_already_finished(procs_info, procs_count);
-    add_new_processes(procs_info, procs_count);
+{   
+    sync_ds(procs_info, procs_count);
     // there are no active process, shit.
     if (*my_array_count == 0)
     {
         *rr_slice = 0;
-        return -1;
+        return -1;  
     }
 
     if (*rr_slice == RR_SLICE)
@@ -169,7 +159,8 @@ int my_round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_
         }
         *rr_slice = 0;
     }
-    /*
+    
+    /*-
     at this point try to execute first process that is not in i/o. *Also I assume that if the process not ended it is in the first position in my data structure.*
     */
     for (int i = 0; i < *my_array_count; i++)
@@ -181,8 +172,17 @@ int my_round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_
             {
                 if (i != 0)
                 {
-                    // new process so reset slice to 0.
+                    // new process: so reset slice to 0 and move to the start of my array.
                     (*rr_slice) = 0;
+                    for (int l = i; l < *my_array_count-1; l++ )
+                    {
+                        my_array[l] = my_array[l + 1];
+                    }
+                    for (int l = *my_array_count-1; l >=1 ; l--)
+                    {
+                        my_array[l] = my_array[l - 1];
+                    }
+                    my_array[0] = pid_to_locate;
                 }
                 (*rr_slice)++;
                 return pid_to_locate;
@@ -198,9 +198,7 @@ int my_round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_
 
 int my_no_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-    remove_already_finished(procs_info, procs_count);
-    add_new_processes(procs_info, procs_count);
-
+    sync_ds(procs_info, procs_count);
     if (*my_array_count == 0)
     {
         return -1;
@@ -229,7 +227,7 @@ int my_no_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_cou
         int on_io = 0;
         for (int j = 0; j < procs_count; j++)
         {
-            if (actual_pid = procs_info[j].pid)
+            if (actual_pid == procs_info[j].pid)
             {
                 on_io = procs_info[j].on_io;
                 break;
@@ -239,17 +237,15 @@ int my_no_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_cou
         if (!on_io && (min_time < 0 || min_time > asummption))
         {
             min_time = asummption;
-            answer_pid = i;
+            answer_pid = my_array[i];
         }
     }
     return answer_pid;
 }
 
 int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
-    remove_already_finished(procs_info, procs_count);
-    add_new_processes(procs_info, procs_count);
-
+{ 
+    sync_ds(procs_info, procs_count);
     if (*my_array_count == 0)
     {
         return -1;
@@ -267,7 +263,7 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
         int j = 0;
         for (; j < procs_count; j++)
         {
-            if (actual_pid = procs_info[j].pid)
+            if (actual_pid == procs_info[j].pid)
             {
                 on_io = procs_info[j].on_io;
                 break;
@@ -277,7 +273,7 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
         if (!on_io && (min_time < 0 || min_time > asummption))
         {
             min_time = asummption;
-            answer_pid = i;
+            answer_pid = my_array[i];
         }
     }
     return answer_pid;
