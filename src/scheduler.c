@@ -106,7 +106,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     }
     if(current_process_finished){ 
         time_slice = Time_slice;
-        return procs_info[current_index].pid;
+        return procs_info[current_index % procs_count].pid;
     }
     
     // Devolver el PID del proceso actual
