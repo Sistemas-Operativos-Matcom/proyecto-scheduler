@@ -162,6 +162,7 @@ static int find_next_process_mlfq(proc_info_t *procs_info, int procs_count) {
       if (procs_info[proc_index].on_io) {
         fq_enqueue(priority_array[level], pid);
         proc_index = -1;
+        on_io[on_io_index++] = pid;
       }
 
       if (proc_index > -1) {
@@ -316,7 +317,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   // Checks curr_pid doesn't turns on_io before slice time
   if (curr_time % ROUND_ROBIN_TIME_SLICE != 0) {
-    if (curr_pid == -1) return curr_pid;
+    if (curr_pid == -1) return find_next_process_mlfq(procs_info, procs_count);
 
     int curr_index = find_proc_info_index_by_pid(procs_info, procs_count, curr_pid);
 
