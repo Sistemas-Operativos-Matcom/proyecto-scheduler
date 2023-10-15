@@ -173,8 +173,6 @@ void start_new_simulation(process_t *processes, int process_count,
       }
     }
 
-    if (show_graph) show_sim_state();
-
     // Se recalculan los procesos activos (y los que se encuentra haciendo
     // operaciones IO)
     active_processes = 0;
@@ -226,6 +224,8 @@ void start_new_simulation(process_t *processes, int process_count,
             g_sim->curr_proc_pid = next_active_pid;
           }
         }
+      } else {
+        g_sim->curr_proc_pid = -1;
       }
     }
 
@@ -250,6 +250,8 @@ void start_new_simulation(process_t *processes, int process_count,
 
     // Comprueba si todos los procesos terminaron
     ended_sim = ended_processes == process_count;
+
+    if (show_graph) show_sim_state();
   }
 
   int64_t final_sim_time = ms_time();
