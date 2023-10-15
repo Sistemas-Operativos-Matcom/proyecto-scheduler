@@ -60,7 +60,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
 }
 
 
-int round_time;
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
 {
 // Para arreglar la posibilidad de que
@@ -72,7 +72,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cur
   if(round_length == 0 || curr_pid == -1)
   {
     static int current_proc = -1;
-    current_proc+=1;
+    current_proc++;
     round_length = 5;
     return procs_info[current_proc%procs_count].pid;
   }
@@ -93,21 +93,37 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cur
 queue_t *q1;
 queue_t *q2;
 
-int find(proc_info_t proc, proc_info_t* arr, int count)
+int find_in_procs(int pid, proc_info_t* arr, int count)
 {
   for(int i = 0; i < count; i++)
   {
-    if(arr[i].pid == proc.pid)
+    if(arr[i].pid == pid)
       return i;
   }
-  return -1;
+  return -2;
 }
-
+int find(int pid, int* arr, int count)
+{
+  for(int i = 0; i < count; i++)
+  {
+    if(arr[i] == pid)
+      return i;
+  }
+  return -2;
+}
 void show(proc_info_t* p , int count)
 {
   for(int i = 0; i < count; i++)
   {
     printf(" %d ", process_total_time(p[i].pid));
+  }
+  printf("\n");
+}
+void show_arr(int* p , int count)
+{
+  for(int i = 0; i < count; i++)
+  {
+    printf(" %d ", process_total_time(p[i]));
   }
   printf("\n");
 }
@@ -118,25 +134,28 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   for(int i = 0; i < procs_count; i++)
   {
     // Chequeando que el proceso no este en ninguna de las dos colas.
-    if(find(procs_info[i],q1->arr,q1->count) == -1 && find(procs_info[i],q2->arr,q2->count) == -1)
+    proc_info_t p = procs_info[i]; 
+    if(find(p.pid,q1->arr,q1->count) == -2 && find(p.pid,q2->arr,q2->count) == -2)
     {
-      push(q1,procs_info[i]);
+      push(q1,p.pid);
     }
   } 
   // Primero actualicemos la informacion que hay 
   // en las colas.
-  while(q1->count > 0 && find(q1->arr[0],procs_info, procs_count) == -1)
+  while(q1->count > 0 && find_in_procs(q1->arr[0],procs_info, procs_count) == -2)
   {
     pop(q1); 
   }
-  while(q2->count > 0 && find(q2->arr[0],procs_info, procs_count) == -1)
+  while(q2->count > 0 && find_in_procs(q2->arr[0],procs_info, procs_count) == -2)
   {
     pop(q2); 
   }
 
   // show(procs_info, procs_count);
-  // show(q1->arr, q1->count);
-  // show(q2->arr, q2->count);
+  // printf("q1 ");
+  // show_arr(q1->arr, q1->count);
+  // printf("q2 ");
+  // show_arr(q2->arr, q2->count);
 
   // En este punto las colas deben tener en su "front" informacion
   // valida.
@@ -155,22 +174,22 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   // intervalo donde hagamos un priority boost.
   // Haciendo esto cumplimos con la regla 4 de mlfq
   
-  // static int priority_boost_slice = 10;
-  // if(priority_boost_slice == 0)
-  // {
-  //   while(q2->count>0)
-  //   {
-  //     proc_info_t p = q2->arr[0];
-  //     if(find(p,procs_info,procs_count) != -1)
-  //       push(q1,p);
-  //     pop(q2);
-  //   }
-  //   priority_boost_slice = 10;
-  // }
-  // else 
-  // {
-  //   priority_boost_slice--;
-  // }
+  static int priority_boost_slice = 10;
+  if(priority_boost_slice <= 0)
+  {
+    while(q2->count>0)
+    {
+      int p = q2->arr[0];
+      if(find_in_procs(p,procs_info,procs_count) != -2)
+        push(q1,p);
+      pop(q2);
+    }
+    priority_boost_slice = 10;
+  }
+  else 
+  {
+    priority_boost_slice--;
+  }
   // Para cumplir la regla 1 revisamos primero si hay procesos por
   // ejecutar en la cola de mayor prioridad.
   static int curr_q = 1;
@@ -181,62 +200,57 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   // que debe cumplir para ejecutar el proceso.
   if(q1->count > 0 && curr_q == 1)
   {
-    if(q1->arr[0].on_io)
+    for(int i= 0; i < q1->count; i++)
     {
-      // Si el proceso esta en "io" cedemos el cpu y no se 
-      // disminuye el time_slice.
-      curr_q = 2;
-    }
-    else 
-    {
-      int pid = q1->arr[0].pid;
-      q1_time_slice--;
-      if(q1_time_slice <= 0)
+      // Buscamos el primer proceso de la cola de mayor 
+      // prioridad que no este haciendo "io".
+      if(procs_info[find_in_procs(q1->arr[i],procs_info,procs_count)].on_io == 0)
       {
-        // El time_slice acabo por tanto debemos bajar el proceso
-        // de prioridad para cumplir la regla 3.
-        q1_time_slice = 5;
-        push(q2,q1->arr[0]);
-        pop(q1);
+        // Si el proceso no esta en "io" lo ejecutamos.
+        int pid = q1->arr[i];
+        q1_time_slice--;
+        if(q1_time_slice <= 0)
+        {
+          // El time_slice acabo por tanto debemos bajar el proceso
+          // de prioridad para cumplir la regla 3.
+          q1_time_slice = 5;
+          push(q2,pid);
+          pop(q1);
+        }
+        return pid;
       }
-      return pid;
     }  
   }
   else 
   {
     // Si no es posible ejecutar ningun proceso de la cola de mayor
-    // prioridad pues debemos busacar en las siguiente cola.
+    // prioridad pues debemos buscar en las siguiente cola.
     curr_q = 2;
   }
 
   // Ejecucion de la cola de menor prioridad.
   if(q2->count > 0 && curr_q == 2)
   {
-    while(q2->arr[0].on_io)
+    q2_time_slice --;
+    if(q2_time_slice <= 0)
     {
-      // Si el proceso entra en "io" pues lo mandamos para la 
-      // cola de mayor prioridad donde es mas probable que
-      // pertenezca.
-      proc_info_t p = q2->arr[0];
-      push(q1,p);
-      pop(q2);
+      // Si se acaba el time slice pues se reinicia y se cambia de cola.
+      q2_time_slice = 5;
+      curr_q = 1;
     }
-    if(q2->count > 0)
-    {
-      q2_time_slice --;
-      if(q2_time_slice <= 0)
-      {
-        // Si se acaba el time slice pues se reinicia y se cambia de cola.
-        q2_time_slice = 5;
-        curr_q = 1;
-      }
-      return q2->arr[0].pid;
-    }
+    return q2->arr[0];
   }
-
-  // parche
-  // return q1->arr[0].pid;
-  return -50;
+  
+  if(q2->count <= 0)
+  {
+    // Si el programa llega aqui significa que todos 
+    // los procesos de la cola de mayor prioridad estan "io"
+    // y no hay procesos existentes en la cola de menor 
+    // prioidad.
+    return q1->arr[0];
+  }
+  // Algun problema paso...
+  return -403;
 }
 
 

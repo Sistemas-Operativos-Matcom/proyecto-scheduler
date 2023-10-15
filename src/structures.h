@@ -3,9 +3,9 @@
 # include "simulation.h"
 typedef struct queue {
   int count;
-  proc_info_t* arr;
+  int* arr;
 } queue_t;
 queue_t* build_queue();
-void push(queue_t* q, proc_info_t p);
-proc_info_t pop(queue_t* q);
+void push(queue_t* q, int p);
+int pop(queue_t* q);
 #endif
