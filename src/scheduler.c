@@ -106,14 +106,14 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 // MLFQ
 
 // buscar otro proceso, aplicando rr, devuelve -1 si no se encontro. Retorna el indice del proceso en el array de Procs
-int mlfq_find_other_process(int pid[], int level[], proc_info_t *procs, int procs_count, int depht_to_find, int depth_count, int *turn, int diferent_pid, int checkIO)
+int mlfq_find_other_process(int pid[], int level[], proc_info_t *procs, int procs_count, int depht_to_find, int depth_count, int *turn, int diferent_pid)
 {
   if (depth_count == 0) // no hay procesos
     return -1;
 
   // Hacer la lista de procesos del nivel con mayor prioridad
   proc_info_t depth_procs[depth_count];
-  mlfq_filter_procs_level(procs, level, procs_count, depht_to_find, depth_procs, diferent_pid, checkIO); // llenar la lista
+  mlfq_filter_procs_level(procs, level, procs_count, depht_to_find, depth_procs, diferent_pid); // llenar la lista
 
   // Hacer rr sobre los procesos
   int depth_procs_index = rr_manager(depth_procs, depth_count, 0, turn);
@@ -123,7 +123,7 @@ int mlfq_find_other_process(int pid[], int level[], proc_info_t *procs, int proc
   return index;
 }
 
-int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int BOST_TIME, int TIME_SLICE, int TIME, int *turn, int current_time, int *original_pid)
+int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int BOST_TIME, int TIME_SLICE, int TIME, int *turn, int current_time, int *original_pid, int current_pid)
 {
   mlfq_merge(pid, level, time, procs, pid_count, procs_count); // actualizar los procesos
 
@@ -131,38 +131,34 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
     mlfq_priority_bost(level, time, *pid_count);
 
   // buscar el nivel actual
-  int checkIO = 1;
   int depth_count = 0;
-  int depth = mlfq_find_lowest_depth(procs, level, *pid_count, &depth_count, MAX_DEPTH, *original_pid, checkIO);
+  int depth = mlfq_find_lowest_depth(procs, level, *pid_count, &depth_count, MAX_DEPTH, *original_pid);
 
   int index_orig = find_pid_array(procs, procs_count, *original_pid); // Buscar el proceso original
 
+  int flag_isSubstitute = 0;
+
   if (index_orig >= 0 && level[index_orig] <= depth) // si el proceso aun se encuentra y sigue siendo de prioridad
   {
-    if (procs[index_orig].on_io) // Si cedio el cpu
+    // printf("A");
+    if (!procs[index_orig].on_io) // se esta ejecutando en cpu
     {
-      // buscar un proceso substituto, que no este en I/O
-      int index_pid_temporal = mlfq_find_other_process(pid, level, procs, procs_count, depth, depth_count, turn, *original_pid, checkIO);
-
-      if (index_pid_temporal >= 0) // se encontro un substituto
-      {
-        mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index_pid_temporal); // updatear los stats del subsituto
-        return index_pid_temporal;                                                           // ejecutar el sustituto
-      }
+      mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index_orig);
+      return index_orig;
     }
-
-    // el proceso como sigue siendo de prioridad y (no se encuentra cediendo el cpu o no se encontro otro proceso para ejecutar),
-    // entonces sigue ejecutandose
-    mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index_orig);
-    return index_orig;
+    // buscar un proceso substituto
+    flag_isSubstitute = 1;
   }
 
   // Cambiar de proceso entre los de igual prioridad
-
   // buscar proceso un nuevo proceso para ejecutar
-  int index_next_to_exec = mlfq_find_other_process(pid, level, procs, procs_count, depth, depth_count, turn, *original_pid, 0);
+  int index_next_to_exec = mlfq_find_other_process(pid, level, procs, procs_count, depth, depth_count, turn, *original_pid);
 
-  *original_pid = procs[index_next_to_exec].pid; // seleccionar como el nuevo original
+  if (index_next_to_exec < 0) // No encontro otro proceso para ejecutar
+    index_next_to_exec = find_pid_array(procs, procs_count, current_pid);
+
+  if (!flag_isSubstitute) // seleccionar como el nuevo original
+    *original_pid = procs[index_next_to_exec].pid;
 
   mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index_next_to_exec); // Actualizar sus stats
 
@@ -186,7 +182,7 @@ int pid_orig_proc = -1; // proceso que se estaba ejecutando originalmente y cedi
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_priority_bost_time, mlfq_time_slice, TIME_INTERRUPT, &mlfq_turn, curr_time, &pid_orig_proc);
+  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_priority_bost_time, mlfq_time_slice, TIME_INTERRUPT, &mlfq_turn, curr_time, &pid_orig_proc, curr_pid);
   return procs_info[index].pid;
 }
 

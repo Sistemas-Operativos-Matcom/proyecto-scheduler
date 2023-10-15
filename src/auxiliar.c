@@ -104,13 +104,13 @@ int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, in
 }
 
 // Buscar los procesos de la cola actual y guardarlos en dest
-void mlfq_filter_procs_level(proc_info_t *current_procs, int level[], int count, int depth, proc_info_t destiny[], int diferent_pid, int checkIO)
+void mlfq_filter_procs_level(proc_info_t *current_procs, int level[], int count, int depth, proc_info_t destiny[], int diferent_pid)
 {
   int dest_index = 0;
 
   for (int i = 0; i < count; i++)
   {
-    if ((checkIO && current_procs[i].on_io) || current_procs[i].pid == diferent_pid)
+    if ((current_procs[i].on_io) || current_procs[i].pid == diferent_pid)
       continue;
 
     if (level[i] == depth)
@@ -123,16 +123,15 @@ void mlfq_filter_procs_level(proc_info_t *current_procs, int level[], int count,
   return;
 }
 
-
 // buscar el nivel de mas prioridad donde este un proceso distinto del actual,y ademas devuelve la cantidad de procs
-int mlfq_find_lowest_depth(proc_info_t *procs, int level[], int count, int *temp, int MAX_DEPTH, int current_pid, int check_IO)
+int mlfq_find_lowest_depth(proc_info_t *procs, int level[], int count, int *temp, int MAX_DEPTH, int current_pid)
 {
   int current_depth = MAX_DEPTH;
   *temp = 0;
 
   for (int i = 0; i < count; i++)
   {
-    if ((check_IO && procs[i].on_io) || procs[i].pid == current_pid)
+    if (procs[i].on_io || procs[i].pid == current_pid)
       continue;
 
     if (level[i] < current_depth)
@@ -140,7 +139,6 @@ int mlfq_find_lowest_depth(proc_info_t *procs, int level[], int count, int *temp
       current_depth = level[i];
       *temp = 0;
     }
-
     if (level[i] == current_depth)
     {
       (*temp)++;
