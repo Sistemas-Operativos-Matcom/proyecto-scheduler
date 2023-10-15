@@ -98,22 +98,13 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     else
     {
       time_slice = 0;
-      if (proc_index < procs_count - 1)
-      {
-        proc_index++;
-        return procs_info[proc_index].pid;
-      }
-      else
-      {
-        proc_index = 0;
-        return procs_info[proc_index].pid;
-      }
+      return procs_info[proc_index = ((proc_index + 1) % procs_count)].pid;
     }
   }
   else
   {
     time_slice = 0;
-    return procs_info[proc_index = ((proc_index + 1) % procs_count)].pid;
+    return procs_info[proc_index = (proc_index % procs_count)].pid;
   }
 }
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -122,10 +113,14 @@ schedule_action_t get_scheduler(const char *name)
 {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
-  if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-  if (strcmp(name, "sjf") == 0)  return *sjf_scheduler;
-  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
-  if (strcmp(name, "rr") == 0)   return *rr_scheduler;
+  if (strcmp(name, "fifo") == 0)
+    return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0)
+    return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0)
+    return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0)
+    return *rr_scheduler;
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
