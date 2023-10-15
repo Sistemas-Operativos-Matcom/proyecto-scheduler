@@ -1,5 +1,7 @@
 {
   "files.associations": {
-    "scheduler.h": "c"
+    "scheduler.h": "c",
+    "random": "c",
+    "algorithm": "c"
   }
 }

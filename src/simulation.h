@@ -2,8 +2,6 @@
 #define SIMULATION_H
 
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "process.h"
 
 enum {
@@ -57,6 +55,7 @@ typedef struct queue {
     int front, rear;
     unsigned capacity;
     proc_info_t *array;
+    int length;
 } queue_t;
 
 void changePriorityIf(proc_info_t proc_info, queue_t queue);

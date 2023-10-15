@@ -6,7 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
-#include "queue.c"
+#include "queue.h"
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -81,6 +81,7 @@ queue_t *createQueue(unsigned capacity) {
     queue->capacity = capacity;
     queue->front = 0;
     queue->rear = -1;
+    queue->length = 0;
     queue->array = (proc_info_t *)malloc(queue->capacity * sizeof(proc_info_t));
     return queue;
 }
@@ -91,6 +92,7 @@ void enqueue(queue_t *queue, proc_info_t process) {
         printf("La cola está llena.\n");
         return;
     }
+    queue->length++;
     queue->array[++queue->rear] = process;
 }
 
@@ -101,7 +103,17 @@ proc_info_t dequeue(queue_t *queue) {
         empty.pid = -1;
         return empty;
     }
+    queue->length--;
     return queue->array[queue->front++];
+}
+
+proc_info_t showFirst(queue_t *queue) {
+    if (queue->front > queue->rear) {
+        proc_info_t empty;
+        empty.pid = -1;
+        return empty;
+    }
+    return queue->array[queue->front];
 }
 
 
@@ -149,6 +161,29 @@ int rr(queue_t *queue, int procs_count, int curr_pid) {
     return last_process_id;
 }
 
+int rr2(queue_t *queue, int procs_count, int curr_pid) {
+    
+    for (int i = 0; i < procs_count; i++) {
+
+        if (time_slice == 0) {
+            time_slice = Time_slice;
+            // printf("%d----\n", procs_count);
+            // printf("%d\n", showFirst(queue).pid);
+            proc_info_t info = dequeue(queue);
+            enqueue(queue, info);
+            // printf("%d\n", showFirst(queue).pid);
+        } else {
+            time_slice--;
+        }
+        break;
+
+    }
+     
+    // Devolver el PID del proceso actual
+    return showFirst(queue).pid;
+}
+
+
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
@@ -161,44 +196,9 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     }
 
     int a = rr(queueRR, procs_count, curr_pid);
-    free(queueRR);
+    // free(queueRR);
     return a;
 }
-
-int current_index = 0; // PID del proceso actual en ejecución
-// Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
-int rr2_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
-
-    int last_process_id = curr_pid;
-        
-    int current_process_finished = 1;
-    for (int i = 0; i < procs_count; i++) {
-        if (procs_info[i].pid == curr_pid) {
-
-            current_process_finished = 0;
-
-            if (time_slice == 0) {
-                // El proceso actual ha agotado su time_slice, pasar al siguiente proceso
-                current_index = (i + 1) % procs_count;
-                last_process_id = procs_info[current_index].pid;
-
-                time_slice = Time_slice;
-            } else {
-                time_slice = time_slice - 1;
-            }
-            break;
-        }
-    }
-    if(current_process_finished){ 
-        time_slice = Time_slice;
-        return procs_info[current_index % procs_count].pid;
-    }
-    
-    // Devolver el PID del proceso actual
-    return last_process_id;
-}
-
-
 
 int num_queues;
 queue_t *queues;
@@ -223,18 +223,26 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         }
         toMLFQ = 0;
     }
-    
-    //cada proceso que llegue al sistema se pocisiona en la cola de mayor prioridad
-    for (size_t i = procs_count-1; i >= 0 &&
-                                 procs_info[i].pid != last_procs_pid &&
-                                 procs_info[i].pid != last_last_procs_pid;
-                                  i--){
-                                    
-        enqueue(&queues[0],procs_info[i]);
-    }
-    last_procs_pid = procs_info[procs_count].pid;
-    last_last_procs_pid = procs_info[procs_count-1].pid;
 
+    for (size_t i = procs_count-1; i < -1 ; i--){
+
+        if(procs_info[i].pid != last_procs_pid)
+        {
+            if(procs_info[i].pid != last_last_procs_pid)
+            {
+                enqueue(&queues[0],procs_info[i]);
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+            break;
+    }
+    last_procs_pid = procs_info[procs_count-1].pid;
+    last_last_procs_pid = procs_info[procs_count-2].pid;
+    
 
     //Cada cierto tiempo S, todos los procesos se posicionan en la cola de mayor prioridad
     if(s > 0)
@@ -248,6 +256,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             } 
         }
         
+        s = S; 
     }
 
      
@@ -269,7 +278,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
                 changePriorityIf(proc_info, queues[i+1]);
             return proc_info.pid;
         }
-    }
+    } 
     return -1; // No hay procesos para ejecutar
 }
 
