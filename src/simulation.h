@@ -1,6 +1,9 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
+
+#include <stdio.h>
+#include <stdlib.h>
 #include "process.h"
 
 enum {
@@ -14,6 +17,7 @@ typedef struct proc_execution {
   process_t process;
   int pid;
   int executed_time;
+  int time_slice_mlfq;
   int state;
 
   int turnaround;
@@ -24,6 +28,7 @@ typedef struct proc_info {
   int pid;
   int executed_time;
   int on_io;
+  int time_slice_mlfq;
 } proc_info_t;
 
 typedef struct simulation {
@@ -41,5 +46,22 @@ int process_total_time(int pid);
 // Comienza una simulación
 void start_new_simulation(process_t *processes, int processes_count,
                           schedule_action_t scheduler_action, int config);
+
+// Función que devuelve el tiempo restante de ejecución dado un PID
+int process_remaining_time(proc_info_t process);
+
+
+
+// Definición de una cola simple para MLFQ
+typedef struct queue {
+    int front, rear;
+    unsigned capacity;
+    proc_info_t *array;
+} queue_t;
+
+void changePriorityIf(proc_info_t proc_info, queue_t queue);
+
+// int num_queues;
+// queue_t *queues;
 
 #endif

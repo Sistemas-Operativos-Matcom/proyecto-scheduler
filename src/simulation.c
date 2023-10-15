@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include "scheduler.h"
 
 #include "config.h"
 #include "process.h"
@@ -32,6 +33,7 @@ static simulation_t new_simulation(process_t *processes, int process_count) {
     sim.procs_exec_info[i].process = processes[i];
     sim.procs_exec_info[i].pid = i;
     sim.procs_exec_info[i].executed_time = 0;
+    sim.procs_exec_info[i].time_slice_mlfq = 0;
     sim.procs_exec_info[i].state = NOT_ARRIVED;
   }
 
