@@ -7,7 +7,7 @@ struct queue {
   int *process; // Arreglo para almacenar los PID de los procesos.
 };
 
-// Función para crear una nueva cola con una capacidad 'x'.
+// Función para crear una nueva cola con una capacidad 'length'.
 struct queue* createQueue(int length) {
   struct queue* queue = (struct queue*)malloc(sizeof(struct queue));
   queue->capacity = length;
