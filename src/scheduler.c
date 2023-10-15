@@ -101,8 +101,20 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                   int curr_pid)
 {
-  fprintf(stderr, "SJF scheduler Not Implemented ");
-  exit(1);
+  int sjf_pid = -1;
+  int sjf_time = __INT_MAX__;
+  for (int idx = 0; idx < procs_count; idx++)
+  {
+    int total_time = process_total_time(procs_info[idx].pid);
+    if (total_time < sjf_time)
+    {
+      sjf_time = total_time;
+      sjf_pid = procs_info[idx].pid;
+    }
+  }
+  return sjf_pid;
+  // fprintf(stderr, "SJF scheduler Not Implemented ");
+  // exit(1);
 }
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
