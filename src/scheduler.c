@@ -154,6 +154,8 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   //array containing added processes pids. Size = 200
   int added[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+  //Priority boost timer. Define cada cuanto tiempo realizar un priority boost
+  int pb_timer = 500;
   //Me indica si se ha ejecutado o no algún proceso con mlfq. 0 es que no
   int mlfq_begin = 0;
 
@@ -252,6 +254,7 @@ void priority_boost(proc_info_t *procs_info, int procs_count)
   {
     queues[2][i] = procs_info[i];
   }
+  active_queue = 2;
 }
 
 //Devuelve 1 si es el último proceso de la cola, 0 en caso contrario.
@@ -319,6 +322,11 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // }
 
   //Punto de partida para mlfq. Ejecuta siempre el primer proceso de todos.
+  
+  if (curr_time % pb_timer == 0)
+    priority_boost(procs_info, procs_count);
+  
+  
   if (mlfq_begin == 0)
   {
     mlfq_begin = 1;
@@ -380,7 +388,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
   //No debe llegar hasta aqui. Si llego, hubo algun error
-  printf("Error 2");
+  printf("Error");
   return 201;
 }
 
