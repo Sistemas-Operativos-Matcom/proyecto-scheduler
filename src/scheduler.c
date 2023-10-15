@@ -59,6 +59,33 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
   return procs_info[0].pid;
 }
 
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+
+  int process_duration_i;
+  int process_duration_j;
+
+  for ( int i = 0 ; i < procs_count ; i++ ) 
+  {
+    process_duration_i = process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
+
+    for( int j = i+1 ; j < procs_count ; j++ )
+    {
+      process_duration_j = process_total_time(procs_info[j].pid)-procs_info[j].executed_time;
+
+      if (process_duration_i > process_duration_j) 
+      {
+        proc_info_t temp = procs_info[i];
+        procs_info[i] = procs_info[j];
+        procs_info[j] = temp;
+        process_duration_i = process_duration_j;
+      }
+    }
+  }
+
+  return procs_info[0].pid;
+}
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -86,6 +113,7 @@ schedule_action_t get_scheduler(const char *name) {
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   else if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  else if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
