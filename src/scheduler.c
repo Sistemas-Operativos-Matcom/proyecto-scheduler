@@ -31,6 +31,17 @@
 
 int currentIndexRR = 0;
 int amountTimerInterrupts = 0;
+int last_procs_count = 0;
+
+//punteros para emular una lista
+
+int last_of_q0 = 0; 
+int last_of_q1 = 0;
+int last_of_q2 = 0;
+
+//listas de prioridades mayor 0 menor 2
+
+int q[MAX_PROCESS_COUNT][3];
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
@@ -79,7 +90,9 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                   int curr_pid, int time_slice) { //time_slice sería cuantos timer-interupt son necesarios para cambiar de proceso
-  if(amountTimerInterrupts < time_slice - 1){ // si aun no se cumple el time slice seguimos con el mismo proceso
+  time_slice = 5;
+
+  if(amountTimerInterrupts < time_slice - 1 && curr_pid != -1){ // si aun no se cumple el time slice seguimos con el mismo proceso
     amountTimerInterrupts++;
     return curr_pid;
   }
@@ -88,7 +101,7 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
    
      // aqui se contempla la posibilidad de que el proceso termino en el time slice pasado entonces no es necessario 
      // actualizar el index solo si el proceso se mantiene en su posicion en el array
-    if(procs_info[currentIndexRR].pid == curr_pid){
+    if(procs_info[currentIndexRR].pid == curr_pid && curr_pid != -1){
       currentIndexRR++;
     }
     
@@ -102,6 +115,24 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
     return _pid;
   }
 }
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid, int time_slice, int priority_boost) {
+  time_slice = 5;
+  priority_boost = 100;
+  
+  // agregar proceso nuevo a q0
+  if(procs_count > last_procs_count){
+    q[last_of_q0++][0] = procs_info[procs_count-1].pid;
+  }
+
+  last_procs_count = procs_count;
+
+}
+
+/*int remove_from_array(int *array, int pid){
+  for
+}*/
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
