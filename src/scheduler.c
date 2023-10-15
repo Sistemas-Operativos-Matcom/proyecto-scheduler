@@ -147,7 +147,7 @@ void del_pid(struct Dupla *procs_info, int procs_count,int pos_pid)
 int rr_universal1(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid,
                      int *proc_init_time, int *position) {
   int temp = 0;
-  //printf("%d\n",curr_pid);
+  printf("%d\n",curr_pid);
   if (curr_pid == -1){
       //printf("*************");
       *proc_init_time = curr_time;
@@ -188,11 +188,15 @@ int rr_universal1(proc_info_t *procs_info, int procs_count, int curr_time, int c
   return -1;
 }
 
-int next_proc(proc_info_t *procs_info, int procs_count, int curr_time, struct Dupla *queue, int queue_procs_count,int *proc_init_time,int *position){
+int next_proc(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, struct Dupla *queue, int queue_procs_count,int *proc_init_time,int *position){
     int temp = 0, pos;
 
+      //printf("retorno1 %d \n", queue[*position].pid);
       pos = pos_pid(procs_info, procs_count, queue[*position].pid);
-      if (!procs_info[pos].on_io && (curr_time - *proc_init_time < TIME_SLICE)){
+      //printf("pos %d \n", pos);
+      if (pos != -1 && !procs_info[pos].on_io && (curr_time - *proc_init_time < TIME_SLICE)){
+            
+            //printf("retorno %d %d \n", procs_info[pos].pid,queue[*position].pid);
             return queue[*position].pid;
       }
       else {
@@ -279,7 +283,12 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     /*Comprobando si en el momento actual se debe efectuar un Priority boost */
     if(curr_time % PRIORITY_BOOST ==0)
     {
-      printf("PRIORITY_BOOST\n");
+      /*
+      printf("******************PRIORITY_BOOST**************************\n");
+      printf("******************PRIORITY_BOOST**************************\n");
+      printf("******************PRIORITY_BOOST**************************\n");
+      printf("******************PRIORITY_BOOST**************************\n");
+      */
       hp_procs_count = mp_procs_count = lp_procs_count = 0;
       
       for(int j=0;j< procs_count;j++)
@@ -288,6 +297,7 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         hp_queue[j].time_remaining =0;
         hp_procs_count++;
       }
+      hp_position = 0;
     }
     else
     {
@@ -348,7 +358,7 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       }
     }*/
    /*
-  printf("***hp_queue***\n");
+    printf("***hp_queue***\n");
     for (int i = 0; i < hp_procs_count;i++)
       printf("%d (%d)",hp_queue[i].pid,hp_queue[i].time_remaining );
     printf("\n");
@@ -359,23 +369,23 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     printf("***lp_queue***\n");
     for (int i = 0; i < lp_procs_count;i++)
       printf("%d (%d)",lp_queue[i].pid,lp_queue[i].time_remaining );
-    printf("\n");*/
-    
+    printf("\n");
+    for(int i = 0; i < 10000000;i++);*/
     //scanf("%c");
     int nextp;
     //si hay procesos en la cola de prioridad alta, usamos rr
     if (hp_procs_count > 0){
-        nextp = next_proc(procs_info, procs_count, curr_time, hp_queue, hp_procs_count,&hp_position, &hp_proc_init_time);
+        nextp = next_proc(procs_info, procs_count, curr_time, curr_pid, hp_queue, hp_procs_count,&hp_position, &hp_proc_init_time);
         if (nextp != -1)
             return nextp;
     }
     if (mp_procs_count > 0){
-        nextp = next_proc(procs_info, procs_count, curr_time, mp_queue, mp_procs_count,&mp_position, &mp_proc_init_time);
+        nextp = next_proc(procs_info, procs_count, curr_time, curr_pid,mp_queue, mp_procs_count,&mp_position, &mp_proc_init_time);
         if (nextp != -1)
             return nextp;
     }
     if (lp_procs_count > 0){
-        nextp = next_proc(procs_info, procs_count, curr_time, lp_queue, lp_procs_count,&lp_position, &lp_proc_init_time);
+        nextp = next_proc(procs_info, procs_count, curr_time, curr_pid, lp_queue, lp_procs_count,&lp_position, &lp_proc_init_time);
         if (nextp != -1)
             return nextp;
     }
