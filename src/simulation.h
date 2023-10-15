@@ -14,7 +14,6 @@ enum {
 
 typedef struct proc_execution {
   process_t process;
-  int executed_queue;
   int pid;
   int executed_time;
   int state;
@@ -27,12 +26,12 @@ typedef struct proc_info {
   int pid;
   int executed_time;
   int on_io;
-  int executed_queue;
 } proc_info_t;
 
 typedef struct Queue 
 {
-  proc_info_t *data;
+  proc_info_t data[1000];
+  int Time [1000];
   int front, rear;
 } Queue_t;
 

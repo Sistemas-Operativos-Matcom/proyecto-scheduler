@@ -67,6 +67,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   if (curr_pid == -1)
   {
     time = process_total_time(procs_info[0].pid);
+    PID = procs_info[0].pid;
   }
   else
   {
@@ -109,7 +110,7 @@ int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 {
   //time slice = 50
   //que pasa cuando termina un proceso? 
-  if (times != 0 && curr_pid != -1)
+  if (times > 0 && curr_pid != -1)
   {
     times --;
     return curr_pid;
@@ -123,19 +124,21 @@ int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     prr = 0;
   }
+  times --;
   return procs_info[prr].pid;
 }
 
-Queue_t *createQueue_t(){
-  Queue_t *queue = (Queue_t *)malloc(sizeof(Queue_t));
-  queue->front = 0;
-  queue->rear = 0;
-  queue->data = (proc_info_t *)malloc(0 * sizeof(proc_info_t));
-  return queue;
-}
+// Queue_t *createQueue_t(){
+//   Queue_t *queue = (Queue_t *)malloc(sizeof(Queue_t));
+//   queue->front = 0;
+//   queue->rear = 0;
+//   queue->data = (proc_info_t *)malloc(0 * sizeof(proc_info_t));
+//   return queue;
+// }
 
 void enqueue(Queue_t *queue, proc_info_t process) {
   queue->data[queue->rear] = process;
+  queue->Time[queue->rear] = 0;
   queue->rear++;
 }
 
@@ -150,81 +153,147 @@ proc_info_t get(Queue_t *queue)
   return process;
 }
 
-Queue_t empty ()
-{
-  Queue_t queue = {(proc_info_t *)0,0,0};
-  return queue;
-}
 
 int lastprocess = -1;
 int lastlastprocess = -1;
 const int TimeSlice = 5;
 int priority = 100;
 
+Queue_t First = {{},{}, 0, 0};
+Queue_t Second = {{}, {}, 0, 0};
+Queue_t Third = {{}, {}, 0, 0};
+
+Queue_t empty ()
+{
+  Queue_t q = {{},{}, 0, 0};;
+  return q;
+}
+
+int bool = 1;
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-
-  // if (curr_time % priority == 0)
+  //printf("dcfvgbhnjm%d\n", lastprocess);
+  //printf("dcfvgbhnjm%d\n", curr_time);
+  // if (curr_pid !=-1)
   // {
-    Queue_t *First = (Queue_t *)malloc(sizeof(Queue_t));
-    First = createQueue_t(1000);
-    Queue_t *Second = (Queue_t *)malloc(sizeof(Queue_t));
-    Second = createQueue_t(1000);
-    Queue_t *Third = (Queue_t *)malloc(sizeof(Queue_t));
-    Third = createQueue_t(1000);
+  //   proc_info_t proc = get(&First);
+  //   printf("dcfvgbhnjm%d\n",proc.executed_queue);
   // }
+
+  if (curr_time % priority == 0 || bool)
+  {
+    First = empty();
+    Second = empty();
+    Third = empty();
+    
+    lastprocess = -1;
+    lastlastprocess = -1;
+    bool = 0;
+  }
   
   for (int i = procs_count - 1; i > -1; i--)
   {
+    //printf("pi%d\n", procs_info[i].pid);
+    //printf("lp%d\n", lastprocess);
+    //printf("llp%d\n", lastlastprocess);
     if (procs_info[i].pid != lastprocess && procs_info[i].pid != lastlastprocess)
     {
-      enqueue(First,procs_info[i]);
+      // printf("pi%d\n", procs_info[i].pid);
+      // printf("lp%d\n", lastprocess);
+      // printf("llp%d\n", lastlastprocess);
+      enqueue(&First,procs_info[i]);
+      //printf("dcfvgbhnjm%d\n",procs_info[i].executed_queue);
+    }
+    else 
+    {
+      
+      break;
     }
   }
 
   lastprocess = procs_info[procs_count-1].pid;
   lastlastprocess = procs_info[procs_count-2].pid;
 
-  if ((*First).front != (*First).rear)
+  if (First.front != First.rear)
   {
-    proc_info_t proc = get(First);
-    proc.executed_queue++;
-    if (proc.executed_queue == TimeSlice)
+    proc_info_t proc = get(&First);
+    while (its_over(proc.pid, procs_info,procs_count))
     {
-      dequeue(First);
-      enqueue(Second, proc);
-      proc.executed_queue = 0;
+      dequeue(&First);
+      proc = get(&First);
     }
-    return proc.pid;
+    if (First.front != First.rear)
+    {
+      First.Time[First.front] ++;
+      if (First.Time[First.front] == TimeSlice)
+      {
+        dequeue(&First);
+        enqueue(&Second, proc);
+        Second.Time[Second.rear] = 0;
+      }
+      return proc.pid;
+    }
+    
   }
 
-  if ((*Second).front != (*Second).rear)
+  if (Second.front != Second.rear)
   {
-    proc_info_t proc = get(Second);
-    proc.executed_queue++;
-    if (proc.executed_queue == TimeSlice)
+    proc_info_t proc = get(&Second);
+    while (its_over(proc.pid, procs_info,procs_count))
     {
-      dequeue(Second);
-      enqueue(Third, proc);
-      proc.executed_queue = 0;
+      dequeue(&Second);
+      proc = get(&Second);
     }
-    return proc.pid;
+    if (Second.front != Second.rear)
+    {
+      Second.Time[Second.front]++;
+      if (Second.Time[Second.front] == TimeSlice)
+      {
+        dequeue(&Second);
+        enqueue(&Third, proc);
+        Third.Time[Third.rear] = 0;
+      }
+      return proc.pid;
+    }
+    
   }
 
-  if ((*Third).front != (*Third).rear)
+  if (Third.front != Third.rear)
   {
-    proc_info_t proc = get(Third);
-    proc.executed_queue++;
-    if (proc.executed_queue == TimeSlice)
+    proc_info_t proc = get(&Third);
+    while (its_over(proc.pid, procs_info,procs_count))
     {
-      dequeue(Third);
-      enqueue(Third, proc);
-      proc.executed_queue = 0;
+      dequeue(&Third);
+      proc = get(&Third);
     }
-    return proc.pid;
+    if (Third.front != Third.rear)
+    {
+      Third.Time[Third.front]++;
+      if (Third.Time[Third.front] == TimeSlice)
+      {
+        dequeue(&Third);
+        enqueue(&Third, proc);
+        Third.Time[Third.rear] = 0;
+      }
+      return proc.pid;
+    }
+    
   }
   return -1;
+}
+
+int its_over (int pid, proc_info_t *procs_info, int procs_count)
+{
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid == pid)
+    {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 /*int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -255,7 +324,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
-  //if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr5_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
   
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
