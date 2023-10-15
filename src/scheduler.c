@@ -102,23 +102,33 @@ int STCF(proc_info_t *procs_info, int procs_count, int curr_time,
 int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
                 int curr_pid)
 {
+// printf("         ");
+//    printf("%d",curr_time);
+//   printf("  ");
+//    printf("%d",curr_pid); 
+//   printf("  ");
+//   printf("%d",last_proc_pos); printf("  ");
+//    printf("%d",procs_count);
+//    printf("\n");
+
   if (procs_count == 0)
     return -1;
 
   if (curr_pid == -1)
   {
-    if (last_proc_pos == procs_count)
+    if (last_proc_pos >= procs_count)
       last_proc_pos = 0;
     return procs_info[last_proc_pos].pid;
   }
 
-  if (last_proc_pos + 1 == procs_count)
+  if (last_proc_pos + 1 >= procs_count)
   {
     last_proc_pos = 0;
   }
   else
     last_proc_pos += 1;
 
+ 
   return procs_info[last_proc_pos].pid;
 
 }
