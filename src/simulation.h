@@ -10,35 +10,7 @@ enum {
   ENDED = 0x8,
 };
 
-typedef struct Queue 
-{
-  proc_info_t data[100];
-  int front, rear;
-} Queue;
 
-void enqueue(Queue *queue, proc_info_t process) {
-  queue->data[queue->rear] = process;
-  queue->rear++;
-}
-
-void dequeue(Queue *queue) 
-{
-  proc_info_t process = queue->data[queue->front];
-  queue->front++;
-  return process;
-}
-
-proc_info_t get(Queue *queue)
-{
-  proc_info_t process = queue->data[queue->front];
-  return process;
-}
-
-Queue empty ()
-{
-  Queue queue = {{},0,0};
-  return queue;
-}
 
 typedef struct proc_execution {
   process_t process;
@@ -57,6 +29,12 @@ typedef struct proc_info {
   int on_io;
   int executed_queue;
 } proc_info_t;
+
+typedef struct Queue 
+{
+  proc_info_t *data;
+  int front, rear;
+} Queue_t;
 
 typedef struct simulation {
   proc_execution_t *procs_exec_info;

@@ -101,20 +101,20 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[prr].pid;
 }
 
-const Times = 5;
-int time = Times;
+const int Times = 5;
+int times = Times;
 
 int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
   //time slice = 50
   //que pasa cuando termina un proceso? 
-  if (time != 0 && curr_pid != -1)
+  if (times != 0 && curr_pid != -1)
   {
-    time --;
+    times --;
     return curr_pid;
   }
-  time = Times;
+  times = Times;
   if (curr_pid != -1)
   {
     prr ++;
@@ -126,9 +126,35 @@ int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[prr].pid;
 }
 
-Queue First = {{}, 0, 0};
-Queue Second = {{}, 0, 0};
-Queue Third = {{}, 0, 0};
+Queue_t *createQueue_t(){
+  Queue_t *queue = (Queue_t *)malloc(sizeof(Queue_t));
+  queue->front = 0;
+  queue->rear = 0;
+  queue->data = (proc_info_t *)malloc(0 * sizeof(proc_info_t));
+  return queue;
+}
+
+void enqueue(Queue_t *queue, proc_info_t process) {
+  queue->data[queue->rear] = process;
+  queue->rear++;
+}
+
+void dequeue(Queue_t *queue) 
+{
+  queue->front++;
+}
+
+proc_info_t get(Queue_t *queue)
+{
+  proc_info_t process = queue->data[queue->front];
+  return process;
+}
+
+Queue_t empty ()
+{
+  Queue_t queue = {(proc_info_t *)0,0,0};
+  return queue;
+}
 
 int lastprocess = -1;
 int lastlastprocess = -1;
@@ -138,66 +164,70 @@ int priority = 100;
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-  if (curr_time % priority == 0)
-  {
-    First = empty();
-    Second = empty();
-    Third = empty();
-  }
+
+  // if (curr_time % priority == 0)
+  // {
+    Queue_t *First = (Queue_t *)malloc(sizeof(Queue_t));
+    First = createQueue_t(1000);
+    Queue_t *Second = (Queue_t *)malloc(sizeof(Queue_t));
+    Second = createQueue_t(1000);
+    Queue_t *Third = (Queue_t *)malloc(sizeof(Queue_t));
+    Third = createQueue_t(1000);
+  // }
   
   for (int i = procs_count - 1; i > -1; i--)
   {
     if (procs_info[i].pid != lastprocess && procs_info[i].pid != lastlastprocess)
     {
-      enqueue(&First,procs_info[i]);
+      enqueue(First,procs_info[i]);
     }
   }
 
   lastprocess = procs_info[procs_count-1].pid;
   lastlastprocess = procs_info[procs_count-2].pid;
 
-  if (First.front != First.rear)
+  if ((*First).front != (*First).rear)
   {
-    proc_info_t proc = get(&First);
+    proc_info_t proc = get(First);
     proc.executed_queue++;
     if (proc.executed_queue == TimeSlice)
     {
-      dequeue(&First);
-      enqueue(&Second, proc);
+      dequeue(First);
+      enqueue(Second, proc);
       proc.executed_queue = 0;
     }
     return proc.pid;
   }
 
-  if (Second.front != Second.rear)
+  if ((*Second).front != (*Second).rear)
   {
-    proc_info_t proc = get(&Second);
+    proc_info_t proc = get(Second);
     proc.executed_queue++;
     if (proc.executed_queue == TimeSlice)
     {
-      dequeue(&Second);
-      enqueue(&Third, proc);
+      dequeue(Second);
+      enqueue(Third, proc);
       proc.executed_queue = 0;
     }
     return proc.pid;
   }
 
-  if (Third.front != Third.rear)
+  if ((*Third).front != (*Third).rear)
   {
-    proc_info_t proc = get(&Third);
+    proc_info_t proc = get(Third);
     proc.executed_queue++;
     if (proc.executed_queue == TimeSlice)
     {
-      dequeue(&Third);
-      enqueue(&Third, proc);
+      dequeue(Third);
+      enqueue(Third, proc);
       proc.executed_queue = 0;
     }
     return proc.pid;
   }
-  
+  return -1;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+/*int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
@@ -214,7 +244,7 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int duration = process_total_time(pid);
 
   return -1;
-}
+}*/
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
