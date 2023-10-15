@@ -34,6 +34,12 @@ typedef struct simulation {
   int curr_proc_pid;
 } simulation_t;
 
+typedef struct queue {
+  int items[100];
+  int front;
+  int rear;
+}Queue;
+
 
 typedef int (*schedule_action_t)(proc_info_t *, int, int, int);
 

@@ -7,6 +7,8 @@
 
 #include "simulation.h"
 
+#define num_colas 3
+Queue colas_prioridades [num_colas];
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -92,62 +94,93 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return pid;
 }
 
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  int pid = curr_pid;
-  int max = -1;
-  int index=0;
-  if(curr_time % 150 == 0)
+                      printf("me estoy ejecutado");
+  int pid= curr_pid;
+  int actual = num_colas;
+  int pos =-1;
+  if(procs_count!=0)find_news(*procs_info,procs_count);             // busco en el array si hay nuevos procesos y los agrego a la primera cola,que es la de mayor prioridad
+  if(curr_pid!=-1)
   {
-    for(int z=0 ; z<procs_count ; z++)
-    {
-      procs_info[z].priority = 5;
-    }
-    pid = procs_info[0].pid;
+    actual = find_queue_curr_pid(curr_pid);     // busco en que cola esta el proceso que se esta ejecutando actualmente
+    pos = find_pos(*procs_info,curr_pid,procs_count);     //busco la posicion del proceso actual en el array de procesos
   }
-  
-  if(pid!=-1)
+  for(int i=0;i<actual;i++)             //recorro las colas con mayor prioridad al proceso actual ya que dichos procesos van primero
   {
-    for(int j=0 ; j<procs_count ; j++)
+    if(is_empty(colas_prioridades[i])!=1)     //al encontrar una que no este vacia, el primer proceso en ella es el de mayor prioridad
     {
-      if(procs_info[j].pid==pid)
+      pid = colas_prioridades[i].items[colas_prioridades[i].front];
+      pos = find_pos(*procs_info,pid,procs_count);
+      actual = i;
+      while(procs_info[pos].on_io==1)
       {
-        if(procs_info[j].on_io==1) continue;
-        if(procs_info[j].executed_time % 10 == 0 && procs_info[j].executed_time % 3 == 0)
-        {
-          if(procs_info[j].priority==0 && procs_count>1)
-          {
-            if(j==procs_count-1) return procs_info[0].pid;
-            return procs_info[j+1].pid;
-          }else
-          if(procs_info[j].priority>0)
-          procs_info[j].priority--;
-        }
-        max = procs_info[j].priority;
-        index = j;
+        pos++;
+        actual = find_queue_curr_pid(procs_info[pos].pid);
       }
+      break;                                  //no busco mas ya que ese debe ser el que se ejecute
     }
   }
-  for(int i=0 ; i<procs_count ; i++)
+  if(procs_info[pos].executed_time % 30 == 0 && pid == curr_pid)        //si no encontre a nadie en colas anteriores procedo a ejecutar como RR
   {
-    int pr = procs_info[i].priority;
-    if(pr > 5 || pr < 0)
-    {
-      procs_info[i].priority = 5;
-      pr = 5;
-    }
-    if(pr > max && procs_info[i].on_io==0)
-    {
-      max = pr;
-      pid = procs_info[i].pid;
-      index = i;
-    }
+    if(pos==procs_count-1 && colas_prioridades[actual].front!=colas_prioridades[actual].rear)    //si era el ultimo de esa cola, vuelve a empezar por ella
+    pid = colas_prioridades[actual].items[colas_prioridades[actual].front];
+    else if(pos < procs_count-1)                                                  //sino sigue con el siguiente
+    pid = procs_info[pos+1].pid;
   }
-  
-  return pid;
+  if(procs_info[pos].executed_time + 10 % 150 == 0 && actual!=num_colas-1)        //si estas proximo a cumplir un slice time de ejecucion, entonces te ejecutas y bajas de prioridad
+  {
+    pid = dequeue(colas_prioridades[actual]);
+    enqueue(colas_prioridades[actual+1],pid);
+  }
+  return pid;            
 }
 
-/*void init(Queue *q) {
+void find_news(proc_info_t *procs_info,int procs_count)
+{
+  printf("busco nuevos procesos");
+  int flag;
+  for(int j=procs_count-1;j>=0;j--)
+  {
+    flag = 0;
+    for(int z=0;z<num_colas;z++)
+    {
+      for(int i=colas_prioridades[z].rear;i>=colas_prioridades[z].front;i--)
+      {
+        if(colas_prioridades[z].items[i]==procs_info[j].pid) flag = 1;
+        printf("encontre");
+      }
+      if(flag==1) return;
+      enqueue(colas_prioridades[0],procs_info[j].pid);
+    }
+  }
+  printf("termine de buscar");
+}
+
+int find_queue_curr_pid(int curr_pid)
+{
+  for(int i=0;i<num_colas;i++)
+  {
+    for(int j = colas_prioridades[i].front; j<= colas_prioridades[i].rear; j++)
+    {
+      if(colas_prioridades[i].items[j]==curr_pid) return i;
+    }
+  }
+  return 0;
+}
+
+int find_pos(proc_info_t *procs_info,int pid,int procs_count)
+{
+  for(int i=0;i<procs_count;i++)
+  {
+    if(procs_info[i].pid == pid) return i;
+  }
+  return 0;
+}
+
+
+void init(Queue *q) {
   q->front = -1;
   q->rear = -1;
 }
@@ -174,7 +207,7 @@ int dequeue(Queue *q) {
     return value;
   }
   return 0;
-}*/
+}
 
 
 // Información que puedes obtener de un proceso
@@ -194,6 +227,16 @@ int dequeue(Queue *q) {
 schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
+
+  Queue cola1,cola2,cola3 = {
+    {-1},
+    -1,
+    -1,
+  };
+
+  colas_prioridades[0] = cola1;
+  colas_prioridades[1] = cola2;
+  colas_prioridades[2] = cola3;
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
