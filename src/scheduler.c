@@ -6,26 +6,77 @@
 #include <time.h>
 
 #include "simulation.h"
+#include "queue.h"
 
-// La función que define un scheduler está compuesta por los siguientes
-// parámetros:
-//
-//  - procs_info: Array que contiene la información de cada proceso activo
-//  - procs_count: Cantidad de procesos activos
-//  - curr_time: Tiempo actual de la simulación
-//  - curr_pid: PID del proceso que se está ejecutando en el CPU
-//
-// Esta función se ejecuta en cada timer-interrupt donde existan procesos
-// activos (se asegura que `procs_count > 0`) y determina el PID del proceso a
-// ejecutar. El valor de retorno es un entero que indica el PID de dicho
-// proceso. Pueden ocurrir tres casos:
-//
-//  - La función devuelve -1: No se ejecuta ningún proceso.
-//  - La función devuelve un PID igual al curr_pid: Se mantiene en ejecución el
-//  proceso actual.
-//  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
-//  contexto y se ejecuta el proceso indicado.
-//
+#define NUM_QUEUES 3
+
+queue_t queues[NUM_QUEUES];
+
+void init_queue(int qid, int capacity) {
+  queues[qid].procs = (proc_info_t *)malloc(capacity * sizeof(proc_info_t));
+  queues[qid].executed_time = (int *)malloc(capacity * sizeof(int));
+  queues[qid].count = 0;
+  queues[qid].capacity = capacity;
+}
+
+void enqueue(int qid, proc_info_t proc, int time) {
+  if (queues[qid].count == queues[qid].capacity) {
+    queues[qid].capacity *= 2;
+    queues[qid].procs = (proc_info_t *)realloc(queues[qid].procs, queues[qid].capacity * sizeof(proc_info_t));
+    queues[qid].executed_time = (int *)realloc(queues[qid].executed_time, queues[qid].capacity * sizeof(int));
+  }
+
+  queues[qid].executed_time[queues[qid].count] = time;
+  queues[qid].procs[queues[qid].count++] = proc;
+}
+
+proc_info_t dequeue(int qid) {
+  proc_info_t proc = queues[qid].procs[0];
+
+  for (int i = 0; i < queues[qid].count - 1; i++) {
+    queues[qid].procs[i] = queues[qid].procs[i + 1];
+    queues[qid].executed_time[i] = queues[qid].executed_time[i + 1];
+
+  }
+  queues[qid].count--;
+
+  return proc;
+}
+
+int update_queues(proc_info_t *procs_info, int procs_count, int last_max_pid) {
+    int time, count;
+
+    for(int qid = 0; qid < NUM_QUEUES; qid++) {
+        count = queues[qid].count;
+
+        for(int i = 0; i < count; i++) {
+            time = queues[qid].executed_time[0];
+            proc_info_t proc = dequeue(qid);
+
+            for(int j = 0; j < procs_count; j++) {
+                if(procs_info[j].pid == proc.pid) {
+                    enqueue(qid, proc, time + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    int max_pid = -1;
+    for(int i = 0; i < procs_count; i++) {
+        if(procs_info[i].pid > last_max_pid) {
+            enqueue(0, procs_info[i], 0);
+
+            if(procs_info[i].pid > max_pid) {
+                max_pid = procs_info[i].pid;
+            }
+        }
+    }
+
+    return max_pid;
+}
+
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -76,8 +127,89 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   static int current_index = 0;
 
   if (!((++slice) % 5)) {
-    current_index = (current_index + 1) % procs_count;
-    return procs_info[current_index].pid;
+    current_index++;
+  }
+
+  current_index %= procs_count;
+  
+  return procs_info[current_index].pid;
+}
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  
+  const int slice_time = 4;
+  const int priority_boost = 8;
+  
+  static int current_time = 0;
+  static int declared_queue = 0;
+  static int last_max_pid = -1;
+
+  int time, count;
+
+  if (!declared_queue){
+    for (int i = 0; i < NUM_QUEUES; i++) {
+      init_queue(i, 200);
+    }
+
+    declared_queue = 1;
+  }
+
+  last_max_pid = update_queues(procs_info, procs_count, last_max_pid);
+
+  if(current_time % priority_boost == 0) {
+    // Subir de nivel al llegar al priority_boost
+
+    for(int qid = 1; qid < NUM_QUEUES; qid++) {
+        count = queues[qid].count;
+
+        for(int i = 0; i < count; i++) {
+            proc_info_t proc = dequeue(qid);
+            enqueue(qid - 1, proc, 0);
+        }
+    }
+  }
+  else {
+    // Bajar de nivel al llegar al slice_time
+
+    for(int qid = 0; qid < NUM_QUEUES - 1; qid++) {
+        count = queues[qid].count;
+
+        for(int i = 0; i < count; i++) {
+            time = queues[qid].executed_time[0];
+
+            if(time >= slice_time) {
+              proc_info_t proc = dequeue(qid);
+              enqueue(qid + 1, proc, 0);
+            }
+        }
+    }
+  }
+
+  // Ejecutar RR
+  for(int i = 0; i < NUM_QUEUES; i++) {
+    proc_info_t *temp = (proc_info_t*)malloc(queues[i].count * sizeof(proc_info_t));
+    int pos = 0;
+    
+    if(queues[i].count) {
+
+      for(int j = 0; j < queues[i].count; j++) {
+        if(!queues[i].procs[j].on_io) {
+          temp[pos++] = queues[i].procs[j];
+        }
+      }
+
+
+      if(!pos) {
+        continue;
+      }
+
+      curr_pid = rr_scheduler(temp, pos, curr_time, curr_pid);
+      current_time++;
+
+      free(temp);
+      break;
+    }
+    free(temp);
   }
 
   return curr_pid;
@@ -96,6 +228,8 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
