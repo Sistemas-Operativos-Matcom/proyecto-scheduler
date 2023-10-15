@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
+#include "queue.h" // Incluimos la definición de la cola
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -84,29 +85,34 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return pid;
 }
 
-int time_slice = 0;
+int slice_time = 0;
 int proc_index = 0;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   if (curr_pid != -1)
   {
-    if (time_slice < 3)
+    if (slice_time < 3)
     {
-      time_slice++;
+      slice_time++;
       return curr_pid;
     }
     else
     {
-      time_slice = 0;
+      slice_time = 0;
       return procs_info[proc_index = ((proc_index + 1) % procs_count)].pid;
     }
   }
   else
   {
-    time_slice = 0;
+    slice_time = 0;
     return procs_info[proc_index = (proc_index % procs_count)].pid;
   }
 }
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name)
