@@ -100,28 +100,19 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int time_slice = 50; 
 int rr_index = 0;
 
-//Devuelve el indice que ocupa en el procs_info el proceso actual
-int get_rr_index(proc_info_t *procs_info, int procs_count, int curr_pid)
+//Devuelve 1 si el proceso es el ultimo proceso; 0 en caso contrario
+int set_last(int rr_index, int procs_count)
 {
-  for (int i = 0; i < procs_count; i++)
-  {
-    if (curr_pid == procs_info[i].pid)
-      return i;
-  }
-  return -1;
+  if (rr_index >= procs_count-1)
+    return 1;
+  else
+    return 0;
 }
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-  //int rr_index = get_rr_index(procs_info, procs_count, curr_pid);
-  int last;
-
-  //last es 1 si el proceso es el ultimo proceso; 0 en caso contrario
-  if (rr_index >= procs_count-1)
-    last = 1;
-  else
-    last = 0;
+  int last = set_last(rr_index, procs_count);
 
   //Tiempo que se ha ejecutado un proceso
   int exec_time = procs_info[rr_index].executed_time;
@@ -263,22 +254,51 @@ void priority_boost(proc_info_t *procs_info, int procs_count)
   }
 }
 
-//Implementacion de round robin para MLFQ
-int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count)
+//Devuelve 1 si es el último proceso de la cola, 0 en caso contrario.
+int is_last(proc_info_t *queue, int curr_pid)
 {
+  for (int i = curr_pid+1; i<200; i++)
+  {
+    if (queue[i].pid != 0)
+      return 0;
+  }
+  return 1;
+}
+
+//Implementacion de round robin para MLFQ
+int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count, int queue_num, int curr_pid)
+{
+  //Almacena si el proceso actual es el último de su cola.
+  int last = is_last(queue, curr_pid);
+
   for (int i = 0; i < 200; i++)
   {
     int pid = queue[i].pid; 
     if (pid != 0 || queue[i].executed_time != 0)
     {
       //Si el proceso no ha terminado, lo devuelve
-      if (process_ended(procs_info, procs_count, pid) == 0)    
-        return pid;
+      if (process_ended(procs_info, procs_count, pid) == 0) 
+      {
+        //Si es la última cola, asegurarme de no hacer completo el mismo proceso, a menos que no haya otro pendiente en la última cola
+        if (queue_num == 0)   
+        {
+          //Si el proceso actual no es el último proceso de la cola
+          if (last == 0)
+          {
+            //Hay un proceso siguiente en cola que debe ejecutarse, cuyo index=pid es mayor.
+            if (pid > curr_pid)
+              return pid;
+          }
+          else  //Es el último proceso de su cola, hay que empezar de nuevo.
+            return pid;   //Devolver el primer proceso sin terminar de la cola que me encuentre      
+        }
+        else
+          return pid;
+      }        
     }
   }
-  //else error:
-  printf("Error 3");
-  return 201;
+  //Si llega hasta aquí es porque está en la última cola y no hay ningún proceso pendiente además del actual, por tanto, hay que devolver el actual
+  return curr_pid;
 }
 
 
@@ -287,24 +307,16 @@ int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count)
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-
-  //TODO Fix del bug:
-  //Tengo que llevar el indice del ultimo proceso que se ejecuto debido al rr. Cuando se vuelva a ejecutar round robin, a menos que no haya otro proceso, tengo que ejcutar el siguiente a ese. En la lista vienen ordenados asi que tampoco es tanto lio pedirle el siguiente. Tener en cuenta el fin del array. Fijarme en el last del otro round robin.
-
-  //Eso provoca errores en el test case 001 en los ms [800 - 830] porque ahi deberia haber un salto de proceso por el round robin y se queda en el mismo por el for.
-  //DEBUGER
-  if (curr_time == 150)
-  {
-    printf("active queue: %d; curr_pid: %d\n", active_queue, curr_pid);
-    for (int i = 0; i<20; i++)
-    {
-      printf("%d ", queues[active_queue][i].executed_time);
-    }
-    printf("\n");
-  }
-    
-  //tomar todos los procesos de la misma queue y hacerles RR.
-  //cuando un proceso consuma el time slice, bajarle la prioridad = bajarlo de cola
+  //Debugger
+  // if (curr_time == 790)
+  // {
+  //   printf("active queue: %d; curr_pid: %d\n", active_queue, curr_pid);
+  //   for (int i = 0; i<20; i++)
+  //   {
+  //     printf("%d ", queues[active_queue][i].executed_time);
+  //   }
+  //   printf("\n");
+  // }
 
   //Punto de partida para mlfq. Ejecuta siempre el primer proceso de todos.
   if (mlfq_begin == 0)
@@ -316,23 +328,20 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     return procs_info[0].pid;
   }
 
+  //Añadir los procesos que van llegando a la cola de mayor prioridad
   add_to_queue(procs_info, procs_count);  
 
-  //Si hay algun proceso ejecutandose, seguir ejecutandolo:
+  //Si hay algun proceso ejecutandose, seguir ejecutandolo hasta que consuma el time slice:
   if (curr_pid != -1)
   {
     //Obtengo el proceso actual
     proc_info_t curr_process = get_current_process(procs_info, procs_count, curr_pid);
+    
     //Si no ha consumido el time_slice, seguir ejecutándolo
     if (curr_process.executed_time % time_slice != 0)
       return curr_pid;
     else
     {
-      //IMPLEMENTAR:
-      //si ya consumio el time slice, tengo que pasar al siguiente proceso si en la cola actual hay alguno.
-      //Si en la cola actual no hay ninguno, bajo de cola hasta que haya alguno
-      //Actualizar el active_queue si se modificó
-
       //Como ya consumio el time slice:
       //Si la cola no es la de menor prioridad, baja la prioridad del proceso.
       if (active_queue != 0)     
@@ -340,23 +349,22 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
       // Ahora ejecuto el siguiente proceso
       // Voy a la cola de mayor prioridad y ejecuto RR sobre dicha cola.
-      // Revisar que no joda cuando ejecute el proceso 0 porque lo que comprueba es pid = 0
-      
+
       //Se empieza por la cola de mayor prioridad y se va bajando hasta encontrar una cola con un proceso pendiente.
       for (int i = 2; i>=0; i--)
       {
         if (queue_not_empty(queues[i], procs_info, procs_count) == 1)   //Quedan procesos
         {
           active_queue = i;
-          return mlfq_rr(queues[i], procs_info, procs_count);
+          return mlfq_rr(queues[i], procs_info, procs_count, i, curr_pid);
         }      
       }      
     }
   }
 
-  //ESTO ES LO QUE SE VA A HACER SI NO HAY NINGUN PROCESO EJECUTANDOSE ACTUALMENTE:
+  //Si no hay ningún proceso ejecutándose actualmente:
 
-  //Recorro las colas en orden a ver cual sera la primera con un proceso pendiente:
+  //Recorro las colas en orden a ver cuál será la primera con un proceso pendiente:
   for (int i = 2; i >= 0; i--)
   {
     for (int j = 0; j < 200; j++)   
