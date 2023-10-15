@@ -163,7 +163,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   update_mlfq_array(procs_info, procs_count, curr_time);
 
   // revisar el slice time para actualizar el nivel, el slice y el arrive time
-  if(last_pid == curr_pid)
+  if(last_pid == curr_pid && !procs_info[last_pid].on_io)
   {
     if(mlfq_slice_time[last_index] > 0)
     {
@@ -171,7 +171,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       mlfq_slice_time[last_index] -= 10;
       return curr_pid;
     }
-    else
+    else if(procs_info[last_index].on_io)
     {
       mlfq_level[last_index] = (mlfq_level[last_index] < LEVELS) ? mlfq_level[last_index] + 1 : LEVELS;
       mlfq_arrive_time[last_index] = curr_time;
