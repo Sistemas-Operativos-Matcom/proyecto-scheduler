@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include "simulation.h"
+int iterador = 0;
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -53,7 +54,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return curr_pid == -1 ? final : curr_pid;
 }
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                  int curr_pid)
+                   int curr_pid)
 {
   if (curr_pid == -1)
     return sjf_scheduler(procs_info, procs_count, curr_time, curr_pid);
@@ -76,8 +77,21 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       final = procs_info[i].pid;
     }
   }
-  return min<time ? final:curr_pid;
-
+  return min < time ? final : curr_pid;
+}
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid)
+{
+  int final;
+  if (iterador< procs_count)
+  {
+    final = procs_info[iterador].pid;
+    iterador ++;
+    return final;
+  }
+  iterador =1;
+  return procs_info[0].pid;
+  
 }
 // Información que puedes obtener de un proceso
 /*int pid = procs_info[0].pid;     // PID del proceso
@@ -107,6 +121,8 @@ schedule_action_t get_scheduler(const char *name)
     return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0)
     return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0)
+    return *rr_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
