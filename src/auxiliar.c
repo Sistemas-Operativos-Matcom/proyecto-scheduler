@@ -110,7 +110,7 @@ void mlfq_filter_procs_level(proc_info_t *current_procs, int level[], int count,
 
   for (int i = 0; i < count; i++)
   {
-    if ((current_procs[i].on_io) || current_procs[i].pid == diferent_pid)
+    if (current_procs[i].on_io || current_procs[i].pid == diferent_pid)
       continue;
 
     if (level[i] == depth)
