@@ -27,11 +27,4 @@ int mlfq_find_lowest_depth(int level[], int count, int *temp, int MAX_DEPTH);
 
 void mlfq_filter_procs_level(int level[], proc_info_t *current_procs, int count, int depth, proc_info_t destiny[]);
 
-// RR plus
-void rr_merge(int past_pid[], int was_io[], proc_info_t *current_procs, int *past_count, int procs_count);
-
-int find_match(int past_pid[], int was_io[], proc_info_t *current_procs, int *past_count, int current_count, int turn);
-
-int rr_find_lostProcess(int pid[], int was_io[], int count, proc_info_t *currents_procs, int current_count);
-
 #endif

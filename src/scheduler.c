@@ -170,8 +170,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return procs_info[index].pid;
 }
 
-// SCHEDULER OTRAS IMPLEMENTACIONES:
-
 // RANDOM
 // Ejecuta un proceso random
 int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
@@ -180,46 +178,6 @@ int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
   return procs_info[rand() % procs_count].pid;
 }
 
-// ROUND ROBIN PLUS
-// En el rr puede pasar el proceso ejecutado termine durante el time slice, entonces
-// el proceso que venia ocupa el index del que termino, y es saltado.
-// De forma general si varios procesos terminan durante el time slice
-// van a alterar el orden de los turnos del rr
-
-// para evitar esto voy a buscar de los procesos que me quedaron en el interrupt anterior
-// el proximo que siga en los procesos actuales es el que ejecuto
-
-// para mejorar el tournaround, ademas voy guardando los procesos que son saltados por estan en io
-// para ejecutarlos cuando dejen de estarlo
-
-int rrplus_past_pid[MAX_PROCESS_COUNT]; // Array para guardar los procesos del ultimo time interrupt
-int rrplus_was_io[MAX_PROCESS_COUNT];   // procesos que no se ejecutaron por estan io
-int rrplus_past_pid_count = 0;
-
-int rrplus_manager(int past_proc[], int was_io[], proc_info_t *current_procs, int *past_proc_count, int current_count, int *turn)
-{
- 
-  // buscar si queda algun proceso pendiente
-  int left = rr_find_lostProcess(past_proc, was_io, *past_proc_count, current_procs, current_count);
-  if (left >= 0)
-  {
-    return left;
-  }
-  // No hay procesos pendientes
-  int rr = find_match(past_proc, was_io, current_procs, past_proc_count, current_count, *turn);
-  rr_merge(past_proc, was_io, current_procs, past_proc_count, current_count);
-  *turn = rr;
-  return rr;
-}
-
-int round_robin_plus_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
-  if (curr_time % time_slice(2) != 0 || procs_count == 0)
-    return curr_pid;
-
-  int index = rrplus_manager(rrplus_past_pid, rrplus_was_io, procs_info, &rrplus_past_pid_count, procs_count, &turn_procs);
-  return procs_info[index % procs_count].pid;
-}
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -230,11 +188,6 @@ schedule_action_t get_scheduler(const char *name)
 
   if (strcmp(name, "fifo") == 0)
     return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
 
   if (strcmp(name, "sjf") == 0)
     return *sjf_scheduler;
@@ -251,9 +204,6 @@ schedule_action_t get_scheduler(const char *name)
   // Variaciones
   if (strcmp(name, "rand") == 0)
     return *random_scheduler;
-
-  if (strcmp(name, "rr+") == 0)
-    return *round_robin_plus_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
