@@ -108,14 +108,11 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int t_slice, int *turn, int current_pid, int current_time)
 {
   // actualizar los procesos
-  mlfq_merge(pid, level, time, procs, pid_count, procs_count); // a partir de aqui, Para todo i:pid[i] == procs.pid[i]
+  mlfq_merge(pid, level, time, procs, pid_count, procs_count);
 
   // priority boost
   if (current_time % BOST_TIME == 0)
-  {
-    printf(" BOOST\n");
     mlfq_priority_bost(level, time, *pid_count);
-  }
 
   // buscar el nivel actual
   int depth_count = 0;
@@ -177,7 +174,6 @@ int random_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
   srand((unsigned)time(NULL));
   return procs_info[rand() % procs_count].pid;
 }
-
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.

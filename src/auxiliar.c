@@ -134,6 +134,7 @@ void mlfq_filter_procs_level(int level[], proc_info_t *current_procs, int count,
     if (level[i] == depth)
     {
       destiny[dest_index] = current_procs[i];
+      dest_index++;
     }
   }
   return;
