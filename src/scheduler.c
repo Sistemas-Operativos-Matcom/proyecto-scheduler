@@ -126,6 +126,77 @@ int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[prr].pid;
 }
 
+Queue First = {{}, 0, 0};
+Queue Second = {{}, 0, 0};
+Queue Third = {{}, 0, 0};
+
+int lastprocess = -1;
+int lastlastprocess = -1;
+const int TimeSlice = 5;
+int priority = 100;
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{
+  if (curr_time % priority == 0)
+  {
+    First = empty();
+    Second = empty();
+    Third = empty();
+  }
+  
+  for (int i = procs_count - 1; i > -1; i--)
+  {
+    if (procs_info[i].pid != lastprocess && procs_info[i].pid != lastlastprocess)
+    {
+      enqueue(&First,procs_info[i]);
+    }
+  }
+
+  lastprocess = procs_info[procs_count-1].pid;
+  lastlastprocess = procs_info[procs_count-2].pid;
+
+  if (First.front != First.rear)
+  {
+    proc_info_t proc = get(&First);
+    proc.executed_queue++;
+    if (proc.executed_queue == TimeSlice)
+    {
+      dequeue(&First);
+      enqueue(&Second, proc);
+      proc.executed_queue = 0;
+    }
+    return proc.pid;
+  }
+
+  if (Second.front != Second.rear)
+  {
+    proc_info_t proc = get(&Second);
+    proc.executed_queue++;
+    if (proc.executed_queue == TimeSlice)
+    {
+      dequeue(&Second);
+      enqueue(&Third, proc);
+      proc.executed_queue = 0;
+    }
+    return proc.pid;
+  }
+
+  if (Third.front != Third.rear)
+  {
+    proc_info_t proc = get(&Third);
+    proc.executed_queue++;
+    if (proc.executed_queue == TimeSlice)
+    {
+      dequeue(&Third);
+      enqueue(&Third, proc);
+      proc.executed_queue = 0;
+    }
+    return proc.pid;
+  }
+  
+}
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
