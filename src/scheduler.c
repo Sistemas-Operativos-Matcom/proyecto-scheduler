@@ -37,6 +37,9 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
   int i;
   for(i = 0; i < procs_count; i++)
   {
+    // if scheduler is stcf, this method returns the process with shortest time to completion
+    // else, it returns the shortest job process
+    // The diferrence between one and another is exectudes time
     if(stcf == 1)
     {
       executed = procs_info[i].executed_time;
@@ -51,6 +54,7 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
   
   return min;
 }
+
 typedef struct queue{
   int length;
   proc_info_t *processes_info;
@@ -63,6 +67,7 @@ void push(proc_info_t process, struct queue *queue)
   queue->processes_info[queue->length-1] = process;
   queue->length+=1;
 }
+
 proc_info_t pop(struct queue *queue)
 {
   proc_info_t proc = queue->processes_info[0];
@@ -108,7 +113,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 {
   return getMin(procs_info, procs_count, 1).pid;
 }
-
+int times = 5;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   int i;
@@ -116,28 +121,42 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   {
     if(curr_pid == procs_info[i].pid)
     {
-      return procs_info[i+1].pid;
+      if(times == 0)
+      {
+        times = 5;
+        return procs_info[i+1].pid;
+      }
+      else
+      {
+        times--;
+        return curr_pid;
+      }
     }
   }
   return procs_info[0].pid;
 }
 
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
 
-  int queuesQuant = 4;
-  queue_t * queues = (queue_t*) malloc(queuesQuant * sizeof(queue_t));
+// Queues for MLFQ
+int queuesQuant = 4;
+queue_t * queues = (queue_t*) malloc(queuesQuant * sizeof(queue_t));
+
+void init_queues(int procs_count)
+{
   int i;
   for(i = 0; i < queuesQuant; i++)
   {
     queues[i] = queue_init(procs_count);
   }
+}
 
-  queues[0].push(procs_info[0], &queues[0]);
-  printf("%d\n", queues[0].length);
-  queues[0].pop(&queues[0]);
-  printf("%d\n", queues[0].length);
-  return -1;
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  init_queues(procs_count);
+
+  // MLFQ
+
+  
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
