@@ -248,6 +248,7 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
   // priority boost
   if (current_time % BOST_TIME == 0)
   {
+    printf(" BOOST\n");
     mlfq_priority_bost(level, time, *pid_count);
   }
 
@@ -288,15 +289,15 @@ int mlfq_level_pid[MAX_PROCESS_COUNT]; // nivel de cada proceso
 int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
 int mlfq_count = 0;
 int mlfq_turn = 0; // round robin
-int mlfq_qeue = 0; // current qeue
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   int t_slice = mlfq_time_slice;
-  if (curr_time % t_slice != 0)
+  if (curr_time % t_slice != 0 && curr_pid!= -1)
     return curr_pid;
-
+  
   int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time, t_slice, &mlfq_turn, curr_pid, curr_time);
+  
   return procs_info[index].pid;
 }
 
