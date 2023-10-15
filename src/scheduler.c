@@ -119,6 +119,10 @@ schedule_action_t get_scheduler(const char *name) {
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   //
+    if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+    if (strcmp(name, "rr") == 0) return *rr_scheduler;
+    if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
