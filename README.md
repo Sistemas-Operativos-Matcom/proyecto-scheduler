@@ -1,4 +1,4 @@
-# Proyecto de Ssistema Operativo I
+# Proyecto de Sistema Operativo I
 
 Osvaldo R. Moreno P. C211.
 
