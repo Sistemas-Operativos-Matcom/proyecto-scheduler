@@ -103,29 +103,38 @@ int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, in
   return 0;
 }
 
-// busca un proceso sustituto para el pid_toSub que no se encuentre en I/O, o devuelve el mismo pid_toSubs si no fue encontrado
-// Siempre devuelve un pid, no como los metodos anteriores que devuelven el index
-int mlfq_find_substitute(proc_info_t *procs, int level[], int count, int pid_toSub, int DEPTH)
+// Buscar los procesos de la cola actual y guardarlos en dest
+void mlfq_filter_procs_level(proc_info_t *current_procs, int level[], int count, int depth, proc_info_t destiny[], int diferent_pid, int checkIO)
 {
-  // como luego del merge procs[i].pid = pid[i], entonces en level[i] es el correspondiente el proceso i de procs
-  for (int i = 0; i < DEPTH; i++)
+  int dest_index = 0;
+
+  for (int i = 0; i < count; i++)
   {
-    for (int j = 0; j < count; j++)
+    if ((checkIO && current_procs[i].on_io) || current_procs[i].pid == diferent_pid)
+      continue;
+
+    if (level[i] == depth)
     {
-      if (level[j] == i && procs[j].pid != pid_toSub && !procs[j].on_io)
-        return procs[j].pid;
+      destiny[dest_index] = current_procs[i];
+      dest_index++;
     }
   }
-  return pid_toSub;
+
+  return;
 }
 
-// buscar el nivel de mas prioridad, temp devuelve la cantidad de items en ese level
-int mlfq_find_lowest_depth(int level[], int count, int *temp, int MAX_DEPTH)
+
+// buscar el nivel de mas prioridad donde este un proceso distinto del actual,y ademas devuelve la cantidad de procs
+int mlfq_find_lowest_depth(proc_info_t *procs, int level[], int count, int *temp, int MAX_DEPTH, int current_pid, int check_IO)
 {
   int current_depth = MAX_DEPTH;
   *temp = 0;
+
   for (int i = 0; i < count; i++)
   {
+    if ((check_IO && procs[i].on_io) || procs[i].pid == current_pid)
+      continue;
+
     if (level[i] < current_depth)
     {
       current_depth = level[i];
@@ -138,22 +147,6 @@ int mlfq_find_lowest_depth(int level[], int count, int *temp, int MAX_DEPTH)
     }
   }
   return current_depth;
-}
-
-// Buscar los procesos de la cola actual y guardarlos en dest
-void mlfq_filter_procs_level(int level[], proc_info_t *current_procs, int count, int depth, proc_info_t destiny[])
-{
-  int dest_index = 0;
-
-  for (int i = 0; i < count; i++)
-  {
-    if (level[i] == depth)
-    {
-      destiny[dest_index] = current_procs[i];
-      dest_index++;
-    }
-  }
-  return;
 }
 
 // QUICK SORT

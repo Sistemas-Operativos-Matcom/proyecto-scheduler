@@ -23,8 +23,8 @@ void mlfq_priority_bost(int levels[], int time_level[], int count);
 
 int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int index);
 
-int mlfq_find_lowest_depth(int level[], int count, int *temp, int MAX_DEPTH);
+int mlfq_find_lowest_depth(proc_info_t *procs, int level[], int count, int *temp, int MAX_DEPTH, int current_pid, int check_IO);
 
-void mlfq_filter_procs_level(int level[], proc_info_t *current_procs, int count, int depth, proc_info_t destiny[]);
+void mlfq_filter_procs_level( proc_info_t *current_procs, int level[], int count, int depth, proc_info_t destiny[], int diferent_pid, int checkIO);
 
 #endif
