@@ -90,9 +90,9 @@ void mlfq_priority_bost(int levels[], int time_level[], int count)
 }
 
 // Update las propiedades de un proceso y retorna 1 si el proceso consumio todo el tiempo disponible del nivel
-int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME_SLICE, int index)
+int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, int MAX_TIME_LEVEL, int TIME, int index)
 {
-  time_level[index] += TIME_SLICE;
+  time_level[index] += TIME;
 
   if (time_level[index] > MAX_TIME_LEVEL)
   {
@@ -101,6 +101,22 @@ int mlfq_update_proc(int pid[], int level[], int time_level[], int MAX_LEVEL, in
     return 1;
   }
   return 0;
+}
+
+// busca un proceso sustituto para el pid_toSub que no se encuentre en I/O, o devuelve el mismo pid_toSubs si no fue encontrado
+// Siempre devuelve un pid, no como los metodos anteriores que devuelven el index
+int mlfq_find_substitute(proc_info_t *procs, int level[], int count, int pid_toSub, int DEPTH)
+{
+  // como luego del merge procs[i].pid = pid[i], entonces en level[i] es el correspondiente el proceso i de procs
+  for (int i = 0; i < DEPTH; i++)
+  {
+    for (int j = 0; j < count; j++)
+    {
+      if (level[j] == i && procs[j].pid != pid_toSub && !procs[j].on_io)
+        return procs[j].pid;
+    }
+  }
+  return pid_toSub;
 }
 
 // buscar el nivel de mas prioridad, temp devuelve la cantidad de items en ese level
@@ -139,7 +155,6 @@ void mlfq_filter_procs_level(int level[], proc_info_t *current_procs, int count,
   }
   return;
 }
-
 
 // QUICK SORT
 void swap(void *x, void *y, int size)

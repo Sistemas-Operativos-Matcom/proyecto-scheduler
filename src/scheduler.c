@@ -104,7 +104,7 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 }
 
 // MLFQ
-int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int t_slice, int *turn, int current_pid, int current_time)
+int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int BOST_TIME, int TIME_SLICE, int TIME, int *turn, int current_time, int *original_pid, int *valid)
 {
   // actualizar los procesos
   mlfq_merge(pid, level, time, procs, pid_count, procs_count);
@@ -117,14 +117,24 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
   int depth_count = 0;
   int depth = mlfq_find_lowest_depth(level, *pid_count, &depth_count, MAX_DEPTH);
 
-  if (current_pid != -1) // verificar si el proceso esta en i/o durante el t.interrupt para priorizarlo
+  // si estoy en un proceso que ejecute, porque el original estaba en i/o
+  if (*valid)
+  {
+    int valid_index = find_pid_array(procs, procs_count, *original_pid);
+    if (valid_index < 0) // el proceso ya no se encuentra en procs
+    {
+      *valid = 0;
+    }
+  }
+
+  if (current_pid != -1)
   {
     int current_proc_index = find_pid_array(procs, procs_count, current_pid);
 
     // si el proceso hizo io y ademas sigue siendo de prioridad entonces lo ejecuto
     if (procs[current_proc_index].on_io && level[current_proc_index] <= depth)
     {
-      mlfq_update_proc(pid, level, time, MAX_DEPTH, MAX_TIME, t_slice, current_proc_index);
+      mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, current_proc_index);
       return current_proc_index;
     }
   }
@@ -138,7 +148,7 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
 
   // Actualizar sus stats
   int index = find_pid_array(procs, procs_count, depth_procs[depth_procs_index].pid);
-  mlfq_update_proc(pid, level, time, MAX_DEPTH, MAX_TIME, t_slice, index);
+  mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index);
 
   return index;
 }
@@ -146,7 +156,6 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
 // Parametros del MLFQ
 int mlfq_depth = 2; // cantidad de colas de prioridad o niveles del mlfq(indexado en 0)
 int mlfq_priority_bost_time = 20 * TIME_INTERRUPT;
-int mlfq_max_time_level = 4 * TIME_INTERRUPT;
 int mlfq_time_slice = 2 * TIME_INTERRUPT;
 
 // Info sobre los procesos
@@ -156,12 +165,13 @@ int mlfq_time_pid[MAX_PROCESS_COUNT];  // tiempo de cada proceso en su nivel
 int mlfq_count = 0;
 int mlfq_turn = 0; // round robin turn
 
+// Info
+int pid_exec_proc = -1; // proceso que se estaba ejecutando originalmente y cedio el cpu
+int is_valid = 0;       // 1 si el proceso en pid_exec era el que originalmente se estaba ejecutando
+
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  if (curr_time % mlfq_time_slice != 0 && curr_pid != -1)
-    return curr_pid;
-
-  int index = mlfq_manager(mlfq_pid, mlfq_level_pid, mlfq_time_pid, procs_info, &mlfq_count, procs_count, mlfq_depth, mlfq_max_time_level, mlfq_priority_bost_time, mlfq_time_slice, &mlfq_turn, curr_pid, curr_time);
+  int index = 0;
 
   return procs_info[index].pid;
 }
