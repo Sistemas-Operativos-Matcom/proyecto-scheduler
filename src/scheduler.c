@@ -116,7 +116,8 @@ proc_info_t showFirst(queue_t *queue) {
     return queue->array[queue->front];
 }
 
-
+int num_queues;
+queue_t *queues;
 
 // Variables globales para el algoritmo Round Robin
 const int Time_slice = 4;
@@ -165,11 +166,17 @@ int rr2(queue_t *queue, int procs_count, int curr_pid) {
     
     for (int i = 0; i < procs_count; i++) {
 
+
+        if(showFirst(queue).executed_time >= process_total_time(showFirst(queue).pid))
+            continue;
+
         if (time_slice == 0) {
             time_slice = Time_slice;
             // printf("%d----\n", procs_count);
             // printf("%d\n", showFirst(queue).pid);
             proc_info_t info = dequeue(queue);
+            
+            
             enqueue(queue, info);
             // printf("%d\n", showFirst(queue).pid);
         } else {
@@ -178,7 +185,7 @@ int rr2(queue_t *queue, int procs_count, int curr_pid) {
         break;
 
     }
-     
+
     // Devolver el PID del proceso actual
     return showFirst(queue).pid;
 }
@@ -199,9 +206,6 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     // free(queueRR);
     return a;
 }
-
-int num_queues;
-queue_t *queues;
 
 
 // Variables globales para el algoritmo MLFQ
@@ -244,6 +248,29 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     last_last_procs_pid = procs_info[procs_count-2].pid;
     
 
+    for (size_t i = 0; i < num_queues; i++)
+    {
+        int l = queues[i].length;
+        for (size_t j = 0; j < l; j++)
+        {
+            int here = 0;
+            proc_info_t info = dequeue(&queues[i]);
+
+            for (size_t k = 0; k < procs_count; k++)
+            { 
+                if(info.pid == procs_info[k].pid)
+                    here = 1;
+            }
+
+            if(here)
+                enqueue(&queues[i], info);
+            
+        }
+        
+    }
+    
+
+
     //Cada cierto tiempo S, todos los procesos se posicionan en la cola de mayor prioridad
     if(s > 0)
         s--;
@@ -265,7 +292,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         if (queues[i].front <= queues[i].rear) {
             // Devolver el PID del proceso de la cola no vacía con la mayor prioridad
             
-            int next = rr(&queues[i], queues[i].front - queues[i].rear, -1);
+            int next = rr2(&queues[i], queues[i].length, -1);
 
             proc_info_t proc_info;
             for (size_t i = 0; i < procs_count; i++)
