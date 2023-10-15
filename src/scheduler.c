@@ -120,7 +120,7 @@ int rr5_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     prr ++;
   }
-  if (prr == procs_count)
+  if (prr >= procs_count)
   {
     prr = 0;
   }
@@ -157,7 +157,7 @@ proc_info_t get(Queue_t *queue)
 int lastprocess = -1;
 int lastlastprocess = -1;
 const int TimeSlice = 5;
-int priority = 100;
+int priority = 1000;
 
 Queue_t First = {{},{}, 0, 0};
 Queue_t Second = {{}, {}, 0, 0};
@@ -192,7 +192,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     lastlastprocess = -1;
     bool = 0;
   }
-  
   for (int i = procs_count - 1; i > -1; i--)
   {
     //printf("pi%d\n", procs_info[i].pid);
@@ -222,7 +221,14 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     while (its_over(proc.pid, procs_info,procs_count))
     {
       dequeue(&First);
-      proc = get(&First);
+      if (First.front != First.rear)
+      {
+        proc = get(&First);
+      }
+      else 
+      {
+        break;
+      }
     }
     if (First.front != First.rear)
     {
@@ -233,10 +239,11 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Second, proc);
         Second.Time[Second.rear] = 0;
       }
+      //printf("1");
       return proc.pid;
     }
     
-  }
+  } 
 
   if (Second.front != Second.rear)
   {
@@ -244,7 +251,14 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     while (its_over(proc.pid, procs_info,procs_count))
     {
       dequeue(&Second);
-      proc = get(&Second);
+      if (Second.front != Second.rear)
+      {
+        proc = get(&Second);
+      }
+      else 
+      {
+        break;
+      }
     }
     if (Second.front != Second.rear)
     {
@@ -255,6 +269,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Third, proc);
         Third.Time[Third.rear] = 0;
       }
+      //printf("2");
       return proc.pid;
     }
     
@@ -266,7 +281,14 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     while (its_over(proc.pid, procs_info,procs_count))
     {
       dequeue(&Third);
-      proc = get(&Third);
+      if (Third.front != Third.rear)
+      {
+        proc = get(&Third);
+      }
+      else 
+      {
+        break;
+      }
     }
     if (Third.front != Third.rear)
     {
@@ -277,6 +299,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Third, proc);
         Third.Time[Third.rear] = 0;
       }
+      //printf("3");
       return proc.pid;
     }
     
