@@ -104,7 +104,6 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
 }
 
 // MLFQ
-
 int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pid_count, int procs_count, int MAX_DEPTH, int MAX_TIME, int BOST_TIME, int t_slice, int *turn, int current_pid, int current_time)
 {
   // actualizar los procesos
