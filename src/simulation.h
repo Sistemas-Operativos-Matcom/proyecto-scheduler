@@ -33,6 +33,8 @@ typedef struct simulation {
   int curr_proc_pid;
 } simulation_t;
 
+
+
 typedef int (*schedule_action_t)(proc_info_t *, int, int, int);
 
 // Devuelve el tiempo total que toma la ejecución de un proceso dado su PID
