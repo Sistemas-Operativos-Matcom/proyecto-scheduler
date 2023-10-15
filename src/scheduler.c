@@ -32,8 +32,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
-
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
@@ -41,15 +40,103 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // Información que puedes obtener de un proceso
   int pid = procs_info[0].pid;      // PID del proceso
   int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
+                                    // realizando una operación IO
   int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
                                                 // ejecutado (en CPU o en I/O)
+ 
+  int min = 2147483647;
+  
+  int pidaux = 0;
 
+  int time_handler = 50;
+
+ 
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if(process_total_time(procs_info[i].pid) <= min){
+    min = process_total_time(procs_info[i].pid);
+    pidaux = procs_info[i].pid;
+    }
+  }
+  return pidaux;
+  
+
+  
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
   int duration = process_total_time(pid);
 
-  return -1;
+  //return curr_pid;
+  //return -1;
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+  // cambiar)
+
+  // Información que puedes obtener de un proceso
+  int pid = procs_info[0].pid;      // PID del proceso
+  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+                                    // realizando una operación IO
+  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
+                                                // ejecutado (en CPU o en I/O)
+  int timeslice = 50; 
+
+ int verifier[procs_count + 1];
+
+    if(curr_time%timeslice == 0){
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if(procs_info[i].executed_time % timeslice !=  0 || verifier[i] == 0) 
+    verifier[i] = 1;  
+    return procs_info[i].pid;
+  }
+ for (size_t i = 0; i < procs_count; i++)
+   {
+     verifier[i] = 0;
+   }
+}
+
+  // También puedes usar funciones definidas en `simulation.h` para extraer
+  // información extra:
+  int duration = process_total_time(pid);
+  //return curr_pid;
+  //return -1;
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+  // cambiar)
+
+  // Información que puedes obtener de un proceso
+  int pid = procs_info[0].pid;      // PID del proceso
+  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+                                    // realizando una operación IO
+  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
+                                                // ejecutado (en CPU o en I/O)
+ 
+  int min_exec_time = 2147483647;
+ 
+  int pidaux = 0;
+  int timeslice = 50;
+
+     
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    if(process_total_time(procs_info[i].pid) - procs_info[i].executed_time <= min_exec_time){
+    min_exec_time = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+    pidaux = procs_info[i].pid;
+    }
+  }  
+  return pidaux;
+  
+  // También puedes usar funciones definidas en `simulation.h` para extraer
+  // información extra:
+  int duration = process_total_time(pid);
+  //return  curr_pid;
+  //return -1;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -59,6 +146,9 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
