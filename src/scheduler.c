@@ -87,7 +87,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 }
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
-  int time_slace = 50;
+  int time_slice = 50;
   int index = 0;
 
   for (int i = 0; i < procs_count; i++)
@@ -97,7 +97,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     }
   }
   
-  if(curr_time % time_slace == 0){
+  if(curr_time % time_slice == 0){
     if(index == procs_count - 1){
       index = 0;
     }
