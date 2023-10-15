@@ -24,8 +24,12 @@ void push_item(queue_t* q, proc_info_t value) {
 
 proc_info_t pop_item(queue_t* q) {
     proc_info_t ans = q->head->value;
+    node_t* tmp = q->head;
+
     q->head = q->head->next;
     q->len --;
+
+    free(tmp);
 
     if (q->len == 0)q->head = q->tail = NULL;
 

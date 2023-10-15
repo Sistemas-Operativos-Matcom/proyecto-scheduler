@@ -29,6 +29,7 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
+//Declare utility functions
 static bool contains_pid(proc_info_t* procs_info, int procs_count, int pid);
 static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int procs_count);
 static void concat_queues(queue_t* to, queue_t** from, int count);
@@ -89,6 +90,8 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  //Declare variables, they are static as do not 
+  //need to redeclare each function call
   static bool is_init = false;
   static queue_t prior_high, prior_mid,prior_low;
   
@@ -108,14 +111,16 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     is_init = true;
   }
 
-  //Add new procs
+  //Add new procs to the queue
+  //as only 2 procs can leave the queue at the same time, we check 
+  //from there and add the newcomers
   for (int i = last_len < 2 ? 0 : last_len - 2; i < procs_count; i++) {
     if (l1 == procs_info[i].pid || l2 == procs_info[i].pid){
       continue;
     }
 
     push_item(&prior_high, procs_info[i]);
-    prior_high.tail->value.executed_time = 0;
+    prior_high.tail->value.executed_time = 0; //the executed_time is used to store the time a procces hs been in cpu, initially 0
   }
 
   last_len = procs_count;
@@ -137,13 +142,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   } update_count++;
 
   //Decrease priority if it reached the time_slice
-  while (prior_mid.len && prior_mid.head->value.executed_time == time_slice) {
+  if (prior_mid.len && prior_mid.head->value.executed_time == time_slice) {
     proc_info_t tmp = pop_item(&prior_mid);
     tmp.executed_time = 0;
 
     push_item(&prior_low, tmp);
   }
-  while (prior_high.len && prior_high.head->value.executed_time == time_slice) {
+  if (prior_high.len && prior_high.head->value.executed_time == time_slice) {
     proc_info_t tmp = pop_item(&prior_high);
     tmp.executed_time = 0;
 
@@ -176,15 +181,27 @@ schedule_action_t get_scheduler(const char *name) {
   exit(1);
 }
 
-//Helper functions
+/* Helper functions */
 
 static bool contains_pid(proc_info_t* procs_info, int procs_count, int pid) {
+  /** 
+   * returns true if the given proc_info_t array contains
+   * the given pid, else, it returns false 
+  */
+
   for (int i = 0; i < procs_count; i++)
     if (procs_info[i].pid == pid)return true;
   return false; 
 }
 
 static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int procs_count) {
+  /**
+   * it takes a queue of proc_info_t items and removes the ones that are
+   * not in the procs_info array
+   * the approach here is O(|q| * |procs_info|), which is bad, but as performance here is 
+   * not the main goal I decided to improve the code readability by doing this
+  */
+  
   int n = q->len;
   for (int i = 0; i < n; i++) {
     proc_info_t t = pop_item(q);
@@ -194,6 +211,12 @@ static void delete_completed_procs(queue_t* q, proc_info_t* procs_info, int proc
 }
 
 static void concat_queues(queue_t* to, queue_t** from, int count) {
+  /**
+   * it takes a queue and an array of queues, then iterates for each element of the 
+   * the array of queues and pushes all of them in the original
+   * resulting in a queue that contains all the elements of the others
+  */
+  
   for (int j = 0; j < count; j++) {
     queue_t* _from = from[j];
 
@@ -209,6 +232,9 @@ static void concat_queues(queue_t* to, queue_t** from, int count) {
 }
 
 static bool is_on_io(int pid, proc_info_t* procs, int procs_count) {
+  /**
+   * checks if a given pid is on IO operations
+  */
   for (int i = 0; i < procs_count; i++) {
     if (procs[i].pid == pid)return procs[i].on_io != 0;
   }
@@ -216,6 +242,13 @@ static bool is_on_io(int pid, proc_info_t* procs, int procs_count) {
 }
 
 static int get_executable_pid(queue_t* procs, proc_info_t* procs_info, int procs_count, int rr_time) {
+  /**
+   * given a queue of pid's, it returns the first procces which is
+   * not performing IO operations, then updates it's executed time
+   * 
+   * if no procces can run, then returns -1
+  */
+ 
   for (int i = 0; i < procs->len && (is_on_io(procs->head->value.pid, procs_info, procs_count) || (procs->head->value.executed_time % rr_time == 0 && i == 0)); i++) {
     proc_info_t proc = pop_item(procs);
     push_item(procs, proc);
