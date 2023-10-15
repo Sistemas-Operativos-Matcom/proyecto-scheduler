@@ -34,7 +34,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+/*int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -52,7 +52,7 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int duration = process_total_time(pid);
 
   return -1;
-}
+}*/
 
 int candela_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                       int curr_pid)
@@ -151,7 +151,7 @@ int prev = 0;
 int rr_sch(proc_info_t *procs_info, int procs_count, int curr_time,
            int curr_pid)
 {
-  prev=prev%procs_count;
+  prev = prev % procs_count;
   while (!(curr_time % slicerr == 0) && !(curr_pid == -1) && !(procs_info[prev].on_io))
   {
     return procs_info[prev].pid;
@@ -159,7 +159,7 @@ int rr_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   prev += 1;
   int a = prev;
   int b = a + procs_count;
-  int saspid=-1;
+  int saspid = -1;
   for (int i = a; i < b; i++)
   {
     if (!(procs_info[i % procs_count].on_io))
@@ -171,15 +171,66 @@ int rr_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   return saspid;
 }
 
-#define cantidad_de_prioridades 10
+#define cantidad_de_prioridades 23
 #define slice_time 30
 int boost = slice_time * 69;
 int curr_execumulation = 0;
 int prevpidind = 0;
+int prevprocs_count = 0;
+// la estructura
+int procs_pid[1000];
+int procs_priority[1000];
+int procs_time_inlevel[1000];
 
 int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
              int curr_pid)
 {
+  int newListA[procs_count];
+  int newListB[procs_count];
+  int newListC[procs_count];
+
+  if (curr_time <= 0)
+  {
+    for (int i = 0; i < procs_count; i++)
+    {
+      newListA[i] = procs_info[i].pid;
+      newListB[i] = 0;
+      newListC[i] = 0;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < procs_count; i++)
+    {
+      int encontrado = 0;
+      // hacer busqueda en los anteriores
+      for (int j = 0; j < prevprocs_count; j++)
+      {
+        if (procs_info[i].pid == procs_pid[j])
+        {
+          newListA[i] = procs_pid[j];
+          newListB[i] = procs_priority[j];
+          newListC[i] = procs_time_inlevel[j];
+          // printf("encontrado");
+          encontrado = 1;
+          break;
+        }
+      }
+      if (!encontrado)
+      {
+        newListA[i] = procs_info[i].pid;
+        newListB[i] = 0;
+        newListC[i] = 0;
+      }
+    }
+  }
+  for (int i = 0; i < procs_count; i++)
+  {
+    procs_pid[i] = newListA[i];
+    procs_priority[i] = newListB[i];
+    procs_time_inlevel[i] = newListC[i];
+  }
+
   prevpidind = prevpidind % procs_count;
 
   for (int i = 0; i < procs_count; i++)
@@ -187,8 +238,8 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     // actualizo la prioridad de los procesos nuevos a 0, la mas alta
     if (procs_info[i].executed_time <= 0)
     {
-      procs_info[i].priority = 0;
-      procs_info[i].acumulativetime = 0;
+      procs_priority[i] = 0;
+      procs_time_inlevel[i] = 0;
     }
   }
 
@@ -196,8 +247,8 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     for (int i = 0; i < procs_count; i++)
     {
-      procs_info[i].priority = 0;
-      procs_info[i].acumulativetime = 0;
+      procs_priority[i] = 0;
+      procs_time_inlevel[i] = 0;
     }
   }
   if (curr_pid != -1)
@@ -206,7 +257,7 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
     {
       if (curr_pid == procs_info[i].pid)
       {
-        procs_info[i].acumulativetime += (procs_info[i].executed_time - curr_execumulation);
+        procs_time_inlevel[i] += (procs_info[i].executed_time - curr_execumulation);
       }
     }
   }
@@ -215,10 +266,10 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     for (int i = 0; i < procs_count; i++)
     {
-      if (procs_info[i].acumulativetime >= slice_time && procs_info[i].priority < cantidad_de_prioridades - 1)
+      if (procs_time_inlevel[i] >= slice_time && procs_priority[i] < cantidad_de_prioridades - 1)
       {
-        procs_info[i].priority += 1;
-        procs_info[i].acumulativetime = 0;
+        procs_priority[i] += 1;
+        procs_time_inlevel[i] = 0;
       }
     }
   }
@@ -242,33 +293,36 @@ int mqmf_sch(proc_info_t *procs_info, int procs_count, int curr_time,
   for (int i = a; i < b; i++)
   {
     // printf("(p= %d,c= %d,i= %d) ,", procs_info[i % procs_count].priority, actprior, i % procs_count);
-    if (procs_info[i % procs_count].priority < actprior && !(procs_info[i % procs_count].on_io))
+    if (procs_priority[i % procs_count] < actprior && !(procs_info[i % procs_count].on_io))
     {
       // printf("[selected] ");
-      actprior = procs_info[i % procs_count].priority;
+      actprior = procs_priority[i % procs_count];
       retpid = procs_info[i % procs_count].pid;
       curr_execumulation = procs_info[i % procs_count].executed_time;
       prevpidind = i % procs_count;
     }
   }
 
-  /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
-// PONGALE UN COMENTARIO DE UNA LINEA AL INICIO DE LA LINEA ANTERIOR
+  //PARA Q NO IMPRIMA NADA ELIMINE ESTA LINEA HASTA AQUI X /* ESTA PARTE GENERA UN ARRAY CON EL PROCESO SELECCIONADO ETIQUETADO
 
-for (int i = 0; i < procs_count; i++)
-{
-if (i==prevpidind)
-{
-printf("[%d] ,", procs_info[i].priority);
-}else
-{
- printf("%d ,", procs_info[i].priority);
-}
-}
-printf("\n");
-printf("\n");
-//*/
+ printf("\n");
+ 
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (i == prevpidind)
+    {
+      printf("[%d] ,", procs_priority[i]);
+    }
+    else
+    {
+      printf("%d ,", procs_priority[i]);
+    }
+  }
+  printf("\n");
+ 
+  //*/
 
+  prevprocs_count = procs_count;
   return retpid;
 }
 
