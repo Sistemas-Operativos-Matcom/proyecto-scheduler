@@ -6,16 +6,16 @@
 #include <time.h>
 
 #include "simulation.h"
-int current_pid_index = 0;
-int mlfq_pid_index = 0;
-int mlfq_top_index = 0;
-int process_queue[MAX_PROCESS_COUNT];
-int priority_queue[MAX_PROCESS_COUNT];
-int queue_counts[3];
-int current_queue = 0;
-int last_queue = 0;
-int slices_queue[MAX_PROCESS_COUNT];
-int priority_boost = 0;
+int current_pid_index = 0; // Variable utilizada para saber el ultimo proceso que se ejecuto en Round Robin
+
+int mlfq_pid_index = 0;                // Indice correspondiente al ultimo proceso ejecutado en MLFQ
+int mlfq_top_index = 0;                // Cantidad total de procesos activos en MLFQ
+int process_queue[MAX_PROCESS_COUNT];  // Array con los pid's de los procesos activos en MLFQ
+int priority_queue[MAX_PROCESS_COUNT]; // Array con las prioridades de los procesos activos en MLFQ (existen 3 prioridades)
+int slices_queue[MAX_PROCESS_COUNT];   // Array con los slices time de los procesos activos en MLFQ
+int queue_counts[3];                   // Array con las cantidades de procesos en cada una de las prioridades en MLFQ
+int last_queue = 0;                    // Cola en la que estaba el ultimo proceso ejecutado en MLFQ
+int priority_boost = 0;                // Contador para ejecutar el Priority Boost en MLFQ
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -52,7 +52,7 @@ int S_J_F(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
     return curr_pid;
   }
 
-  for (size_t i = 0; i < procs_count; i++)
+  for (size_t i = 0; i < procs_count; i++) // De todos los procesos, seleccionar el de menor tiempo total de ejecucion
   {
     if (process_total_time(procs_info[i].pid) < min_time)
     {
@@ -66,7 +66,7 @@ int S_T_F_C(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
 {
   int min_time = __INT_MAX__;
   int this_pid = 0;
-  for (size_t i = 0; i < procs_count; i++)
+  for (size_t i = 0; i < procs_count; i++) // De todos los procesos, seleccionar el de menor tiempo restante de ejecucion
   {
     if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < min_time)
     {
@@ -77,57 +77,43 @@ int S_T_F_C(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
   return this_pid;
 }
 
-int R_R(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+int R_R(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) // Aqui el slice time es el propio timer interrupt
 {
-  if (curr_pid == -1)
+  if (curr_pid == -1) // Si termino un proceso...
   {
-    if (current_pid_index < procs_count - 1)
+    if (current_pid_index < procs_count - 1) // Y no es el ultimo, devuelve el proceso con el mismo indice
     {
-      current_pid_index;
       return procs_info[current_pid_index].pid;
     }
-    current_pid_index = 0;
+    current_pid_index = 0; // Si es el ultimo, devuelve el primer proceso
     return procs_info[0].pid;
   }
 
-  for (size_t i = 0; i < procs_count; i++)
+  if (current_pid_index < procs_count - 1) // Si el ultimo proceso ejecutado no es el ultimo de la lista, devuelve el siguiente
   {
-    if (procs_info[i].pid == curr_pid)
-    {
-      if (i < procs_count - 1)
-      {
-        current_pid_index = i + 1;
-        return procs_info[i + 1].pid;
-      }
-      current_pid_index = 0;
-      return procs_info[0].pid;
-    }
+    return procs_info[current_pid_index + 1].pid;
   }
+  current_pid_index = 0;
+  return procs_info[0].pid; // Sino, devuelve el primero
 }
 int M_L_F_Q(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // printf("Hola\n");
-  if (curr_pid == -1 && mlfq_top_index != 0)
+  if (curr_pid == -1 && mlfq_top_index != 0) // Si termino un proceso...
   {
-    // printf("Termino el proceso:%d\n",mlfq_pid_index);
-    for (size_t i = mlfq_pid_index; i < mlfq_top_index - 1; i++)
+    for (size_t i = mlfq_pid_index; i < mlfq_top_index - 1; i++) // Hacer corrimiento a todos los siguientes
     {
-      // printf("Corri al proceso %d con prioridad%d\n",process_queue[i+1],priority_queue[i+1]);
       process_queue[i] = process_queue[i + 1];
       priority_queue[i] = priority_queue[i + 1];
       slices_queue[i] = slices_queue[i + 1];
     }
-    mlfq_top_index--;
-    mlfq_pid_index--;
-    queue_counts[last_queue]--;
+    mlfq_top_index--;           // Decrementar en uno la cantidad de procesos activos
+    mlfq_pid_index--;           // Decrementar en uno el indice del ultimo proceso ejecutado
+    queue_counts[last_queue]--; // Decrementar en uno la cantidad de procesos en la cola a la que pertenecia el proceso acabado
   }
-  if (procs_count > mlfq_top_index)
+  if (procs_count > mlfq_top_index) // Si hay nuevos procesos...
   {
-    // printf("Hay gente nueva\n");
-    current_queue = 0;
-    for (size_t i = mlfq_top_index; i < procs_count; i++)
+    for (size_t i = mlfq_top_index; i < procs_count; i++) // Incorporarlos a todos con la maxima prioridad y aumentar en uno la cantidad de procesos activos
     {
-      // printf("Llego el proceso %d\n",procs_info[i].pid);
       process_queue[i] = procs_info[i].pid;
       priority_queue[i] = 1;
       queue_counts[0]++;
@@ -135,170 +121,109 @@ int M_L_F_Q(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
     }
     mlfq_top_index = procs_count;
   }
-  priority_boost++;
-  if (priority_boost == 50)
+  priority_boost++;         // Incrementar el contador del priority boost
+  if (priority_boost == 50) // Si se alcanza el tope...
   {
-    // printf("Priority Boost\n");
-    priority_boost = 0;
-    for (size_t i = 0; i < mlfq_top_index; i++)
+    priority_boost = 0;                         // Reiniciar el contador
+    for (size_t i = 0; i < mlfq_top_index; i++) // Asignar a todos los procesos la maxima prioridad
     {
       priority_queue[i] = 1;
       slices_queue[i] = 0;
     }
-    current_queue = 0;
     last_queue = 0;
     queue_counts[0] = mlfq_top_index;
     queue_counts[1] = 0;
     queue_counts[2] = 0;
   }
 
-  if (current_queue == 0)
+  if (queue_counts[0] != 0)//Si hay elementos en la maxima prioridad se hace Round Robin sobre ellos, verificando ademas que si se cumple el slice time bajen de prioridad
   {
-    if (queue_counts[0] == 0)
-    {
-      current_queue = 1;
-    }
-    else
-    {
-      // printf("Priority:1\n");
-      int pid = 0;
-      int found = 0;
-      for (size_t i = mlfq_pid_index + 1; i < mlfq_top_index; i++)
-      {
-        if (priority_queue[i] == 1)
-        {
-          found++;
-          pid = procs_info[i].pid;
-          mlfq_pid_index = i;
-          slices_queue[i]++;
-          if (slices_queue[i] == 5)
-          {
-            // printf("El proceso %d baja a prioridad %d\n",mlfq_pid_index,2);
-            last_queue = 1;
-            slices_queue[i] = 0;
-            priority_queue[i] = 2;
-            queue_counts[0]--;
-            queue_counts[1]++;
-          }
-          return pid;
-        }
-      }
-      for (size_t i = 0; i < mlfq_pid_index + 1; i++)
-      {
-        if (priority_queue[i] == 1)
-        {
-          found++;
-          pid = procs_info[i].pid;
-          mlfq_pid_index = i;
-          slices_queue[i]++;
-          if (slices_queue[i] == 5)
-          {
-            // printf("El proceso %d baja a prioridad %d\n",mlfq_pid_index,2);
-            last_queue = 1;
-            slices_queue[i] = 0;
-            priority_queue[i] = 2;
-            queue_counts[0]--;
-            queue_counts[1]++;
-          }
-          return pid;
-        }
-      }
-      if (found == 0)
-      {
-        printf("Mistake\n");
-        printf("Cola actual:%d\n", current_queue);
-        printf("Cola actual:%d\n", current_queue);
-        printf("Prioridad 1:%d\n", queue_counts[0]);
-        printf("Prioridad 2:%d\n", queue_counts[1]);
-        printf("Prioridad 3:%d\n", queue_counts[2]);
-        printf("Total:%d\n", mlfq_top_index);
-        printf("Total Real:%d\n", procs_count);
-        printf("PID index:%d\n", mlfq_pid_index);
-        for (size_t i = 0; i < mlfq_top_index; i++)
-        {
-          printf("%d\n", priority_queue[i]);
-        }
-      }
-    }
-  }
-  if (current_queue == 1)
-  {
-    if (queue_counts[1] == 0)
-    {
-      current_queue = 2;
-    }
-    else
-    {
-      // printf("Priority:2\n");
-      int pid = 0;
-      int found = 0;
-      for (size_t i = mlfq_pid_index + 1; i < mlfq_top_index; i++)
-      {
-        if (priority_queue[i] == 2)
-        {
-          found++;
-          pid = procs_info[i].pid;
-          mlfq_pid_index = i;
-          slices_queue[i]++;
-          if (slices_queue[i] == 5)
-          {
-            // printf("El proceso %d baja a prioridad %d\n",mlfq_pid_index,3);
-            last_queue = 2;
-            slices_queue[i] = 0;
-            priority_queue[i] = 3;
-            queue_counts[1]--;
-            queue_counts[2]++;
-          }
-          return pid;
-        }
-      }
-      for (size_t i = 0; i < mlfq_pid_index + 1; i++)
-      {
-        if (priority_queue[i] == 2)
-        {
-          found++;
-          pid = procs_info[i].pid;
-          mlfq_pid_index = i;
-          slices_queue[i]++;
-          if (slices_queue[i] == 5)
-          {
-            // printf("El proceso %d baja a prioridad %d\n",mlfq_pid_index,3);
-            last_queue = 2;
-            slices_queue[i] = 0;
-            priority_queue[i] = 3;
-            queue_counts[1]--;
-            queue_counts[2]++;
-          }
-          return pid;
-        }
-      }
-      if (found == 0)
-      {
-        printf("Mistake\n");
-        printf("Cola actual:%d\n", current_queue);
-        printf("Prioridad 1:%d\n", queue_counts[0]);
-        printf("Prioridad 2:%d\n", queue_counts[1]);
-        printf("Prioridad 3:%d\n", queue_counts[2]);
-        printf("Total:%d\n", mlfq_top_index);
-        printf("Total Real:%d\n", procs_count);
-        printf("PID index:%d\n", mlfq_pid_index);
-        for (size_t i = 0; i < mlfq_top_index; i++)
-        {
-          printf("%d\n", priority_queue[i]);
-        }
-      }
-    }
-  }
-  if (current_queue == 2)
-  {
-    // printf("Priority:3\n");
     int pid = 0;
-    int found = 0;
+    for (size_t i = mlfq_pid_index + 1; i < mlfq_top_index; i++)
+    {
+      if (priority_queue[i] == 1)
+      {
+        pid = procs_info[i].pid;
+        mlfq_pid_index = i;
+        slices_queue[i]++;
+        if (slices_queue[i] == 5)
+        {
+          last_queue = 1;
+          slices_queue[i] = 0;
+          priority_queue[i] = 2;
+          queue_counts[0]--;
+          queue_counts[1]++;
+        }
+        return pid;
+      }
+    }
+    for (size_t i = 0; i < mlfq_pid_index + 1; i++)
+    {
+      if (priority_queue[i] == 1)
+      {
+        pid = procs_info[i].pid;
+        mlfq_pid_index = i;
+        slices_queue[i]++;
+        if (slices_queue[i] == 5)
+        {
+          last_queue = 1;
+          slices_queue[i] = 0;
+          priority_queue[i] = 2;
+          queue_counts[0]--;
+          queue_counts[1]++;
+        }
+        return pid;
+      }
+    }
+    
+  }
+  else if (queue_counts[1] != 0)//Si no hay elementos en la maxima prioridad pero si en la segunda se hace Round Robin sobre ellos, verificando ademas que si se cumple el slice time bajen de prioridad
+  {
+    int pid = 0;
+    for (size_t i = mlfq_pid_index + 1; i < mlfq_top_index; i++)
+    {
+      if (priority_queue[i] == 2)
+      {
+        pid = procs_info[i].pid;
+        mlfq_pid_index = i;
+        slices_queue[i]++;
+        if (slices_queue[i] == 5)
+        {
+          last_queue = 2;
+          slices_queue[i] = 0;
+          priority_queue[i] = 3;
+          queue_counts[1]--;
+          queue_counts[2]++;
+        }
+        return pid;
+      }
+    }
+    for (size_t i = 0; i < mlfq_pid_index + 1; i++)
+    {
+      if (priority_queue[i] == 2)
+      {
+        pid = procs_info[i].pid;
+        mlfq_pid_index = i;
+        slices_queue[i]++;
+        if (slices_queue[i] == 5)
+        {
+          last_queue = 2;
+          slices_queue[i] = 0;
+          priority_queue[i] = 3;
+          queue_counts[1]--;
+          queue_counts[2]++;
+        }
+        return pid;
+      }
+    }    
+  }
+  else    //Por ultimo, si solo hay elementos en la minima prioridad se hace Round Robin sobre ellos, verificando ademas que si se cumple el slice time bajen de prioridad
+  {    
+    int pid = 0;
     for (size_t i = mlfq_pid_index + 1; i < mlfq_top_index; i++)
     {
       if (priority_queue[i] == 3)
       {
-        found++;
         pid = procs_info[i].pid;
         mlfq_pid_index = i;
         slices_queue[i]++;
@@ -311,7 +236,6 @@ int M_L_F_Q(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
     }
     for (size_t i = 0; i < mlfq_pid_index + 1; i++)
     {
-      found++;
       if (priority_queue[i] == 3)
       {
         pid = procs_info[i].pid;
@@ -324,21 +248,7 @@ int M_L_F_Q(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pi
         return pid;
       }
     }
-    if (found == 0)
-    {
-      printf("Mistake\n");
-      printf("Cola actual:%d\n", current_queue);
-      printf("Prioridad 1:%d\n", queue_counts[0]);
-      printf("Prioridad 2:%d\n", queue_counts[1]);
-      printf("Prioridad 3:%d\n", queue_counts[2]);
-      printf("Total:%d\n", mlfq_top_index);
-      printf("Total Real:%d\n", procs_count);
-      printf("PID index:%d\n", mlfq_pid_index);
-      for (size_t i = 0; i < mlfq_top_index; i++)
-      {
-        printf("%d\n", priority_queue[i]);
-      }
-    }
+    
   }
   return -1;
 }
