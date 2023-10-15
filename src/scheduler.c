@@ -139,7 +139,6 @@ int mlfq_manager(int pid[], int level[], int time[], proc_info_t *procs, int *pi
 
   if (index_orig >= 0 && level[index_orig] <= depth) // si el proceso aun se encuentra y sigue siendo de prioridad
   {
-    // printf("A");
     if (!procs[index_orig].on_io) // se esta ejecutando en cpu
     {
       mlfq_update_proc(pid, level, time, MAX_DEPTH, TIME_SLICE, TIME, index_orig);
