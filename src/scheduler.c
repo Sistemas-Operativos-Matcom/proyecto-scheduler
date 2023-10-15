@@ -87,12 +87,21 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   
   if(curr_pid != -1)
   {
-    if(pos_last+1 == procs_count)
+    if(pos_last+1 >= procs_count)
     {
-      return procs_info[0].pid;
+      pos_last = 0;
     }
-
-    return procs_info[pos_last+1].pid; 
+    else
+    {
+      pos_last++;
+    }
+  }
+  else
+  {
+    if (pos_last >= procs_count)
+    {
+      pos_last = 0;
+    }
   }
 
   return procs_info[pos_last].pid;
