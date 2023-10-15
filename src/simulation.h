@@ -15,15 +15,18 @@ typedef struct proc_execution {
   int pid;
   int executed_time;
   int state;
-
   int turnaround;
   int response_time;
+  int priority;
+  int time_in_CPU;
 } proc_execution_t;
 
 typedef struct proc_info {
   int pid;
   int executed_time;
   int on_io;
+  int *priority;
+  int *time_in_CPU;
 } proc_info_t;
 
 typedef struct simulation {
