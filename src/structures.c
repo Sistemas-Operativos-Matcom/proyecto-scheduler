@@ -18,11 +18,6 @@ void push(queue_t* q, proc_info_t p)
 
 proc_info_t pop(queue_t* q)
 {
-    // if(q->count == 0)
-    // {
-    //     proc_info_t p = {-1,0,0};
-    //     return p;
-    // }
     proc_info_t proc = q->arr[0];
     for(int i = 0; i < q->count - 1; i++)
     {
