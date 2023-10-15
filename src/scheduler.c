@@ -27,7 +27,8 @@ void enqueue(int qid, proc_info_t proc, int time) {
   }
 
   queues[qid].executed_time[queues[qid].count] = time;
-  queues[qid].procs[queues[qid].count++] = proc;
+  queues[qid].procs[queues[qid].count] = proc;
+  queues[qid].count++;
 }
 
 proc_info_t dequeue(int qid) {
@@ -55,7 +56,7 @@ int update_queues(proc_info_t *procs_info, int procs_count, int last_max_pid) {
 
             for(int j = 0; j < procs_count; j++) {
                 if(procs_info[j].pid == proc.pid) {
-                    enqueue(qid, proc, time + 1);
+                    enqueue(qid, proc, time);
                     break;
                 }
             }
@@ -73,7 +74,7 @@ int update_queues(proc_info_t *procs_info, int procs_count, int last_max_pid) {
         }
     }
 
-    return max_pid;
+    return max_pid != -1 ? max_pid : last_max_pid;
 }
 
 
@@ -106,7 +107,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-  int min_value = curr_time;
+  int min_value = process_total_time(procs_info[0].pid) - procs_info[0].executed_time;
   int current_index = -1;
 
   for (int i = 0; i < procs_count; i++) {
@@ -164,7 +165,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
         for(int i = 0; i < count; i++) {
             proc_info_t proc = dequeue(qid);
-            enqueue(qid - 1, proc, 0);
+            enqueue(0, proc, 0);
         }
     }
   }
@@ -205,6 +206,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
       curr_pid = rr_scheduler(temp, pos, curr_time, curr_pid);
       current_time++;
+
+      for(int j = 0; j < queues[i].count; j++) {
+        if(queues[i].procs[j].pid == curr_pid) {
+          queues[i].executed_time[j]++;
+          break;
+        }
+      }
 
       free(temp);
       break;
