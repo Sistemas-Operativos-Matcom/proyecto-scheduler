@@ -7,6 +7,21 @@
 
 #include "simulation.h"
 
+int *act_proc=-1;
+
+
+int check_PID(proc_info_t *procs_info, int count, int act_proc_PID){
+
+for (size_t i = 0; i < count; i++)
+{
+  if(procs_info[i].pid==act_proc_PID){
+    return 1;
+  }
+}
+
+return 0;
+
+}
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -51,6 +66,62 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int duration = process_total_time(pid);
 
   return -1;
+}
+
+int sjf(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
+
+if (check_PID(procs_info,procs_count,act_proc))
+{
+  return act_proc;
+}
+
+proc_info_t *procs_info_copy =procs_info;
+
+       for (size_t i = 0; i < procs_count; i++)
+       {
+        for (size_t j = i+1; i < procs_count; j++)
+        {
+          if( process_total_time(procs_info_copy[i].pid)> process_total_time(procs_info_copy[j].pid)){
+            proc_info_t swap = procs_info_copy[i];
+            procs_info_copy[i]=procs_info_copy[j];
+            procs_info_copy[i]=swap;
+          }
+        }
+        
+       }
+
+       act_proc=procs_info_copy[0].pid;
+       return act_proc;
+
+
+}
+
+
+int stcf(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
+
+       proc_info_t *procs_info_copy =procs_info;
+
+       for (size_t i = 0; i < procs_count; i++)
+       {
+        for (size_t j = i+1; i < procs_count; j++)
+        {
+          if( process_total_time(procs_info_copy[i].pid)> process_total_time(procs_info_copy[j].pid)){
+            proc_info_t swap = procs_info_copy[i];
+            procs_info_copy[i]=procs_info_copy[j];
+            procs_info_copy[i]=swap;
+          }
+        }
+        
+       }
+
+       return procs_info_copy[0].pid;
+           
+}
+
+int rr(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
+
+
+
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
