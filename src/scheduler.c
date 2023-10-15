@@ -10,6 +10,7 @@
 
 int num_queues;
 queue_t *queues;
+queue_t queueRR;
 
 // Variables globales para el algoritmo Round Robin
 const int Time_slice = 3;
@@ -18,10 +19,18 @@ int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según 
 
 const int Time_slice_mlfq = 5;
 
+// Variables globales para el algoritmo MLFQ
+int last_procs_pid = -1;
+int last_last_procs_pid = -1;
+
+const int S = 20;
+int s = S;
+
+int toMLFQ = 1;
+int toRR = 1;
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
-  // Se devuelve el PID del primer proceso de todos los disponibles (los
-  // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
 
@@ -45,7 +54,6 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 
 // Función que devuelve el tiempo restante de ejecución dado un PID
 int process_remaining_time(proc_info_t process) {
-
     return process_total_time(process.pid) - process.executed_time;
 }
 
@@ -62,11 +70,9 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             shortest_time_remaining = time_remaining;
         }
     }
-
     return shortest_time_remaining_pid;
 }
 
-// Función para inicializar una cola
 queue_t *createQueue(unsigned capacity) {
     queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
     queue->capacity = capacity;
@@ -77,7 +83,6 @@ queue_t *createQueue(unsigned capacity) {
     return queue;
 }
 
-// Función para encolar un proceso en la cola
 void enqueue(queue_t *queue, proc_info_t process) {
     if (queue->rear == queue->capacity - 1) {
         printf("La cola está llena.\n");
@@ -88,12 +93,8 @@ void enqueue(queue_t *queue, proc_info_t process) {
     queue->array[queue->rear].on_io = process.on_io;
     queue->array[queue->rear].pid = process.pid;
     queue->array[queue->rear].time_slice_mlfq = process.time_slice_mlfq;
-    // printf("%d\n", process.time_slice_mlfq);
-    // printf("%d    kj,m./\n", queue->front - queue->rear);
-    // printf("%d\n", queue->array[queue->front].time_slice_mlfq);
 }
 
-// Función para desencolar un proceso de la cola
 proc_info_t dequeue(queue_t *queue) {
     if (queue->front > queue->rear) {
         proc_info_t empty;
@@ -104,67 +105,14 @@ proc_info_t dequeue(queue_t *queue) {
     return queue->array[queue->front++];
 }
 
-proc_info_t showFirst(queue_t *queue) {
-    if (queue->front > queue->rear) {
-        proc_info_t empty;
-        empty.pid = -1;
-        return empty;
-    }
-    return queue->array[queue->front];
-}
-
-// Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
-int rr(queue_t *queue, int procs_count, int curr_pid) {
+int rr(queue_t *queue) {
     
-    int last_process_id = curr_pid;
-        
-    if(curr_pid == -1){ 
-        time_slice = Time_slice;
-        proc_info_t info = dequeue(queue);
-        enqueue(queue, info);
-        return info.pid;
-    }
-
-    for (int i = 0; i < procs_count; i++) {
-
-        proc_info_t info = dequeue(queue);
-
-        if (info.pid == curr_pid) {
-
-            if (time_slice == 0) {
-                time_slice = Time_slice;
-                info = dequeue(queue);
-                enqueue(queue, info);
-                return info.pid;
-
-            } else {
-                time_slice = time_slice - 1;
-            }
-            break;
-        }
-
-        enqueue(queue, info);
-    }
-    
-    
-    // Devolver el PID del proceso actual
-    return last_process_id;
-}
-
-int rr2(queue_t *queue, int procs_count, int curr_pid) {
-    
-
     if (time_slice == 0) {
-        time_slice = Time_slice;
-        // printf("%d----\n", procs_count);
-        // printf("%d\n", showFirst(queue).pid);            
+        time_slice = Time_slice;          
         enqueue(queue, dequeue(queue));
-        // printf("%d\n", showFirst(queue).pid);
     } else {
         time_slice--;
     }
-  
-    // Devolver el PID del proceso actual
     return queue->array[queue->front].pid;
 }
 
@@ -172,30 +120,52 @@ int rr2(queue_t *queue, int procs_count, int curr_pid) {
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-    queue_t *queueRR = (queue_t *)malloc(sizeof(queue_t));
-    queueRR = createQueue(500);
-
-    for (size_t i = 0; i < procs_count; i++)
-    {
-        enqueue(queueRR, procs_info[i]);
+    if(toRR){
+        queueRR = *createQueue(1000000);
+        toRR = 0;
     }
 
-    int a = rr(queueRR, procs_count, curr_pid);
-    // free(queueRR);
+    //Guarda en la cola los nuevos procesos
+    for (size_t i = procs_count-1; i < -1 ; i--){
+
+        if(procs_info[i].pid != last_procs_pid)
+        {
+            if(procs_info[i].pid != last_last_procs_pid)
+                enqueue(&queueRR,procs_info[i]);
+            else
+                break;
+        }
+        else
+            break;
+    }
+    last_procs_pid = procs_info[procs_count-1].pid;
+    last_last_procs_pid = procs_info[procs_count-2].pid;
+
+    //Limpia la cola
+    int l = queueRR.length;
+    for (size_t j = 0; j < l; j++)
+    {
+        int here = 0;
+        for (size_t k = 0; k < procs_count; k++)
+        { 
+            if(queueRR.array[queueRR.front].pid == procs_info[k].pid)
+                here = 1;
+        }
+        if(here)
+            enqueue(&queueRR, dequeue(&queueRR));
+        else{
+            dequeue(&queueRR);
+            time_slice = Time_slice;
+        }
+    }
+
+    int a = rr(&queueRR);
     return a;
 }
 
 
-// Variables globales para el algoritmo MLFQ
-int last_procs_pid = -1;
-int last_last_procs_pid = -1;
-
-const int S = 20;
-int s = S;
-
-int toMLFQ = 1;
-
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+    
     if(toMLFQ)
     {
         num_queues = 3;
@@ -206,19 +176,15 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         toMLFQ = 0;
     }
 
+    //Guarda en la cola los nuevos procesos
     for (size_t i = procs_count-1; i < -1 ; i--){
 
         if(procs_info[i].pid != last_procs_pid)
         {
             if(procs_info[i].pid != last_last_procs_pid)
-            {
                 enqueue(&queues[0],procs_info[i]);
-                // printf("A COGER LA COLA %d\n", procs_info[i].pid);
-            }
             else
-            {
                 break;
-            }
         }
         else
             break;
@@ -226,7 +192,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     last_procs_pid = procs_info[procs_count-1].pid;
     last_last_procs_pid = procs_info[procs_count-2].pid;
 
-
+    //Limpia la cola
     for (size_t i = 0; i < num_queues; i++)
     {
         int l = queues[i].length;
@@ -239,20 +205,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
                 if(queues[i].array[queues[i].front].pid == procs_info[k].pid)
                     here = 1;
             }
-            // printf("%d\n", info.time_slice_mlfq);
             if(here)
-            {
-                
                 enqueue(&queues[i], dequeue(&queues[i]));
-                // printf("%d permanece en %d\n", queues[i].array[queues[i].rear].pid, i);
-            }
             else
                 dequeue(&queues[i]);
         }
         
     }
-    // printf("%d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
-
 
     //Cada cierto tiempo S, todos los procesos se posicionan en la cola de mayor prioridad
     if(s > 0)
@@ -261,33 +220,26 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         for (size_t i = 1; i < num_queues; i++)
         {
             while (queues[i].front <= queues[i].rear)
-            {
                 enqueue(&queues[0], dequeue(&queues[i]));
-                // printf("retroceso\n");
-            } 
         }
-        
         s = S; 
     }
 
      
-    
     for (int i = 0; i < num_queues; i++) {
         if (queues[i].front <= queues[i].rear) {
             // Devolver el PID del proceso de la cola no vacía con la mayor prioridad
             
-            int next = rr2(&queues[i], queues[i].length, -1);
-// printf("fuegooo %d de %d\n", next, i);
+            rr(&queues[i]);
             if(i != num_queues-1)  
             {
-                // printf("%d\n", queues[i].array[queues[i].front].time_slice_mlfq);
+                queues[i].array[queues[i].front].time_slice_mlfq += 1;
 
-                queues[i].array[queues[i].front].time_slice_mlfq+=1;
+                if( queues[i].array[queues[i].front].time_slice_mlfq == Time_slice_mlfq ){
 
-                if(queues[i].array[queues[i].front].time_slice_mlfq == Time_slice_mlfq){
                     queues[i].array[queues[i].front].time_slice_mlfq = 0;
                     enqueue(&queues[i+1], dequeue(&queues[i]));
-                    // printf("oyeeee %d encolado en %d\n", queues[i+1].array[queues[i+1].rear].pid, i+1);
+                    
                     if (queues[i].front > queues[i].rear)
                         continue;
                 }
