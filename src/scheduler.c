@@ -8,25 +8,6 @@
 #include "simulation.h"
 #include "queue.h"
 
-// La función que define un scheduler está compuesta por los siguientes
-// parámetros:
-//
-//  - procs_info: Array que contiene la información de cada proceso activo
-//  - procs_count: Cantidad de procesos activos
-//  - curr_time: Tiempo actual de la simulación
-//  - curr_pid: PID del proceso que se está ejecutando en el CPU
-//
-// Esta función se ejecuta en cada timer-interrupt donde existan procesos
-// activos (se asegura que `procs_count > 0`) y determina el PID del proceso a
-// ejecutar. El valor de retorno es un entero que indica el PID de dicho
-// proceso. Pueden ocurrir tres casos:
-//
-//  - La función devuelve -1: No se ejecuta ningún proceso.
-//  - La función devuelve un PID igual al curr_pid: Se mantiene en ejecución el
-//  proceso actual.
-//  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
-//  contexto y se ejecuta el proceso indicado.
-//
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -124,6 +105,7 @@ const int Time_slice = 4;
 
 int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según tus necesidades)
 
+const int Time_slice_mlfq = 8;
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
 int rr(queue_t *queue, int procs_count, int curr_pid) {
     
@@ -167,9 +149,6 @@ int rr2(queue_t *queue, int procs_count, int curr_pid) {
     for (int i = 0; i < procs_count; i++) {
 
 
-        if(showFirst(queue).executed_time >= process_total_time(showFirst(queue).pid))
-            continue;
-
         if (time_slice == 0) {
             time_slice = Time_slice;
             // printf("%d----\n", procs_count);
@@ -212,7 +191,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 int last_procs_pid = -1;
 int last_last_procs_pid = -1;
 
-const int S = 10;
+const int S = 100;
 int s = S;
 
 int toMLFQ = 1;
@@ -246,7 +225,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     }
     last_procs_pid = procs_info[procs_count-1].pid;
     last_last_procs_pid = procs_info[procs_count-2].pid;
-    
+
 
     for (size_t i = 0; i < num_queues; i++)
     {
@@ -268,7 +247,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         }
         
     }
-    
+    printf("%d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
 
 
     //Cada cierto tiempo S, todos los procesos se posicionan en la cola de mayor prioridad
@@ -294,12 +273,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             
             int next = rr2(&queues[i], queues[i].length, -1);
 
-            proc_info_t proc_info;
-            for (size_t i = 0; i < procs_count; i++)
-            {
-                if(next == procs_info[i].pid)
-                    proc_info = procs_info[i];
-            }
+            proc_info_t proc_info = showFirst(&queues[i]);
             
             if(i != num_queues-1)
                 changePriorityIf(proc_info, queues[i+1]);
@@ -309,11 +283,11 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     return -1; // No hay procesos para ejecutar
 }
 
-const int Time_slice_mlfq = 8;
 //Una vez el proceso ha consumido un tiempo de ejecucion igual al slice time en un
 //nivel determinado se disminuye su prioridad
 void changePriorityIf(proc_info_t proc_info, queue_t queue){
     proc_info.time_slice_mlfq++;
+    printf("%d\n", proc_info.time_slice_mlfq);
     if(proc_info.time_slice_mlfq == Time_slice_mlfq){
         proc_info.time_slice_mlfq = 0;
         enqueue(&queue, proc_info);
