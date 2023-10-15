@@ -2,7 +2,6 @@
 #define QUEUE_H
 
 #include "simulation.h"
-#define NUM_QUEUES 3
 
 typedef struct Queue {
     proc_info_t *procs;
@@ -11,6 +10,6 @@ typedef struct Queue {
     int capacity;
 } queue_t;
 
-extern queue_t *queues[NUM_QUEUES];
+// extern queue_t *queues[NUM_QUEUES];
 
 #endif
