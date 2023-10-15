@@ -8,6 +8,16 @@
 #include "simulation.h"
 #include "queue.h"
 
+int num_queues;
+queue_t *queues;
+
+// Variables globales para el algoritmo Round Robin
+const int Time_slice = 3;
+
+int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según tus necesidades)
+
+const int Time_slice_mlfq = 5;
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
@@ -74,7 +84,13 @@ void enqueue(queue_t *queue, proc_info_t process) {
         return;
     }
     queue->length++;
-    queue->array[++queue->rear] = process;
+    queue->array[++queue->rear].executed_time = process.executed_time;
+    queue->array[queue->rear].on_io = process.on_io;
+    queue->array[queue->rear].pid = process.pid;
+    queue->array[queue->rear].time_slice_mlfq = process.time_slice_mlfq;
+    // printf("%d\n", process.time_slice_mlfq);
+    // printf("%d    kj,m./\n", queue->front - queue->rear);
+    // printf("%d\n", queue->array[queue->front].time_slice_mlfq);
 }
 
 // Función para desencolar un proceso de la cola
@@ -97,15 +113,6 @@ proc_info_t showFirst(queue_t *queue) {
     return queue->array[queue->front];
 }
 
-int num_queues;
-queue_t *queues;
-
-// Variables globales para el algoritmo Round Robin
-const int Time_slice = 4;
-
-int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según tus necesidades)
-
-const int Time_slice_mlfq = 8;
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
 int rr(queue_t *queue, int procs_count, int curr_pid) {
     
@@ -146,27 +153,19 @@ int rr(queue_t *queue, int procs_count, int curr_pid) {
 
 int rr2(queue_t *queue, int procs_count, int curr_pid) {
     
-    for (int i = 0; i < procs_count; i++) {
 
-
-        if (time_slice == 0) {
-            time_slice = Time_slice;
-            // printf("%d----\n", procs_count);
-            // printf("%d\n", showFirst(queue).pid);
-            proc_info_t info = dequeue(queue);
-            
-            
-            enqueue(queue, info);
-            // printf("%d\n", showFirst(queue).pid);
-        } else {
-            time_slice--;
-        }
-        break;
-
+    if (time_slice == 0) {
+        time_slice = Time_slice;
+        // printf("%d----\n", procs_count);
+        // printf("%d\n", showFirst(queue).pid);            
+        enqueue(queue, dequeue(queue));
+        // printf("%d\n", showFirst(queue).pid);
+    } else {
+        time_slice--;
     }
-
+  
     // Devolver el PID del proceso actual
-    return showFirst(queue).pid;
+    return queue->array[queue->front].pid;
 }
 
 
@@ -191,7 +190,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 int last_procs_pid = -1;
 int last_last_procs_pid = -1;
 
-const int S = 100;
+const int S = 20;
 int s = S;
 
 int toMLFQ = 1;
@@ -202,7 +201,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         num_queues = 3;
         queues = (queue_t *)malloc(num_queues * sizeof(queue_t));
         for (int i = 0; i < num_queues; i++) {
-            queues[i] = *createQueue(10000); // Capacidad de cada cola
+            queues[i] = *createQueue(1000000); // Capacidad de cada cola
         }
         toMLFQ = 0;
     }
@@ -214,6 +213,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             if(procs_info[i].pid != last_last_procs_pid)
             {
                 enqueue(&queues[0],procs_info[i]);
+                // printf("A COGER LA COLA %d\n", procs_info[i].pid);
             }
             else
             {
@@ -233,21 +233,25 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         for (size_t j = 0; j < l; j++)
         {
             int here = 0;
-            proc_info_t info = dequeue(&queues[i]);
 
             for (size_t k = 0; k < procs_count; k++)
             { 
-                if(info.pid == procs_info[k].pid)
+                if(queues[i].array[queues[i].front].pid == procs_info[k].pid)
                     here = 1;
             }
-
+            // printf("%d\n", info.time_slice_mlfq);
             if(here)
-                enqueue(&queues[i], info);
-            
+            {
+                
+                enqueue(&queues[i], dequeue(&queues[i]));
+                // printf("%d permanece en %d\n", queues[i].array[queues[i].rear].pid, i);
+            }
+            else
+                dequeue(&queues[i]);
         }
         
     }
-    printf("%d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
+    // printf("%d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
 
 
     //Cada cierto tiempo S, todos los procesos se posicionan en la cola de mayor prioridad
@@ -259,6 +263,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             while (queues[i].front <= queues[i].rear)
             {
                 enqueue(&queues[0], dequeue(&queues[i]));
+                // printf("retroceso\n");
             } 
         }
         
@@ -272,27 +277,28 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             // Devolver el PID del proceso de la cola no vacía con la mayor prioridad
             
             int next = rr2(&queues[i], queues[i].length, -1);
+// printf("fuegooo %d de %d\n", next, i);
+            if(i != num_queues-1)  
+            {
+                // printf("%d\n", queues[i].array[queues[i].front].time_slice_mlfq);
 
-            proc_info_t proc_info = showFirst(&queues[i]);
-            
-            if(i != num_queues-1)
-                changePriorityIf(proc_info, queues[i+1]);
-            return proc_info.pid;
+                queues[i].array[queues[i].front].time_slice_mlfq+=1;
+
+                if(queues[i].array[queues[i].front].time_slice_mlfq == Time_slice_mlfq){
+                    queues[i].array[queues[i].front].time_slice_mlfq = 0;
+                    enqueue(&queues[i+1], dequeue(&queues[i]));
+                    // printf("oyeeee %d encolado en %d\n", queues[i+1].array[queues[i+1].rear].pid, i+1);
+                    if (queues[i].front > queues[i].rear)
+                        continue;
+                }
+            }
+            return queues[i].array[queues[i].front].pid;
         }
     } 
     return -1; // No hay procesos para ejecutar
 }
 
-//Una vez el proceso ha consumido un tiempo de ejecucion igual al slice time en un
-//nivel determinado se disminuye su prioridad
-void changePriorityIf(proc_info_t proc_info, queue_t queue){
-    proc_info.time_slice_mlfq++;
-    printf("%d\n", proc_info.time_slice_mlfq);
-    if(proc_info.time_slice_mlfq == Time_slice_mlfq){
-        proc_info.time_slice_mlfq = 0;
-        enqueue(&queue, proc_info);
-    }
-}
+
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.

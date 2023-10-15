@@ -58,7 +58,6 @@ typedef struct queue {
     int length;
 } queue_t;
 
-void changePriorityIf(proc_info_t proc_info, queue_t queue);
 
 // int num_queues;
 // queue_t *queues;
