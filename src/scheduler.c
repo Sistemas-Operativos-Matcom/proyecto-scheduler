@@ -37,13 +37,17 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cu
 {
   if(curr_pid==-1)
   {
+    // Si el proceso termina pues decidimos el proximo proceso.
     int min = 0;
     for(int i=0; i<procs_count;i++)
     {
+      // Por cada proceso se guarda del indice del proceso de menor 
+      // duracion.
       min = (process_total_time(procs_info[min].pid)<process_total_time(procs_info[i].pid))?min:i;
     }
     return procs_info[min].pid;
   }
+  // Si el proceso no ha terminado pues se mantiene en ejecucion.
   return curr_pid;
 }
 
@@ -52,47 +56,40 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   int min = 0;
   for(int i=0; i<procs_count;i++)
   {
+    // Este es analogo al sjf pero con la diferencia de que
+    // se guarda el minimo de quien le quede menos tiempo para 
+    // terminar.
     int temp1 = process_total_time(procs_info[min].pid)-procs_info[min].executed_time;
     int temp2 = process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
     min = (temp1<temp2)?min:i;
   }
+  // En todos los time interrupt se vuelve a obtener el minimo.
   return procs_info[min].pid;
 }
 
-
-
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
 {
-// Para arreglar la posibilidad de que
-// rr determine mal el proceso siguiente 
-// llevar el ultimo proc_count y sumarselo
-// y usar la diferencia con el actual para 
-// deducir el siguiente.
   static int round_length = 0;
+  static int current_proc = -1;
   if(round_length == 0 || curr_pid == -1)
   {
-    static int current_proc = -1;
+    // Si se acabo la ronda o se acabo el proceso, se reinicia 
+    // el round_length y se ejecuta el siguiente proceso.
     current_proc++;
     round_length = 5;
     return procs_info[current_proc%procs_count].pid;
   }
-  round_length-=1;
+  // En cada ejecucion se disminuye el round_length
+  // hasta que eventualmente se vuelva 0.
+  round_length--;
   return curr_pid;
 }
 
-// int find_by_pid(proc_info_t *procs_info,int procs_count,int pid)
-// {
-//   for(i=0;i<procs_count;i++)
-//   {
-//     if(procs_info[i].pid==pid)
-//       return i;
-//   }
-//   return -1;
-// }
-
+// Colas de prioridad.
 queue_t *q1;
 queue_t *q2;
 
+// Metodos auxiliares que usa mlfq.
 int find_in_procs(int pid, proc_info_t* arr, int count)
 {
   for(int i = 0; i < count; i++)
@@ -111,25 +108,16 @@ int find(int pid, int* arr, int count)
   }
   return -2;
 }
-void show(proc_info_t* p , int count)
-{
-  for(int i = 0; i < count; i++)
-  {
-    printf(" %d ", process_total_time(p[i].pid));
-  }
-  printf("\n");
-}
-void show_arr(int* p , int count)
-{
-  for(int i = 0; i < count; i++)
-  {
-    printf(" %d ", process_total_time(p[i]));
-  }
-  printf("\n");
-}
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid)
 {
+  // Reglas de mlfq:
+  // 1-Si pr(A) > pr(B) ejecutas A
+  // 2-Si pr(A) == pr(B) ejecutas rr sobre tal cola.
+  // 3-Cuando un proceso consuma el slice_time de la cola actual, baja su prioridad.
+  // 4-Cada cierto tiempo todos los proceso se proporcionaran a la cola de mayor prioridad
+  // 5-Llegada de un proceso es en la cola de mayor prioridad.
+  
   // Agregando procesos nuevos en las colas.
   for(int i = 0; i < procs_count; i++)
   {
@@ -137,11 +125,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
     proc_info_t p = procs_info[i]; 
     if(find(p.pid,q1->arr,q1->count) == -2 && find(p.pid,q2->arr,q2->count) == -2)
     {
+      // Los procesos nuevos van a la cola de mayor prioridad, cumpliendo 
+      // la regla 5.
       push(q1,p.pid);
     }
   } 
-  // Primero actualicemos la informacion que hay 
-  // en las colas.
+
+  // Actualizando la informacion que hay en las colas.
   while(q1->count > 0 && find_in_procs(q1->arr[0],procs_info, procs_count) == -2)
   {
     pop(q1); 
@@ -150,30 +140,15 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
   {
     pop(q2); 
   }
-
-  // show(procs_info, procs_count);
-  // printf("q1 ");
-  // show_arr(q1->arr, q1->count);
-  // printf("q2 ");
-  // show_arr(q2->arr, q2->count);
-
   // En este punto las colas deben tener en su "front" informacion
   // valida.
 
   // Ya tenemos toda la informacion que necesitamos, 
   // ahora solo hay que haces lo que manda mlfq
-
-  // Reglas de mlfq:
-  // 1-Si pr(A) > pr(B) ejecutas A
-  // 2-Si pr(A) == pr(B) ejecutas rr sobre tal cola.
-  // 3-Cuando un proceso consuma el slice_time de la cola actual, baja su prioridad.
-  // 4-Cada cierto tiempo todos los proceso se proporcionaran a la cola de mayor prioridad
-  // 5-Llegada de un proceso es en la cola de mayor prioridad.
   
   // En pos de evitar "starvation" primero revisemos si estamos en un 
   // intervalo donde hagamos un priority boost.
-  // Haciendo esto cumplimos con la regla 4 de mlfq
-  
+  // Haciendo esto cumplimos con la regla 4 de mlfq.
   static int priority_boost_slice = 10;
   if(priority_boost_slice <= 0)
   {
@@ -204,7 +179,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
     {
       // Buscamos el primer proceso de la cola de mayor 
       // prioridad que no este haciendo "io".
-      if(procs_info[find_in_procs(q1->arr[i],procs_info,procs_count)].on_io == 0)
+      int index = find_in_procs(q1->arr[i],procs_info,procs_count);
+      if(index != -2 && procs_info[index].on_io == 0)
       {
         // Si el proceso no esta en "io" lo ejecutamos.
         int pid = q1->arr[i];
@@ -241,14 +217,14 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
     return q2->arr[0];
   }
   
-  if(q2->count <= 0)
-  {
-    // Si el programa llega aqui significa que todos 
-    // los procesos de la cola de mayor prioridad estan "io"
-    // y no hay procesos existentes en la cola de menor 
-    // prioidad.
+  // En caso de que todos los procesos esten "io"
+  // pues deveolvemos el primer proceso quenos 
+  // encontramos.
+  if(q1->count > 0)
     return q1->arr[0];
-  }
+  if(q2->count > 0)
+    return q2->arr[0];
+
   // Algun problema paso...
   return -403;
 }
@@ -266,12 +242,11 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
   if (strcmp(name, "mlfq") == 0)
   {
+    // Inicializando las colas que usara mlfq.
     q1 = build_queue();
     q2 = build_queue();
     return *mlfq_scheduler;
   }  
-
-
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
   // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
