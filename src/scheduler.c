@@ -52,6 +52,61 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
+  int min = 2147483647;
+  int comodin = 0;
+  int pid = curr_pid;
+
+    for (int i = 0; i < procs_count; i++)
+    {
+      comodin = process_total_time(procs_info[i].pid);
+      if(comodin < min) {
+        pid = procs_info[i].pid;
+        min = comodin;
+      }
+    }
+    
+  return pid;
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
+  int min = 2147483647;
+  int comodin = 0;
+  int pid = curr_pid;
+
+  for (int i = 0; i < procs_count; i++)
+  {
+    comodin = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+    if(comodin < min){
+      pid = procs_info[i].pid;
+      min = comodin;
+    }
+  }
+  
+  return pid;
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid){
+  int time_slace = 50;
+  int index = 0;
+
+  for (int i = 0; i < procs_count; i++)
+  {
+    if(procs_info[i].pid == curr_pid){
+      index = i;
+    }
+  }
+  
+  if(curr_time % time_slace == 0){
+    if(index == procs_count - 1){
+      index = 0;
+    }
+    else index = index + 1;
+  }
+
+  return procs_info[index].pid;
+}
+
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
