@@ -120,7 +120,7 @@ static int binary_search_p(tuple_int_t *arr, int count, int num) {
 }
 
 // Elimina un proceso de la cola
-static proc_info_t sup(process_queue_t queue, int pid) {
+static proc_info_t *sup(process_queue_t queue, int pid) {
 
   int i = binary_search(queue, pid);
   
@@ -132,45 +132,61 @@ static proc_info_t sup(process_queue_t queue, int pid) {
   }
   queue.count -= 1;
   
-  return *process;
+  return process;
 }
 
-static void sup_all() {
-
-}
-
-static void level_down(tuple_int_t process, int count) {
+static void sup_all(tuple_int_t *process, int count) {
 
   for (int i = 0; i < count; i++)
   {
-    if (process.left < l_queue->count-1)
+    sup_p(l_queue->pid_proc, count, process[i].right);
+    sup(l_queue->process_queue[process[i].left], process[i].right);
+  }
+}
+
+static void level_down(tuple_int_t *process, int count) {
+
+  for (int i = 0; i < count; i++)
+  {
+    if (process[i].left < l_queue->count-1)
     {
-      sup(l_queue->process_queue[process.left], process.right);
-      int idx = binary_search_p(l_queue->pid_proc, l_queue->process_count, process.right);
-      l_queue->pid_proc[idx].left -= 1;
+      proc_info_t *temp = sup(l_queue->process_queue[process[i].left], process[i].right);
+      int idx = binary_search_p(l_queue->pid_proc, l_queue->process_count, process[i].right);
+      l_queue->pid_proc[idx].left += 1;
+      push(temp, l_queue->process_queue[l_queue->pid_proc[idx].left]);
     }
     
   }
   
 }
 
-static void level_up(tuple_int_t process, int count) {
+static void level_up(tuple_int_t* process, int count) {
 
-
+  for (int i = 0; i < count; i++)
+  {
+    if (process[i].left < l_queue->count-1)
+    {
+      proc_info_t *temp = sup(l_queue->process_queue[process[i].left], process[i].right);
+      int idx = binary_search_p(l_queue->pid_proc, l_queue->process_count, process[i].right);
+      l_queue->pid_proc[idx].left += 1;
+      push(temp, l_queue->process_queue[l_queue->pid_proc[idx].left]);
+    }
+    
+  }
 }
 
 // Elimina el PID de un proceso 
-static int sup_p(int *arr, int count, int num) {
+static tuple_int_t sup_p(tuple_int_t *arr, int count, int pid) {
 
-  int i = binary_search_p(arr, count, num);
-
+  int i = binary_search_p(arr, count, pid);
+  tuple_int_t process = arr[i];
   for(int j = i+1; j< count; j++) {
 
     arr[j-1] = arr[j];
   }
   count -= 1;
 
-  return num;
+  return process;
 }
 
 // Comprueba si hay procesos nuevos y los agrega a la cola
@@ -206,8 +222,6 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
   l_queue->pid_proc = merge(temp, temp_count, l_queue->pid_proc, l_queue->process_count);
 
   temp_count = 0;
-  process_queue_t temp_p = new_queue();
-  int temp_p_count = 0;
 
   tuple_int_t *up = (tuple_int_t *)malloc(MAX_PROCESS_COUNT* sizeof(tuple_int_t));
   int up_count = 0;
@@ -219,15 +233,25 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
   for(int i = 0; i< l_queue->count; i++) {
     for(int j = 0; j< l_queue->process_queue[i].count; j++) {
       if (process_total_time(l_queue->process_queue[i].processes[j]->pid) == 0) {
-        push(l_queue->process_queue[i].processes[j], temp_p);
         push_p(temp, temp_count, l_queue->process_queue[i].processes[j]->pid, i);
         temp_count += 1;
       }
       else if (l_queue->process_queue[i].processes[j]->executed_time >= SLICE_TIME) {
         push_p(down, down_count, l_queue->process_queue[i].processes[j]->pid, i);
+        down_count += 1;
       }
+      else if (curr_time%PRIORITY_BOOST == 0)
+      {
+        push_p(up, up_count, l_queue->process_queue[i].processes[j]->pid, i);
+        up_count += 1;
+      }
+      
     }
   }
+
+  sup_all(temp, temp_count);
+  level_up(up, up_count);
+  level_down(down, down_count);
 }
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -304,7 +328,6 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   
   int pid = curr_pid;
   int IO = 0;
-  if(-1 == curr_pid) return procs_info[0].pid;
 
   for(int i = 0; i< procs_count; i++){
       if(procs_info[i].pid == curr_pid){
@@ -316,12 +339,50 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
     for(int i = 0; i< procs_count; i++){
       if(procs_info[i].pid == curr_pid){
-        pid = procs_info[(i+1)%procs_count].pid;
-        printf("%d, %d, %d \n", pid, curr_pid, procs_count);
+        int x = 1;
+        pid = procs_info[(i+x)%procs_count].pid;
+        while (x < procs_count && procs_info[(i+x)%procs_count].on_io == 1)
+        {
+          pid = procs_info[(i+x)%procs_count].pid;
+          x ++;
+        }
       }
     }
 
   }
+  if(-1 == pid) return procs_info[0].pid;
+
+  return pid;
+}
+
+int rr_ref_scheduler(proc_info_t **procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  
+  int pid = curr_pid;
+  int IO = 0;
+
+  for(int i = 0; i< procs_count; i++){
+      if(procs_info[i]->pid == curr_pid){
+        IO = procs_info[i]->pid;
+      }
+    }
+
+  if(curr_time%SLICE_TIME == 0 || IO == 1){
+
+    for(int i = 0; i< procs_count; i++){
+      if(procs_info[i]->pid == curr_pid){
+        int x = 1;
+        pid = procs_info[(i+x)%procs_count]->pid;
+        // while (x < procs_count && procs_info[(i+x)%procs_count]->pid == 1)
+        // {
+        //   pid = procs_info[(i+x)%procs_count]->pid;
+        //   x ++;
+        // }
+      }
+    }
+
+  }
+  if(-1 == pid) return procs_info[0]->pid;
 
   return pid;
 }
@@ -340,7 +401,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       count = l_queue->process_queue[level].count;
     }
 
-    return rr_scheduler(l_queue->process_queue[level].processes, l_queue->process_queue[level].count, curr_time, curr_pid);
+    return rr_ref_scheduler(l_queue->process_queue[level].processes, l_queue->process_queue[level].count, curr_time, curr_pid);
   }
 
   return curr_pid;
