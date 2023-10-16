@@ -308,7 +308,6 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
             }
         }
         int asummption = process_total_time(actual_pid) - procs_info[j].executed_time;
-        printf(" pid:%d t:%d ", my_array[i], asummption);
         if ((asummption < min_time))
         {
             min_time = asummption;
