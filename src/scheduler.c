@@ -9,6 +9,7 @@
 #include "queue.h"
 
 #define NUM_QUEUES 3
+#define TIMER_INTERRUPT_PERIOD_MS 10
 
 queue_t queues[NUM_QUEUES];
 
@@ -27,7 +28,9 @@ void enqueue(int qid, proc_info_t proc, int time) {
   }
 
   queues[qid].executed_time[queues[qid].count] = time;
-  queues[qid].procs[queues[qid].count] = proc;
+  queues[qid].procs[queues[qid].count].pid = proc.pid;
+  queues[qid].procs[queues[qid].count].executed_time = proc.executed_time;
+  queues[qid].procs[queues[qid].count].on_io = proc.on_io;
   queues[qid].count++;
 }
 
@@ -56,7 +59,7 @@ int update_queues(proc_info_t *procs_info, int procs_count, int last_max_pid) {
 
             for(int j = 0; j < procs_count; j++) {
                 if(procs_info[j].pid == proc.pid) {
-                    enqueue(qid, proc, time);
+                    enqueue(qid, procs_info[j], time);
                     break;
                 }
             }
@@ -82,7 +85,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
-  return procs_info[0].pid;
+    return procs_info[0].pid;
 }
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
@@ -137,7 +140,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
-  
+
   const int slice_time = 4;
   const int priority_boost = 8;
   
@@ -194,17 +197,17 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     if(queues[i].count) {
 
       for(int j = 0; j < queues[i].count; j++) {
-        if(!queues[i].procs[j].on_io) {
+
+        if(!queues[i].procs[j].on_io){
           temp[pos++] = queues[i].procs[j];
         }
       }
-
 
       if(!pos) {
         continue;
       }
 
-      curr_pid = rr_scheduler(temp, pos, curr_time, curr_pid);
+      curr_pid = rr_scheduler(temp, pos, curr_time, queues[i].procs[0].pid);
       current_time++;
 
       for(int j = 0; j < queues[i].count; j++) {
