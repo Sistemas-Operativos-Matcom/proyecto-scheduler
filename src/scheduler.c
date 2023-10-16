@@ -4,9 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "list.h"
 
 #include "simulation.h"
+
+// Declaración de la cola de procesos para MLFQ
+struct Process
+{
+  int pid;
+  int executed_time;
+};
+
+// Invariantes de las colas
+int time_slice = 50;
+int priority_boost = 500;
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -54,6 +64,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return -1;
 }*/
 
+//------------------------------SHORTEST JOB FIRST------------------------------
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // Si hay un proceso en marcha, termínalo siempre que no esté en i/o
@@ -96,6 +107,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
   return process;
 }
 
+//------------------------------SHORTEST TIME TO COMPLETION FIRST------------------------------
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   int i = 0;
@@ -125,6 +137,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return process;
 }
 
+//------------------------------ROUND ROBIN------------------------------
 // Este Round Robin usa como time slice el mismo tiempo del time interrupt
 int rr_mark = 0;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
@@ -137,8 +150,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[rr_mark].pid;
 }
 
-// ESTE MÉTODO ES UNA VARIANTE AL ROUND ROBIN QUE EJECUTA EN CADA TIME INTERRUPT EL PROCESO CON
-// MENOR TIEMPO DE EJECUCIÓN
+//------------------------------PRIORITY ROUND ROBIN------------------------------
 int priority_rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   // Siempre ejecutar el primer proceso de la lista con menor tiempo ejecutado
@@ -168,64 +180,225 @@ int priority_rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
   return process;
 }
 
-//Lista de parámetros arbitrarios del mlfq
-int pb_time=100;
-int slice_time=30;
-
-
-//La esrategia mlfq usa una única lista para almacenar los procesos en el sistema, la cual además cuenta con un entero
-//que va desde 0 a 2 que representa el nivel de prioridad asignado al proceso actual, donde 2 es la mayor prioridad.
-//Esta lista se actualiza con los datos nuevos del procs_info y luego se procede a elegir el próximo proceso a ejecutar.
-List* list;
-int last_position =-1;
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+//------------------------------MLFQ------------------------------
+// Métodos usados
+int Get_Position(proc_info_t *procs_info, int procs_count, int pid)
 {
-  //Actualizando la lista de procesos guardada
-  ActList(list, procs_info, procs_count, slice_time, curr_time, pb_time);
-  //Si el último proceso no terminó de ejecutarse, adelantar una posición
-  if(curr_pid!=-1)
+  int pos = -1;
+  for (int i = 0; i < procs_count; i++)
   {
-    last_position++;
+    if (procs_info[i].pid == pid)
+    {
+      pos = i;
+      break;
+    }
   }
-  //Si la posición del último proceso fue la última, regresa al inicio de la lista
-  if(last_position>=list->length)
+  return pos;
+}
+
+int Get_Position_in_List(struct Process *list, int procs_count, int pid)
+{
+  int pos = -1;
+  for (int i = 0; i < procs_count; i++)
   {
-    last_position=0;
+    if (list[i].pid == pid)
+    {
+      pos = i;
+      break;
+    }
   }
-  int counter=0;
-  while(list[last_position].head->process.on_io && counter<list->length)
+  return pos;
+}
+
+// Eliminar un proceso en una cola
+void Eliminate_Process(struct Process *procs_info, int procs_count, int process_pid)
+{
+  for (int i = process_pid; i < procs_count - 1; i++)
   {
-    counter++;
-    last_position++;
+    procs_info[i] = procs_info[i + 1];
   }
-  //Si todos los procesos están en i/o
-  if(counter==list->length)
+}
+
+// Elegir el proceso a ejecutar en una cola
+int Get_Next_PID(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, struct Process *list, int list_procs_count, int *list_init, int *last_pos)
+{
+  int pos;
+  pos = Get_Position(procs_info, procs_count, list[*last_pos].pid);
+  //Verificando si el proceso en cuestión cumple con los requisitos para ser devuelto (no i/o, tiempo correcto, está en cola)
+  if (pos != -1 && !procs_info[pos].on_io && (curr_time - *list_init < time_slice))
   {
-    last_position=-1;
+    return list[*last_pos].pid;
+  }
+  //De lo contrario, busca el próximo proceso a ejecutar por Round Robin, si no hay retorna -1.
+  else
+  {
+    int counter = 0;
+    while(counter<list_procs_count)
+    {
+      *last_pos=*last_pos+1;
+      if (*last_pos >= list_procs_count)
+      {
+        *last_pos = 0;
+      }
+      pos = Get_Position(procs_info, procs_count, list[*last_pos].pid);
+      if (!procs_info[pos].on_io)
+      {
+        *list_init = curr_time;
+        return list[*last_pos].pid;
+      }
+      counter++;
+    }
     return -1;
   }
-  //De lo contrario, elegir próximo proceso a ejecutar
-  proc_info_t process = list[last_position].head->process;
-  int priority = list[last_position].head->priority;
-  counter=0;
-  int mark = last_position;
-  while(counter<list->length)
-  {
-    if(mark==list->length)
-    {
-      mark=0;
-    }
-    if(!list[mark].head->process.on_io && list[mark].head->priority>priority)
-    {
-      process=list[mark].head->process;
-      priority=list[mark].head->priority;
-      last_position=mark;
-    }
-    counter++;
-    mark++;
-  }
-  return process.pid;
+}
 
+
+
+// Cola de prioridades
+struct Process high_priority_list[MAX_PROCESS_COUNT];
+struct Process medium_priority_list[MAX_PROCESS_COUNT];
+struct Process low_priority_list[MAX_PROCESS_COUNT];
+// Elementos de las colas
+int h_init = 0;
+int h_position = 0;
+int h_procs_count = 0;
+
+int m_init = 0;
+int m_position = 0;
+int m_procs_count = 0;
+
+int l_init = 0;
+int l_position = 0;
+int l_procs_count = 0;
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  // Principalmente hay que actualizar las listas de prioridades
+  // Eliminando de las colas procesos finalizados
+  for (int i = 0; i < h_procs_count; i++)
+  {
+    int procs_pos = Get_Position(procs_info, procs_count, high_priority_list[i].pid);
+    if (procs_pos == -1)
+    {
+      Eliminate_Process(high_priority_list, h_procs_count, i);
+      h_procs_count--;
+    }
+  }
+  for (int i = 0; i < m_procs_count; i++)
+  {
+    int procs_pos = Get_Position(procs_info, procs_count, medium_priority_list[i].pid);
+    if (procs_pos == -1)
+    {
+      Eliminate_Process(medium_priority_list, m_procs_count, i);
+      m_procs_count--;
+    }
+  }
+  for (int i = 0; i < l_procs_count; i++)
+  {
+    int procs_pos = Get_Position(procs_info, procs_count, low_priority_list[i].pid);
+    if (procs_pos == -1)
+    {
+      Eliminate_Process(low_priority_list, l_procs_count, i);
+      l_procs_count--;
+    }
+  }
+  // En este punto ya las colas están actualizadas.
+  // Luego, si se ejecutó un proceso que no ha terminado, lo buscamos en las colas
+  if (curr_pid != -1)
+  {
+    int process_position = Get_Position_in_List(high_priority_list, h_procs_count, curr_pid);
+    // Revisando en la lista de mayor prioridad
+    if (process_position != -1)
+    {
+      // Aumentando el tiempo ejecutado del proceso
+      high_priority_list[process_position].executed_time += 10;
+      // Si el proceso cumplió con todo su tiempo disponible, bajar su prioridad
+      if (high_priority_list[process_position].executed_time >= time_slice)
+      {
+        medium_priority_list[m_procs_count].pid = high_priority_list[process_position].pid;
+        medium_priority_list[m_procs_count].executed_time = 0;
+        m_procs_count++;
+        // Eliminando proceso de la lista
+        Eliminate_Process(high_priority_list, h_procs_count, process_position);
+        h_procs_count--;
+      }
+    }
+    // Revisando en la lista de prioridad media
+    else
+    {
+      int process_position = Get_Position_in_List(high_priority_list, h_procs_count, curr_pid);
+      if (process_position != -1)
+      {
+        // Aumentando el tiempo ejecutado del proceso
+        medium_priority_list[process_position].executed_time += 10;
+        if (medium_priority_list[process_position].executed_time >= time_slice)
+        {
+          low_priority_list[l_procs_count].pid = medium_priority_list[process_position].pid;
+          low_priority_list[l_procs_count].executed_time = 0;
+          l_procs_count++;
+          // Eliminando proceso de la lista
+          Eliminate_Process(medium_priority_list, m_procs_count, process_position);
+          m_procs_count--;
+        }
+      }
+    }
+    // En la última cola no es necesario revisar, pues no hay que bajar más prioridad
+  }
+  // Ahora debemos verificar si ejecutar o no un PRiority Boost
+  if (curr_time % priority_boost == 0)
+  {
+    // Debemos mover todos los procesos a la primera cola
+    h_procs_count = 0;
+    m_procs_count = 0;
+    l_procs_count = 0;
+    for (int i = 0; i < procs_count; i++)
+    {
+      high_priority_list[i].pid = procs_info[i].pid;
+      high_priority_list[i].executed_time = 0;
+      h_procs_count++;
+    }
+    // La posición se pone en 0 para empezar de 0 a analizar la lista
+    h_position = 0;
+  }
+  //De lo contrario, agregamos cualquier proceso que pudo haber llegado y no se encuentra en las colas
+  else
+  {
+    for (int i = 0; i < procs_count; i++)
+    {
+      if (Get_Position_in_List(high_priority_list, h_procs_count, procs_info[i].pid)==-1  && Get_Position_in_List(medium_priority_list, m_procs_count, procs_info[i].pid) ==-1 && Get_Position_in_List(low_priority_list,l_procs_count,procs_info[i].pid ==-1))
+      {
+        high_priority_list[h_procs_count].pid = procs_info[i].pid;
+        high_priority_list[h_procs_count].executed_time = 0;
+        h_procs_count++;
+      }
+    }
+  }
+  //Finalmente queda elegir el próximo proceso a ejecutar
+  if (h_procs_count > 0)
+  {
+    int pid = Get_Next_PID(procs_info, procs_count, curr_time, curr_pid, high_priority_list, h_procs_count, &h_position, &h_init);
+    if (pid != -1)
+    {
+      return pid;
+    }
+  }
+  if (m_procs_count > 0)
+  {
+    int pid = Get_Next_PID(procs_info, procs_count, curr_time, curr_pid, medium_priority_list, m_procs_count, &m_position, &m_init);
+    if (pid != -1)
+    {
+      return pid;
+    }
+  }
+  if (l_procs_count > 0)
+  {
+    int pid = Get_Next_PID(procs_info, procs_count, curr_time, curr_pid, low_priority_list, l_procs_count, &l_position, &l_init);
+    if (pid != -1)
+    {
+      return pid;
+    }
+  }
+  return -1;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
