@@ -6,7 +6,7 @@
 #include <time.h>
 #include "simulation.h"
 
-#define MAX_SIZE 1000
+#define MAX_SIZE 10000
 #define RR_SLICE 4
 
 int *my_array;
