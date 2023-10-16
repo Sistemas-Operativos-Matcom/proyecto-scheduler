@@ -7,7 +7,9 @@
 
 #include "simulation.h"
 
-#define SLICE_TIME 50
+#define SLICE_TIME 60
+
+#define RR_SLICE_TIME 40
 
 #define PRIORITY_BOOST 300
 
@@ -50,7 +52,7 @@ static ml_queue_t new_ml_queue(int levels) {
 
 // Mezcla dos listas de PID de procesos
 static int merge(tuple_int_t *left, int l_count, tuple_int_t *right, int r_count) {
-  tuple_int_t *new_arr = (tuple_int_t *)malloc( (l_count+r_count)* sizeof(tuple_int_t));
+  tuple_int_t *new_arr = malloc( (l_count+r_count)* sizeof(tuple_int_t));
   
   if(l_count == 0){
     return r_count;
@@ -105,8 +107,8 @@ static int merge(tuple_int_t *left, int l_count, tuple_int_t *right, int r_count
     }
   }
   int new_count = l_count+r_count;
-
-  *right = *new_arr;
+  tuple_int_t ** pointer = &new_arr;
+  right = *pointer;
   
   return new_count;
 }
@@ -247,7 +249,6 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
   tuple_int_t *temp = malloc(MAX_PROCESS_COUNT* sizeof(tuple_int_t));
   int temp_count = 0;
 
-  printf("perro \n");
 
   while(new < procs_count && old < l_queue->process_count) {
     if(procs_info[new].pid == l_queue->pid_proc[old].right) {
@@ -264,14 +265,12 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
     }
   }
 
-  printf("perro \n");
 
   if(old == l_queue->process_count) {
     while (new < procs_count) {
       push_p(temp, temp_count, procs_info[new].pid, 0);
       temp_count += 1;
 
-      printf("perro \n");
 
       push(procs_info[new], l_queue->process_queue[0]);
       l_queue->process_queue[0].count ++;
@@ -310,7 +309,6 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
       
     }
   }
-  printf("perro \n");
   sup_all(sup, sup_count);
   level_up(up, up_count);
   level_down(down, down_count);
@@ -398,8 +396,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         IO = procs_info[i].on_io;
       }
     }
-  printf("%d \n", IO);
-  if(curr_time%SLICE_TIME == 0 || IO == 1){
+  if(curr_time%RR_SLICE_TIME == 0 || IO == 1){
 
     for(int i = 0; i< procs_count; i++){
       if(procs_info[i].pid == curr_pid){
