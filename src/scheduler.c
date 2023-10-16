@@ -10,7 +10,7 @@
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
-//  - procs_info: Array que contiene la información de cada proceso activo
+//  - procs_info: Array queroo contiene la información de cada proceso activo
 //  - procs_count: Cantidad de procesos activos
 //  - curr_time: Tiempo actual de la simulación
 //  - curr_pid: PID del proceso que se está ejecutando en el CPU
@@ -34,28 +34,97 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid)
+typedef struct proc_queue
 {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+  proc_info_t q[MAX_PROCESS_COUNT];
+  int sz;
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;                 // PID del proceso
-  int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
-                                               // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
-                                               // ejecutado (en CPU o en I/O)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
-}
+} proc_queue_t;
 
 const int time_slice = 3 * 10;
+proc_queue_t *q1, *q2, *q3;
+char inited = 0;
 
+void init()
+{
+  if (inited == 1)
+    return;
+  inited = 1;
+
+  q1 = (proc_queue_t *)malloc(sizeof(proc_queue_t));
+  q2 = (proc_queue_t *)malloc(sizeof(proc_queue_t));
+  q3 = (proc_queue_t *)malloc(sizeof(proc_queue_t));
+}
+
+void remove_pid(proc_info_t proc, proc_queue_t *queue)
+{
+  proc_info_t aux[MAX_PROCESS_COUNT];
+  int curr = 0;
+
+  for (int i = 0; i < queue->sz; i++)
+    if (queue->q[i].pid != proc.pid)
+      aux[curr++] = queue->q[i];
+
+  for (int idx = 0; idx < curr; idx++)
+    queue->q[idx] = aux[idx];
+
+  queue->sz = curr;
+}
+
+void add_pid(proc_info_t proc, proc_queue_t *queue)
+{
+
+  queue->q[queue->sz] = proc;
+  queue->sz++;
+}
+
+void update_info(proc_info_t *procs_info, int procs_count)
+{
+  for (int pc = 0; pc < procs_count; pc++)
+  {
+    proc_info_t curr_proc = procs_info[pc];
+    for (int idx = 0; idx < q1->sz; idx++)
+      if (q1->q[idx].pid == curr_proc.pid)
+        q1->q[idx] = curr_proc;
+
+    for (int idx = 0; idx < q2->sz; idx++)
+      if (q2->q[idx].pid == curr_proc.pid)
+        q2->q[idx] = curr_proc;
+
+    for (int idx = 0; idx < q3->sz; idx++)
+      if (q3->q[idx].pid == curr_proc.pid)
+        q3->q[idx] = curr_proc;
+  }
+}
+int is_on_queue(int pid)
+{
+  for (int idx = 0; idx < q1->sz; idx++)
+    if (q1->q[idx].pid == pid)
+      return 1;
+
+  for (int idx = 0; idx < q2->sz; idx++)
+    if (q2->q[idx].pid == pid)
+      return 1;
+
+  for (int idx = 0; idx < q3->sz; idx++)
+    if (q3->q[idx].pid == pid)
+      return 1;
+
+  return 0;
+}
+proc_info_t get_proc_by_pid(int pid, proc_info_t *procsinf, int proc_count)
+{
+  for (int idx = 0; idx < proc_count; idx++)
+    if (procsinf[idx].pid == pid)
+      return procsinf[idx];
+}
+int is_active(proc_info_t proc, proc_info_t *procs_info, int proc_count)
+{
+  for (int idx = 0; idx < proc_count; idx++)
+    if (procs_info[idx].pid == proc.pid)
+      return 1;
+  return 0;
+}
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                  int curr_pid)
 {
@@ -87,6 +156,81 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // Return same pid if process is still in  it's time slice execution time
   return curr_pid;
 }
+int S = 100;
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid)
+{
+  init();
+  if (procs_count == 0)
+    return curr_pid;
+  for (int idx = 0; idx < procs_count; idx++)
+    if (!is_on_queue(procs_info[idx].pid) && is_active(procs_info[idx], procs_info, procs_count))
+      add_pid(procs_info[idx], q1);
+
+  update_info(procs_info, procs_count);
+
+  proc_info_t curr_proc = get_proc_by_pid(curr_pid, procs_info, procs_count);
+
+  // Change Priority
+
+  int flag = 0;
+
+  for (int idx = 0; idx < q1->sz; idx++)
+  {
+    if (q1->q[idx].executed_time % time_slice == 0 && q1->q[idx].executed_time)
+    {
+      flag = 1;
+      add_pid(q1->q[idx], q2);
+      remove_pid(q1->q[idx], q1);
+    }
+  }
+  // Change Priority
+  if (flag == 0)
+  {
+    for (int idx = 0; idx < q2->sz; idx++)
+    {
+      if (q2->q[idx].executed_time % time_slice == 0 && q2->q[idx].executed_time)
+      {
+        add_pid(q2->q[idx], q3);
+        remove_pid(q2->q[idx], q2);
+      }
+    }
+  }
+
+  // Priority BOOST
+  if (curr_time % S == 0 && curr_time)
+  {
+    q1->sz = q2->sz = q3->sz = 0;
+    for (int idx = 0; idx < procs_count; idx++)
+      add_pid(procs_info[idx], q1);
+  }
+
+  // Remove not active
+  for (int idx = 0; idx < q1->sz; idx++)
+    if (!is_active(q1->q[idx], procs_info, procs_count))
+      remove_pid(q1->q[idx], q1);
+
+  for (int idx = 0; idx < q2->sz; idx++)
+    if (!is_active(q2->q[idx], procs_info, procs_count))
+      remove_pid(q2->q[idx], q2);
+
+  for (int idx = 0; idx < q3->sz; idx++)
+    if (!is_active(q3->q[idx], procs_info, procs_count))
+      remove_pid(q3->q[idx], q3);
+
+  if (q1->sz)
+    return rr_scheduler(q1, q1->sz, curr_time, curr_pid);
+
+  if (q2->sz)
+    return rr_scheduler(q2, q2->sz, curr_time, curr_pid);
+
+  if (q3->sz)
+    return rr_scheduler(q3, q3->sz, curr_time, curr_pid);
+
+  return curr_pid;
+}
+
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
 {
