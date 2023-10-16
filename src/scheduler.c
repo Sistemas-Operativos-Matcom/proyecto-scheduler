@@ -9,9 +9,9 @@
 #include <limits.h>
 #include "queue.h"
 
-queue_t *queue_1;
-queue_t *queue_2;
-queue_t *queue_3;
+//queue_t *queue_1;
+//queue_t *queue_2;
+//queue_t *queue_3;
 
 
 
@@ -80,27 +80,19 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
     
 
-
-
     static int last_index = 0;
-    int next_pid = -1;
 
-    if (curr_pid == -1) {
-      next_pid = procs_info[last_index].pid;    
-    }
-    else if(last_index + 1 == procs_count) {
-      next_pid = procs_info[0].pid;
-      last_index = 0;
-    }
-    else {
-      next_pid = procs_info[last_index + 1].pid;
-      last_index += 1 ;
-    }
+    if(last_index >= procs_count) last_index = 0;
+
+    else if(curr_pid == -1) return procs_info[last_index % procs_count].pid; 
+    else last_index = (last_index + 1) % procs_count;
+
+    return procs_info[last_index].pid;
+
     
-   
-    return next_pid;
     
 }
+
 
 
 /*
