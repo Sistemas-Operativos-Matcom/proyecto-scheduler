@@ -109,9 +109,9 @@ void update(proc_info_t *procs_info, int procs_count)
   // Función para actualizar las "colas de prioridad". Contempla que se comleten procesos y lleguen nuevos.
   // Se tiene en cuenta que los procesos se agregan al array en el mismo orden en que van llegando
   int pid_index = 0;
-  int flag = 1;
   for (int i = 0; i < procs_count; i++)
   {
+    int flag = 1;
     for (int j = 0; j < lastProcessIndex; j++)
     {
       if (procs_info[i].pid == pids[j])
@@ -121,6 +121,7 @@ void update(proc_info_t *procs_info, int procs_count)
         timeInQueues[pid_index] = timeInQueues[j] + 1;
         pid_index++;
         flag = 0;
+        break;
       }
     }
     if (flag)
@@ -141,7 +142,7 @@ void update(proc_info_t *procs_info, int procs_count)
 
 void priority_boost()
 {
-  //lleva todos los procesos a prioridad máxima.
+  // lleva todos los procesos a prioridad máxima.
   for (int i = 0; i <= lastProcessIndex; i++)
   {
     priorities[i] = 0;
@@ -151,7 +152,7 @@ void priority_boost()
 
 int turn = 0;
 int mlfq_rr(int count)
-//pequeño rr para el mlfq
+// pequeño rr para el mlfq
 {
   turn++;
   return (turn - 1) % count;
@@ -160,11 +161,11 @@ int mlfq_rr(int count)
 int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 {
 
-  //Aquí es donde se devuelve el proceso que, según las reglas de prioridad, debe ser ejecutado
+  // Aquí es donde se devuelve el proceso que, según las reglas de prioridad, debe ser ejecutado
   int countOfQueue = 0;
   int currQueue = 0;
   for (int k = 0; k < queuesCount; k++)
-  //Se cuentan los procesos con prioridad k
+  // Se cuentan los procesos con prioridad k
   {
     for (int i = 0; i < lastProcessIndex; i++)
     {
@@ -186,7 +187,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
   int indexForRR = 0;
 
   for (int t = 0; t < lastProcessIndex; t++)
-  //se arma el array para el rr
+  // se arma el array para el rr
   {
     if (priorities[t] == currQueue && !procs_info[t].on_io)
     {
@@ -199,7 +200,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 
   if (countOfQueue != 0)
   {
-    int index = mlfq_rr(countOfQueue); //rr
+    int index = mlfq_rr(countOfQueue); // rr
     pidForReturn = procsInQueue[index].pid;
   }
 
@@ -209,7 +210,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
     {
       timeInQueues[i]++;
       if (timeInQueues[i] == 3 && priorities[i] < queuesCount - 1)
-      //bajar de prioridad un proceso cuando cumple un tiempo igual al slice time en una cola
+      // bajar de prioridad un proceso cuando cumple un tiempo igual al slice time en una cola
       {
         priorities[i]++;
         timeInQueues[i] = 0;
@@ -221,7 +222,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 }
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  //Multi Level Feedback Queue
+  // Multi Level Feedback Queue
   update(procs_info, procs_count);
 
   if (priorityBoostTime == 6)
