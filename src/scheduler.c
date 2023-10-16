@@ -33,6 +33,26 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
+
+// int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+//                      int curr_pid)
+// {
+//   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
+//   // cambiar)
+
+//   // Información que puedes obtener de un proceso
+//   int pid = procs_info[0].pid;                 // PID del proceso
+//   int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
+//                                                // realizando una opreación IO
+//   int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
+//                                                // ejecutado (en CPU o en I/O)
+
+//   // También puedes usar funciones definidas en `simulation.h` para extraer
+//   // información extra:
+//   int duration = process_total_time(pid);
+
+//   return -1;
+// }
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   if (curr_pid != -1)
@@ -123,7 +143,7 @@ void update(proc_info_t *procs_info, int procs_count)
       break;
     }
   }
-  lastProcessIndex = procs_count - 1;
+  lastProcessIndex = procs_count;
 }
 
 void priority_boost()
@@ -133,6 +153,13 @@ void priority_boost()
     priorities[i] = 0;
     timeInQueues[i] = 0;
   }
+}
+
+int turn = 0;
+int mlfq_rr(int count)
+{
+  turn++;
+  return (turn - 1) % count;
 }
 
 int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
@@ -148,18 +175,18 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
         countOfQueue++;
       }
     }
+
     if (countOfQueue > 0)
     {
       currQueue = k;
       break;
     }
   }
-  if (countOfQueue == 0)
-    {
-      return pids[0];
-    }
+
   proc_info_t procsInQueue[countOfQueue];
+
   int indexForRR = 0;
+
   for (int t = 0; t < lastProcessIndex; t++)
   {
     if (priorities[t] == currQueue && !procs_info[t].on_io)
@@ -168,7 +195,15 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
       indexForRR++;
     }
   }
-  int pidForReturn = rr_scheduler(procsInQueue, countOfQueue, curr_time, curr_pid);
+
+  int pidForReturn = procs_info[0].pid;
+
+  if (countOfQueue != 0)
+  {
+    int index = mlfq_rr(countOfQueue);
+    pidForReturn = procsInQueue[index].pid;
+  }
+
   for (int i = 0; i < lastProcessIndex; i++)
   {
     if (pids[i] == pidForReturn)
@@ -180,16 +215,19 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
       }
     }
   }
+
   return pidForReturn;
 }
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   update(procs_info, procs_count);
+
   if (priorityBoostTime == 6)
   {
     priority_boost();
     priorityBoostTime = 0;
   }
+
   else
   {
     priorityBoostTime++;
