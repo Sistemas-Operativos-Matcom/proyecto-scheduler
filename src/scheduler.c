@@ -186,6 +186,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
   int indexForRR = 0;
 
   for (int t = 0; t < lastProcessIndex; t++)
+  //se arma el array para el rr
   {
     if (priorities[t] == currQueue && !procs_info[t].on_io)
     {
@@ -198,7 +199,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 
   if (countOfQueue != 0)
   {
-    int index = mlfq_rr(countOfQueue);
+    int index = mlfq_rr(countOfQueue); //rr
     pidForReturn = procsInQueue[index].pid;
   }
 
@@ -210,6 +211,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
       if (timeInQueues[i] == 3 && priorities[i] < queuesCount - 1)
       {
         priorities[i]++;
+        timeInQueues[i] = 0;
       }
     }
   }
