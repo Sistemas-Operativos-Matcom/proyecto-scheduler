@@ -83,13 +83,22 @@ int shortest_time_to_completion_first_scheduler(proc_info_t *procs_info, int pro
     return shortest_job_pid; // Devuelve el PID del proceso más corto encontrado
 }
 
+
+
 int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
   // Declaración de variables estáticas para mantener el estado entre llamadas.
   static int slice = 1;         // Variable que cuenta el tiempo transcurrido.
   static int current_index = 0; // Índice del proceso actual en el arreglo procs_info.
 
+  if(current_index >= procs_count) current_index = 0; // Si el índice es mayor al número de procesos, se reinicia.
+
+  if(curr_pid == -1) // Si no hay proceso en ejecución, se devuelve el PID del primer proceso en la cola
+  {
+    slice= 1;
+    return procs_info[current_index % procs_count].pid; 
+  }
   // Incrementa el contador de tiempo (slice) en cada llamada al planificador.
-  if (!((++slice) % 10)) {
+  if (!((++slice) % 5)) {
     // Cuando se alcanza un múltiplo de 10 (cada 10 unidades de tiempo),
     // se cambia al siguiente proceso en la cola de procesos listos.
     current_index = (current_index + 1) % procs_count;
