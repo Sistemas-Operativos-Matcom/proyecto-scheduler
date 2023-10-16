@@ -57,6 +57,8 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
-    "limits.h": "c"
-  }
+    "limits.h": "c",
+    "stdlib.h": "c"
+  },
+  "C_Cpp.errorSquiggles": "enabled"
 }
