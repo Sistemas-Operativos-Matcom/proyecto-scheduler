@@ -247,10 +247,6 @@ int my_no_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_cou
         return -1;
     }
 
-    /*
-    if the last process in cpu is still active keep executing it, even though it can be on i/o mode.
-    this makes it no-preemptitive.
-    */
     for (int i = 0; i < *my_array_count; i++)
     {
         if (my_array[i] == curr_pid)
@@ -295,9 +291,9 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
     }
 
     /*
-    from all the processes that are in my queue run the one that takes less time and it's not on i/o mode.
+    from all the processes that are in my queue run the one who has less remaining time and it's not on i/o mode.
     */
-    int min_time = -1;
+    int min_time = __INT_MAX__;
     int answer_pid = -1;
     for (int i = 0; i < *my_array_count; i++)
     {
@@ -313,7 +309,7 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
             }
         }
         int asummption = process_total_time(actual_pid) - procs_info[j].executed_time;
-        if ((min_time < 0 || min_time > asummption) )
+        if ((asummption <= min_time))
         {
             min_time = asummption;
             answer_pid = my_array[i];
