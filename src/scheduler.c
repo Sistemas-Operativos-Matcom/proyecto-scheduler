@@ -77,7 +77,7 @@ for (int p = 0; p < procs_count; p++)
 
 
 int min_time= process_total_time(procs_info[0].pid);
-int min_pid=-1;
+int min_pid=procs_info[0].pid;
 
        for (int i = 1; i < procs_count; i++)
        {
@@ -100,11 +100,11 @@ int min_pid=-1;
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
 
-  if (procs_count == 0) return -1;
+ 
   
 
 int min_time= process_total_time(procs_info[0].pid)-procs_info[0].executed_time;
-int min_pid=-1;
+int min_pid=procs_info[0].pid;
 
        for (int i = 0; i < procs_count; i++)
        {
@@ -113,7 +113,7 @@ int min_pid=-1;
          {
 
           min_time=process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
-          min_pid=procs_info[i].pid;
+          min_pid = procs_info[i].pid;
 
          }     
        }
