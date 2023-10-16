@@ -184,7 +184,7 @@ static void update_priority(proc_info_t *procs_info, int procs_count, int curr_t
     printf("pid list dir %p \n",l_queue->pid_proc);
 
     int idx = binary_search_p(l_queue->pid_proc, l_queue->process_count, procs_info[new].pid);
-    if(idx != 1) {
+    if(idx != -1) {
       new ++;
     }
     else {
