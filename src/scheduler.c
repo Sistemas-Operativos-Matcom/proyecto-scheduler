@@ -127,63 +127,27 @@ int min_pid=procs_info[0].pid;
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
 
+  int pos = 0;
 
-
-int* aux=malloc(pid_save_size * sizeof(int));
-int aux_size= pid_save_size;
-
-for (int i = 0; i < pid_save_size; i++)
-{
-  aux[i]=pid_save[i];
-}
-
-pid_save= malloc(procs_count * sizeof(int));
-pid_save_size=procs_count;
-
-int count=0;
-for (int j = 1; j < aux_size; j++)
-{
-  pid_save[count]=aux[j];
-  count++;
-}
-
-int is;
-for (int p = 0; p < procs_count; p++)
-{
-  is=0;
-
-  for (int q = 0; q < pid_save_size; q++)
+  for (int i = 0; i < procs_count; i++)
   {
-    if(procs_info[p].pid==pid_save[q]){
-
-      is=1;
-      break;
-
+    if(curr_pid == procs_info[i].pid){
+      pos = i;
     }
   }
-
-  if ((is==0) && (procs_info[p].pid != curr_pid)){
-
-  pid_save[count]=procs_info[p].pid;
-  count++;
-
-  }
-
-  for (int k = 0; k < procs_count; k++)
-  {
-    if (curr_pid == procs_info[k].pid)
-    {
-      pid_save[count]=curr_pid;
+ 
+    if(pos == procs_count - 1){
+      pos = 0;
     }
-    
-  }
+    else pos++ ;
   
+  return procs_info[pos].pid;
 
-  return pid_save[0];
+
     
 }
   
-}
+
 
 
 
