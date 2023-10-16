@@ -85,23 +85,23 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
  int verifier[procs_count + 1];
 
-    if(curr_time%timeslice == 0){
-  for (size_t i = 0; i < procs_count; i++)
-  {
-    if(procs_info[i].executed_time % timeslice !=  0 || verifier[i] == 0) 
+   
+  for (size_t i = 0; i < procs_count; i++){
+
+    if(procs_info[i].executed_time % timeslice !=  0 || verifier[i] == 0){
     verifier[i] = 1;  
     return procs_info[i].pid;
+    }
   }
  for (size_t i = 0; i < procs_count; i++)
    {
      verifier[i] = 0;
    }
-}
 
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
   int duration = process_total_time(pid);
-  //return curr_pid;
+  return curr_pid;
   //return -1;
 }
 
