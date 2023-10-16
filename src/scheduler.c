@@ -130,6 +130,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cur
 
 
 int* aux=malloc(pid_save_size * sizeof(int));
+int aux_size= pid_save_size;
 
 for (int i = 0; i < pid_save_size; i++)
 {
@@ -137,19 +138,19 @@ for (int i = 0; i < pid_save_size; i++)
 }
 
 pid_save= malloc(procs_count * sizeof(int));
-
-int aux_size= pid_save_size;
 pid_save_size=procs_count;
 
+int count=0;
 for (int j = 1; j < aux_size; j++)
 {
-  pid_save[j-1]=aux[j];
+  pid_save[count]=aux[j];
+  count++;
 }
 
-
+int is;
 for (int p = 0; p < procs_count; p++)
 {
-  int is=0;
+  is=0;
 
   for (int q = 0; q < pid_save_size; q++)
   {
@@ -163,8 +164,8 @@ for (int p = 0; p < procs_count; p++)
 
   if (is==0){
 
-  pid_save[aux_size]=procs_info[p].pid;
-  aux_size++;
+  pid_save[count]=procs_info[p].pid;
+  count++;
 
   }
 
