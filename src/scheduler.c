@@ -133,12 +133,11 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   if (procs_count == 1)
     return procs_info[0].pid;
-
-  int active_pr_count = 0;
+  
+   int active_pr_count = 0;
 
   for (int idx = 0; idx < procs_count; idx++)
   {
-    if (procs_info[idx].executed_time <= process_total_time(procs_info[idx].pid))
       active_pr_count += 1;
   }
 
@@ -150,7 +149,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       active_process[curr++] = procs_info[idx];
 
   for (int idx = 0; idx < active_pr_count; idx++)
-    if (active_process[idx].pid == curr_pid && active_process[idx].executed_time % time_slice == 0)
+    if (active_process[idx].pid == curr_pid && active_process[idx].executed_time % time_slice == 0 && active_process[idx].executed_time)
       return active_process[(idx + 1) % procs_count].pid;
 
   // Return same pid if process is still in  it's time slice execution time
@@ -173,12 +172,12 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   proc_info_t curr_proc = get_proc_by_pid(curr_pid, procs_info, procs_count);
 
   // Change Priority
-
   int flag = 0;
 
   for (int idx = 0; idx < q1->sz; idx++)
   {
-    if (q1->q[idx].executed_time % time_slice == 0 && q1->q[idx].executed_time)
+    proc_info_t proc = q1->q[idx];
+    if (proc.executed_time % time_slice == 0 && proc.executed_time && !proc.on_io)
     {
       flag = 1;
       add_pid(q1->q[idx], q2);
@@ -190,7 +189,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   {
     for (int idx = 0; idx < q2->sz; idx++)
     {
-      if (q2->q[idx].executed_time % time_slice == 0 && q2->q[idx].executed_time)
+    proc_info_t proc = q2->q[idx];
+    if (proc.executed_time % time_slice == 0 && proc.executed_time && !proc.on_io)
       {
         add_pid(q2->q[idx], q3);
         remove_pid(q2->q[idx], q2);
@@ -220,13 +220,22 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       remove_pid(q3->q[idx], q3);
 
   if (q1->sz)
-    return rr_scheduler(q1, q1->sz, curr_time, curr_pid);
+  {
+    int rr_pid = rr_scheduler(&q1->q, q1->sz, curr_time, q1->q[0].pid);
+    return rr_pid;
+  }
 
   if (q2->sz)
-    return rr_scheduler(q2, q2->sz, curr_time, curr_pid);
+  {
+    int rr_pid = rr_scheduler(&q2->q, q2->sz, curr_time, q2->q[0].pid);
+    return rr_pid;
+  }
 
   if (q3->sz)
-    return rr_scheduler(q3, q3->sz, curr_time, curr_pid);
+  {
+    int rr_pid = rr_scheduler(&q3->q, q3->sz, curr_time, q3->q[0].pid);
+    return rr_pid;
+  }
 
   return curr_pid;
 }
