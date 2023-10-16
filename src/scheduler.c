@@ -102,8 +102,8 @@ schedule_action_t get_scheduler(const char *name)
             array_queues[i] = malloc(sizeof(struct process_mlfq) * MAX_SIZE);
             arrays_len[i] = 0;
         }
-        int start_priority = 1;
-        for (int i = NUMBER_QUEUES - 1; i >= 0; i--)
+        int start_priority = 10;
+        for (int i = 0; i < NUMBER_QUEUES; i++)
         {
             priority_queues[i] = 2 * start_priority;
             start_priority = priority_queues[i];
@@ -303,18 +303,18 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
     for (int i = 0; i < *my_array_count; i++)
     {
         int actual_pid = my_array[i];
-        int on_io = 0;
+        // int on_io = 0;
         int j = 0;
         for (; j < procs_count; j++)
         {
             if (actual_pid == procs_info[j].pid)
             {
-                on_io = procs_info[j].on_io;
+                // on_io = procs_info[j].on_io;
                 break;
             }
         }
         int asummption = process_total_time(actual_pid) - procs_info[j].executed_time;
-        if (!on_io && (min_time < 0 || min_time > asummption))
+        if ((min_time < 0 || min_time > asummption) )
         {
             min_time = asummption;
             answer_pid = my_array[i];

@@ -41,6 +41,8 @@ El scheduler debe devolver:
 
 ## Implementación Details:
 
-En mi $DataStructure$ always los procesos que tengo tienen que ser un subset de los procesos que están en el array de procesos. Eso tiene que ser chequeado inicialmente por consistencia. That allows only  necesario guardar el *pid* del proceso, cualquier otra información relevante se puede obtener del array de procesos que le es pasado al scheduler. So por eso uso una función que se llama *sync_ds*, esto puede resultar innecsario dado que el array de procesos dado contiene los procesos en orden de llegada, pero permitiría que mi scheduling funcione independientemente de el orden que poseen los procesos en ese array ( le puedo dar yo el orden que quiera).
+En mi $DS$ always los procesos que tengo tienen que ser un subset de los procesos que están en el array de procesos. Eso tiene que ser chequeado inicialmente por consistencia. That allows only  necesario guardar el *pid* del proceso y en el caso de *MLFQ* el slice de ese proceso, cualquier otra información relevante se puede obtener del array de procesos que le es pasado al scheduler. So por eso uso una función que se llama *sync_ds*, esto puede resultar innecesario dado que el array de procesos dado contiene los procesos en orden de llegada, pero permitiría que mi scheduling funcione independientemente de el orden que poseen los procesos en ese array ( le puedo dar yo el orden que quiera).
 
 Hasta ahora es super lento porque cada vez que me es llamada la función es realizado un *sync_ds*, so no optimizations by now.
+
+## Resultados
