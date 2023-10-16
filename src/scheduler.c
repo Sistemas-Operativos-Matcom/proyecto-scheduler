@@ -6,7 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
-#include "rrlist.h"
+#include "queue.h"
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -113,6 +113,45 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
   }
 }
 
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+  static int que_turn = 1;
+  static int index_que1=0;
+  static int index_que2=0;
+  static int index_que3=0;
+
+  if ( curr_time % 60 == 0 )
+  {
+    if (que_turn == 3) que_turn=1;
+    else que_turn++;
+  }
+
+  if(curr_time % 500 == 0)
+  {
+    if(queue3.rear != -1)
+    {
+      while(queue3.rear != -1)
+      {
+        enqueue(queue3->processes[0],queue1);
+        dequeue(queue3->processes[0],queue3);
+      }
+    }
+
+    if(queue2.rear != -1)
+    {
+      while(queue2.rear != -1)
+      {
+        enqueue(queue2->processes[0],queue1);
+        dequeue(queue2->processes[0],queue2);
+      }
+    }
+
+    que_turn=1;
+  }
+
+  return -1;
+}
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -135,6 +174,10 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
+
+  struct Queue queue1, queue2, queue3;
+  queue1.front = queue1.rear = queue2.front = queue2.rear = queue3.front = queue3.rear = -1;
+
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   else if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
