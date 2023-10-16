@@ -17,13 +17,13 @@ const int Time_slice = 3;
 
 int time_slice = Time_slice; // Tamaño del time_slice (puedes ajustarlo según tus necesidades)
 
-const int Time_slice_mlfq = 5;
+const int Time_slice_mlfq = 6;
 
 // Variables globales para el algoritmo MLFQ
 int last_procs_pid = -1;
 int last_last_procs_pid = -1;
 
-const int S = 20;
+const int S = 50;
 int s = S;
 
 int toMLFQ = 1;
@@ -73,38 +73,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     return shortest_time_remaining_pid;
 }
 
-queue_t *createQueue(unsigned capacity) {
-    queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
-    queue->capacity = capacity;
-    queue->front = 0;
-    queue->rear = -1;
-    queue->length = 0;
-    queue->array = (proc_info_t *)malloc(queue->capacity * sizeof(proc_info_t));
-    return queue;
-}
-
-void enqueue(queue_t *queue, proc_info_t process) {
-    if (queue->rear == queue->capacity - 1) {
-        printf("La cola está llena.\n");
-        return;
-    }
-    queue->length++;
-    queue->array[++queue->rear].executed_time = process.executed_time;
-    queue->array[queue->rear].on_io = process.on_io;
-    queue->array[queue->rear].pid = process.pid;
-    queue->array[queue->rear].time_slice_mlfq = process.time_slice_mlfq;
-}
-
-proc_info_t dequeue(queue_t *queue) {
-    if (queue->front > queue->rear) {
-        proc_info_t empty;
-        empty.pid = -1;
-        return empty;
-    }
-    queue->length--;
-    return queue->array[queue->front++];
-}
-
+//Round Robin con una cola
 int rr(queue_t *queue) {
     
     if (time_slice == 0) {
@@ -116,16 +85,16 @@ int rr(queue_t *queue) {
     return queue->array[queue->front].pid;
 }
 
-
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
+    //Inicializa la cola
     if(toRR){
         queueRR = *createQueue(1000000);
         toRR = 0;
     }
 
-    //Guarda en la cola los nuevos procesos
+    //Guarda en la cola solo los nuevos procesos
     for (size_t i = procs_count-1; i < -1 ; i--){
 
         if(procs_info[i].pid != last_procs_pid)
@@ -163,9 +132,9 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     return a;
 }
 
-
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
     
+    //Reserva memoria para las colas
     if(toMLFQ)
     {
         num_queues = 3;
@@ -179,10 +148,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     //Guarda en la cola los nuevos procesos
     for (size_t i = procs_count-1; i < -1 ; i--){
 
-        if(procs_info[i].pid != last_procs_pid)
-        {
+        if(procs_info[i].pid != last_procs_pid)         //Revisa de atras hacia delante, buscando el
+        {                                               //ultimo o el penultimo proceso que conocia
             if(procs_info[i].pid != last_last_procs_pid)
+            {
                 enqueue(&queues[0],procs_info[i]);
+                printf("Entra el proceso %d en la cola 0\n", procs_info[i].pid);
+            }
             else
                 break;
         }
@@ -198,7 +170,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         int l = queues[i].length;
         for (size_t j = 0; j < l; j++)
         {
-            int here = 0;
+            int here = 0;//booleano para saber si un proceso sigue activo
 
             for (size_t k = 0; k < procs_count; k++)
             { 
@@ -208,7 +180,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             if(here)
                 enqueue(&queues[i], dequeue(&queues[i]));
             else
-                dequeue(&queues[i]);
+                dequeue(&queues[i]);//Si ya no esta activo lo saco de las colas
         }
         
     }
@@ -222,35 +194,40 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             while (queues[i].front <= queues[i].rear)
                 enqueue(&queues[0], dequeue(&queues[i]));
         }
+        printf("Todos los procesos vuelven a la mayor prioridad\n");
+        printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
         s = S; 
     }
 
-     
+    //Pr(A) > Pr(B)  => Se ejecuta A
     for (int i = 0; i < num_queues; i++) {
-        if (queues[i].front <= queues[i].rear) {
-            // Devolver el PID del proceso de la cola no vacía con la mayor prioridad
-            
+        if (queues[i].front <= queues[i].rear) {//Si la cola no esta vacia
+
+            //Dos procesos con igual prioridad se deciden por RR
             rr(&queues[i]);
-            if(i != num_queues-1)  
+
+            if(i != num_queues-1) //Solo modifica su prioridad por Time Slice si no es la ultima prioridad
             {
                 queues[i].array[queues[i].front].time_slice_mlfq += 1;
 
+                //Si alcanzo el time Slice
                 if( queues[i].array[queues[i].front].time_slice_mlfq == Time_slice_mlfq ){
 
                     queues[i].array[queues[i].front].time_slice_mlfq = 0;
                     enqueue(&queues[i+1], dequeue(&queues[i]));
-                    
-                    if (queues[i].front > queues[i].rear)
+                    printf("El proceso %d entra a la cola %d\n", queues[i+1].array[queues[i+1].rear].pid, i+1);
+                    printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
+
+                    if (queues[i].front > queues[i].rear)//Si se saco el unico elemento de la cola ve a otra
                         continue;
                 }
             }
+            printf("Se ejecuta el proceso %d de la cola %d\n", queues[i].array[queues[i].front].pid, i);
             return queues[i].array[queues[i].front].pid;
         }
     } 
     return -1; // No hay procesos para ejecutar
 }
-
-
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
