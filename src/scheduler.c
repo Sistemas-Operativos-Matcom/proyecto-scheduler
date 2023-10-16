@@ -162,12 +162,22 @@ for (int p = 0; p < procs_count; p++)
     }
   }
 
-  if (is==0){
+  if ((is==0) && (procs_info[p].pid != curr_pid)){
 
   pid_save[count]=procs_info[p].pid;
   count++;
 
   }
+
+  for (int k = 0; k < procs_count; k++)
+  {
+    if (curr_pid == procs_info[k].pid)
+    {
+      pid_save[count]=curr_pid;
+    }
+    
+  }
+  
 
   return pid_save[0];
     
