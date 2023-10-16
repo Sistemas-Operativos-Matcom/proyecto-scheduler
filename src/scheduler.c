@@ -209,6 +209,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
     {
       timeInQueues[i]++;
       if (timeInQueues[i] == 3 && priorities[i] < queuesCount - 1)
+      //bajar de prioridad un proceso cuando cumple un tiempo igual al slice time en una cola
       {
         priorities[i]++;
         timeInQueues[i] = 0;
@@ -220,6 +221,7 @@ int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 }
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  //Multi Level Feedback Queue
   update(procs_info, procs_count);
 
   if (priorityBoostTime == 6)
