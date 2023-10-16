@@ -33,28 +33,11 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
-
-// int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-//                      int curr_pid)
-// {
-//   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-//   // cambiar)
-
-//   // Información que puedes obtener de un proceso
-//   int pid = procs_info[0].pid;                 // PID del proceso
-//   int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
-//                                                // realizando una opreación IO
-//   int exec_time = procs_info[0].executed_time; // Tiempo que el proceso se ha
-//                                                // ejecutado (en CPU o en I/O)
-
-//   // También puedes usar funciones definidas en `simulation.h` para extraer
-//   // información extra:
-//   int duration = process_total_time(pid);
-
-//   return -1;
-// }
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+
+  // Se devuelve el PID del proceso que tenga menor tiempo de ejecución en total.
+  // Si no se ha terminado de ejecutar el proceso actual, se continúa con ese.
   if (curr_pid != -1)
     return curr_pid;
   int min = __INT_MAX__;
@@ -71,6 +54,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 }
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  // Se devuelve el PID del proceso al que menos tiempo de ejecución le queda.
   int min = __INT_MAX__;
   int pid = procs_info[0].pid;
   for (int i = 0; i < procs_count; i++)
@@ -84,13 +68,14 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return pid;
 }
 
-int slice_time = 0;
-int proc_index = 0;
+int slice_time = 0; // No es en realidad el slice time, sino el contador suma 1 en cada time interrupt hasta alcanzar el slice time.
+int proc_index = 0; // Índice que indica a qué proceso le toca.
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
+  // Se cambia de proceso si se cumplió el slice time del proceso actual o si el proceso terminó su ejecución.
   if (curr_pid != -1)
   {
-    if (slice_time < 3)
+    if (slice_time < 3) // Se tomó un slice time de 30ms (3*time interrupt)
     {
       slice_time++;
       return curr_pid;
@@ -107,15 +92,22 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     return procs_info[proc_index = (proc_index % procs_count)].pid;
   }
 }
-int pids[MAX_PROCESS_COUNT];
-int priorities[MAX_PROCESS_COUNT];
-int timeInQueues[MAX_PROCESS_COUNT];
-int priorityBoostTime = 0;
-int lastProcessIndex = 0;
-int queuesCount = 3;
+
+// se simula el funcionamiento de las colas de prioridad con los siguientes 3 arrays
+int pids[MAX_PROCESS_COUNT];         // array de PIDs
+int priorities[MAX_PROCESS_COUNT];   // array de Prioridades
+int timeInQueues[MAX_PROCESS_COUNT]; // array de tiempos de los procesos en su cola actual
+int priorityBoostTime = 0;           // mismo principio que el slice time, contador del boost time
+int lastProcessIndex = 0;            // Índice que representa el lugar del array hasta el cual están los procesos actuales, es para simular que el array es dinámico.
+int queuesCount = 3;                 // cantidad de colas
+
+// Téngase en cuenta que se consideró la prioridad 0 como la máxima y 2 como la mínima.
 
 void update(proc_info_t *procs_info, int procs_count)
 {
+
+  // Función para actualizar las "colas de prioridad". Contempla que se comleten procesos y lleguen nuevos.
+  // Se tiene en cuenta que los procesos se agregan al array en el mismo orden en que van llegando
   int pid_index = 0;
   int flag = 1;
   for (int i = 0; i < procs_count; i++)
@@ -132,6 +124,7 @@ void update(proc_info_t *procs_info, int procs_count)
       }
     }
     if (flag)
+    // si no se encontró un proceso de procs_info en las "colas de prioridad", se agregan todos a partir de ese con prioridad máxima.
     {
       for (int k = i; k < procs_count; k++)
       {
@@ -148,6 +141,7 @@ void update(proc_info_t *procs_info, int procs_count)
 
 void priority_boost()
 {
+  //lleva todos los procesos a prioridad máxima.
   for (int i = 0; i <= lastProcessIndex; i++)
   {
     priorities[i] = 0;
@@ -157,6 +151,7 @@ void priority_boost()
 
 int turn = 0;
 int mlfq_rr(int count)
+//pequeño rr para el mlfq
 {
   turn++;
   return (turn - 1) % count;
@@ -164,9 +159,12 @@ int mlfq_rr(int count)
 
 int FindNextProcess(proc_info_t *procs_info, int curr_time, int curr_pid)
 {
+
+  //Aquí es donde se devuelve el proceso que, según las reglas de prioridad, debe ser ejecutado
   int countOfQueue = 0;
   int currQueue = 0;
   for (int k = 0; k < queuesCount; k++)
+  //Se cuentan los procesos con prioridad k
   {
     for (int i = 0; i < lastProcessIndex; i++)
     {
