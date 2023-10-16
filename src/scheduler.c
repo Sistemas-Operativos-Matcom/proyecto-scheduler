@@ -26,10 +26,19 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+// Se devuelve el PID del primer proceso de todos los disponibles (los
+// procesos están ordenados por orden de llegada).
+//current devuelve el pid del proceso actual incluso si justo se termino
+//el pid esta relacionado con el arrival time (es mayor si se ha demorado en llegar)
+//Nombres de Schedulers:
+//fifo_scheduler
+//sjf
+//stcf
+//rr
+//mlfq
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
-  // Se devuelve el PID del primer proceso de todos los disponibles (los
-  // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
 
@@ -51,7 +60,59 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   return -1;
 }
+//implementacion propia
+int sjf(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{ 
+  int minProcessTime = __INT_MAX__;
+  int nextPid = curr_pid;
+  
+  for (int i = 0; i < procs_count ; i++)
+  {
+    if (process_total_time(procs_info[i].pid) < minProcessTime)
+    {
+      nextPid = procs_info[i].pid;
+    }  
+  }
 
+  return nextPid;
+}
+
+int stcf(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{
+  int minTimeToCompletition = process_total_time(procs_info[0].pid) -  procs_info[0].executed_time;
+  int nextPid = procs_info[0].pid;
+  
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (process_total_time(procs_info[i].pid) -  procs_info[i].executed_time < minTimeToCompletition)
+    {
+      nextPid = procs_info[i].pid;
+    }
+  }
+  
+  return nextPid;
+}
+
+int rr(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid)
+{ 
+  //nextPid se inicializa en el pid del pricmer proceso porque si no tiene sucesor
+  //entonces es el ultimo y el siguiente proceso deberia ser el primero en arreglo de procesos
+  int nextPid = procs_info[0].pid;
+  
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (procs_info[i].pid > curr_pid)
+    {
+      nextPid = procs_info[i].pid;
+      break;
+    }
+  }
+  
+  return nextPid;
+}
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
@@ -59,11 +120,12 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  
+  if (strcmp(name, "sjf") == 0) return *sjf;
+  
+  if (strcmp(name, "stcf") == 0) return *stcf;
+  
+  if (strcmp(name, "rr") == 0) return *rr;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
