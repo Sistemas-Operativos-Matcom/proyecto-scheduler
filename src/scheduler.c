@@ -8,6 +8,11 @@
 #include "simulation.h"
 
 int last_proc_pos = 0;
+//node *roots[3] = {NULL, NULL, NULL};
+//node *fondos[3] = {NULL, NULL, NULL};
+int queue_id;
+proc_info_t* process;
+int S =  100; //Tiempo del priority boost
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -102,14 +107,6 @@ int STCF(proc_info_t *procs_info, int procs_count, int curr_time,
 int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
                 int curr_pid)
 {
-// printf("         ");
-//    printf("%d",curr_time);
-//   printf("  ");
-//    printf("%d",curr_pid); 
-//   printf("  ");
-//   printf("%d",last_proc_pos); printf("  ");
-//    printf("%d",procs_count);
-//    printf("\n");
 
   if (procs_count == 0)
     return -1;
@@ -128,10 +125,136 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
   else
     last_proc_pos += 1;
 
- 
   return procs_info[last_proc_pos].pid;
-
 }
+
+/*typedef struct node
+{
+  proc_info_t *proc;
+  struct node *sig;
+  struct node *ant
+} node;
+
+void Push(proc_info_t *x, int queue_id)
+{
+
+  node *root = roots[queue_id - 1];
+  node *fondo = fondos[queue_id - 1];
+
+  node *nuevo;
+  nuevo = malloc(sizeof(struct node));
+  nuevo->proc = x;
+  nuevo->sig = NULL;
+  nuevo->ant = fondo;
+  if (root == NULL)
+  {
+    root = nuevo;
+    fondo = nuevo;
+  }
+  else
+  {
+    fondo->sig = nuevo;
+    fondo = nuevo;
+  }
+}
+
+node *GetNIO(node *root, node *fondo) // Obtener el primer proceso que no esta en IO
+{
+  node *x = root;
+  while ((*x->proc).on_io && x != NULL)
+  {
+    x = x->sig;
+  }
+
+  return x;
+}
+
+proc_info_t* Pop(node *fondo, node *root, node *x)
+{
+  // Si todos los procesos están en IO
+  if (x == NULL)
+    return NULL;//Si todos estan en IO retornar la raiz, proc_info_t
+
+  // Si el primer proceso que no esta en IO es la root
+
+  if (x == root)
+  {
+    if (root == fondo) // La cola solo tenia un elemento
+    {
+      root = NULL;
+      fondo = NULL;
+    }
+    else // La cola tenia mas de un elemento
+    {
+      x->sig->ant = NULL;
+      root = root->sig;
+    }
+  }
+
+  // Si el primer proceso que no esta en IO esta en IO es el fondo
+  else if (x == fondo)
+  {
+    fondo->ant->sig = NULL;
+    fondo = fondo->ant;
+  }
+  // Si el primer proceso que no esta en el medio
+  else
+  {
+    x->sig->ant = x->ant;
+    x->ant->sig = x->sig;
+  }
+  proc_info_t *y = x->proc;
+  free(x);
+  return y;
+}
+
+proc_info_t* GetProcess() // Obtengo el proceso en orden de prioridad
+{
+  for (int i = 0; i < 3; i++)
+  {
+    process = Pop(roots[i], fondos[i], GetNIO(roots[i], fondos[i]));
+    if (process != NULL)
+    {
+      queue_id = i + 1;
+      return process;
+    }
+  }
+  return NULL;
+}
+
+void SetQueue(int curr_pid) // Bajo la prioridad del proceso, si estaba en la cola 3 lo inserto al final de la cola
+{
+  if (curr_pid != -1)
+  {
+    if (queue_id == 1 || queue_id == 2)
+    {
+      Push(process, queue_id + 1);
+    }
+    else
+    {
+      Push(process, 3);
+    }
+  }
+}
+
+void SetMaxQueue(int curr_time)
+{
+  if (curr_time == 100)
+  {
+    int queue = 3;
+    while (queue > 1)
+    {
+      while (roots[queue-1]!=NULL)
+      {
+         proc_info_t* max_priority = Pop(roots[queue-1],fondos[queue-1],roots[queue-1]);
+        Push(max_priority,queue);
+      }
+
+      queue--;
+      
+    }
+  }
+}*/
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
