@@ -74,15 +74,41 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 }
 
 //Round Robin con una cola
-int rr(queue_t *queue) {
+int rr(queue_t *queue, proc_info_t *procs_info, int procs_count) {
     
+    int t = queue->length;
+    for (size_t i = 0; i < t; i++)
+    {
+        for (size_t j = 0; j < procs_count; j++)
+        {
+            if(queue->array[queue->front].pid == procs_info[j].pid)
+            {
+                queue->array[queue->front].on_io = procs_info[j].on_io;
+                enqueue(queue, dequeue(queue));
+                break;
+            }
+        }
+        
+    }
+
     if (time_slice == 0) {
         time_slice = Time_slice;          
         enqueue(queue, dequeue(queue));
     } else {
         time_slice--;
     }
-    return queue->array[queue->front].pid;
+
+    for (size_t i = 0; i < queue->length; i++)
+    {
+        if(queue->array[queue->front].on_io)
+        {
+            enqueue(queue, dequeue(queue));
+        }
+        else
+            return queue->array[queue->front].pid;
+    }
+    
+    return -1; 
 }
 
 // Función que implementa la política Round Robin y devuelve el PID del proceso a ejecutar
@@ -128,7 +154,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
         }
     }
 
-    int a = rr(&queueRR);
+    int a = rr(&queueRR, procs_info, procs_count);
     return a;
 }
 
@@ -153,7 +179,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             if(procs_info[i].pid != last_last_procs_pid)
             {
                 enqueue(&queues[0],procs_info[i]);
-                printf("Entra el proceso %d en la cola 0\n", procs_info[i].pid);
+                // printf("Entra el proceso %d en la cola 0\n", procs_info[i].pid);
             }
             else
                 break;
@@ -194,8 +220,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
             while (queues[i].front <= queues[i].rear)
                 enqueue(&queues[0], dequeue(&queues[i]));
         }
-        printf("Todos los procesos vuelven a la mayor prioridad\n");
-        printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
+        // printf("Todos los procesos vuelven a la mayor prioridad\n");
+        // printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
         s = S; 
     }
 
@@ -204,7 +230,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
         if (queues[i].front <= queues[i].rear) {//Si la cola no esta vacia
 
             //Dos procesos con igual prioridad se deciden por RR
-            rr(&queues[i]);
+            int robin = rr(&queues[i], procs_info, procs_count);
 
             if(i != num_queues-1) //Solo modifica su prioridad por Time Slice si no es la ultima prioridad
             {
@@ -215,14 +241,17 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
                     queues[i].array[queues[i].front].time_slice_mlfq = 0;
                     enqueue(&queues[i+1], dequeue(&queues[i]));
-                    printf("El proceso %d entra a la cola %d\n", queues[i+1].array[queues[i+1].rear].pid, i+1);
-                    printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
+                    // printf("El proceso %d entra a la cola %d\n", queues[i+1].array[queues[i+1].rear].pid, i+1);
+                    // printf("Estados de las colas %d, %d, %d\n", queues[0].length, queues[1].length, queues[2].length);
 
                     if (queues[i].front > queues[i].rear)//Si se saco el unico elemento de la cola ve a otra
                         continue;
                 }
             }
-            printf("Se ejecuta el proceso %d de la cola %d\n", queues[i].array[queues[i].front].pid, i);
+            if(robin == -1)//Si todos los de esta cola estan en I/O pasa
+                continue;
+
+            // printf("Se ejecuta el proceso %d de la cola %d\n", queues[i].array[queues[i].front].pid, i);
             return queues[i].array[queues[i].front].pid;
         }
     } 
