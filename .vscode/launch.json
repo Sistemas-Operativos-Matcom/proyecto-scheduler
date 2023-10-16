@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/ryzen13/projects/scheduler/proyecto-scheduler/src",
-      "program": "/home/ryzen13/projects/scheduler/proyecto-scheduler/src/build/Debug/outDebug",
+      "cwd": "/home/ryzen13/projects/proyecto-scheduler/src",
+      "program": "/home/ryzen13/projects/proyecto-scheduler/src/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
