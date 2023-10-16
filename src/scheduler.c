@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "simulation.h"
+#include "queue.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +9,10 @@
 
 #include "simulation.h"
 int iterador = 0;
+queue_t queue_0;
+queue_t queue_1;
+queue_t queue_2;
+
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -56,6 +61,9 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
 {
+  queue_0 = InitCola();
+  queue_1 = InitCola();
+  queue_2 = InitCola();
   if (curr_pid == -1)
     return sjf_scheduler(procs_info, procs_count, curr_time, curr_pid);
   int time;
@@ -80,19 +88,91 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return min < time ? final : curr_pid;
 }
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid)
+                 int curr_pid)
 {
   int final;
-  if (iterador< procs_count)
+  if (iterador < procs_count)
   {
     final = procs_info[iterador].pid;
-    iterador ++;
+    iterador++;
     return final;
   }
-  iterador =1;
+  iterador = 1;
   return procs_info[0].pid;
-  
 }
+int rr_schedulerplus(queue_t *queue, int procs_count, int curr_time,
+                 int curr_pid)
+{
+  int final;
+  if (iterador < procs_count)
+  {
+    final = queue->list[iterador];
+    iterador++;
+    return final;
+  }
+  iterador = 1;
+  return queue->list[0];
+}
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid)
+{
+  int number = -3;
+  int process = procs_info[0].pid;
+  //actualizo las colas
+  for (size_t i = 0; i < procs_count; i++)
+  {
+    process = procs_info[i].pid;
+    for (size_t j = 0; j < queue_0.count; i++)
+    {
+      if (process == queue_0.list[j])
+      {
+        number = 0;
+        break;
+      }
+    }
+    if (!number == 0)
+    {
+      for (size_t k = 0; k < queue_1.count; i++)
+      {
+        if (process == queue_1.list[k])
+        {
+          number = 0;
+          break;
+        }
+      }
+    }
+
+    if (!number == 0)
+    {
+      for (size_t l = 0; l < queue_2.count; i++)
+      {
+        if (process == queue_2.list[l])
+        {
+          number = 0;
+          break;
+        }
+      }
+    }
+    if (!number == 0)
+    {
+      push(&queue_2, process);
+    }
+    
+  }
+  //elimino los procesos anteriores
+  for (size_t m = 0; m< queue_0.count; m++)
+  {
+    //int process1= queue_0.list[m];
+    for (size_t i = 0; i < procs_count; i++)
+    {
+      
+    }
+    
+  }
+  
+  return rr_schedulerplus(&queue_2,queue_2.count,curr_time,curr_pid);
+}
+
 // Información que puedes obtener de un proceso
 /*int pid = procs_info[0].pid;     // PID del proceso
   int on_io = procs_info[0].on_io; // Indica si el proceso se encuentra
@@ -123,6 +203,8 @@ schedule_action_t get_scheduler(const char *name)
     return *stcf_scheduler;
   if (strcmp(name, "rr") == 0)
     return *rr_scheduler;
+  if (strcmp(name, "mlfq") == 0)
+    return *mlfq_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
