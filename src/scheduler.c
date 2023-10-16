@@ -27,46 +27,57 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
-int lastprocess = -1;
-int lastlastprocess = -1;
-const int TimeSlice = 5;
-int priority = 1000;
-
-Queue_t First = {{},{}, 0, 0};
-Queue_t Second = {{}, {}, 0, 0};
-Queue_t Third = {{}, {}, 0, 0};
+// colas de mlfq
+Queue_t First;
+Queue_t Second ;
+Queue_t Third ;
 
 Queue_t empty ()
+// devuelve una cola vacia
 {
   Queue_t q = {{},{}, 0, 0};;
   return q;
 }
 
+// variables globales para mlfq
 int bool = 1;
+int lastprocess;
+int lastlastprocess;
+const int TimeSlice = 5;
+int priority = 1000;
 
+
+//indice RR
 int prr = 0;
 
+// cantidad de time interrupts que se ejecuta un proceso en RR antes de pasar al siguiente
 const int Times = 5;
 int times = Times;
 
-void enqueue(Queue_t *queue, proc_info_t process) {
+void enqueue(Queue_t *queue, proc_info_t process) 
+// annade un elemento al final de la cola y setea en 0 su tiempo en la cola
+{
   queue->data[queue->rear] = process;
   queue->Time[queue->rear] = 0;
   queue->rear++;
 }
 
 void dequeue(Queue_t *queue) 
+// saca el 1er elemento de la cola
 {
   queue->front++;
 }
 
 proc_info_t get(Queue_t *queue)
+// devuelve el 1er elemento de la cola
 {
   proc_info_t process = queue->data[queue->front];
   return process;
 }
 
 int its_over (int pid, proc_info_t *procs_info, int procs_count)
+// busca en el array de procesos el pid especificado, si lo encuentra significa que el proceso
+// aun esta activo, de lo contrario este ha terminado su ejecucion
 {
   for (size_t i = 0; i < procs_count; i++)
   {
@@ -79,12 +90,13 @@ int its_over (int pid, proc_info_t *procs_info, int procs_count)
 }
 
 int on_io (int pid, proc_info_t *procs_info, int procs_count)
+// busca en el array de procesos el que tiene el pid especificado y devuelve si esta realizando IO
 {
   for (size_t i = 0; i < procs_count; i++)
   {
     if (procs_info[i].pid == pid)
     {
-      return procs_info[i].pid;
+      return procs_info[i].on_io;
     }
   }
   return -1;
@@ -179,9 +191,12 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
+// esta funcion no tiene en cunta que los procesos hagan IO
 {
   if (curr_time % priority == 0 || bool)
-  // vacia las colas (iguala la prioridad de todos los procesos)
+  // vacia las colas (iguala la prioridad de todos los procesos) 
+  // bool es igual a 1 la primera vez que se ejecuta el metodo, a partir de ahi es 0
+  // sirve para inicializar los valores si el primer proceso no entra en un multiplo del priority
   {
     First = empty();
     Second = empty();
@@ -308,6 +323,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
+// esta funcion es muy similar a la anterior pero si toma en cuenta cuando los procesos estan haciendo IO
 {
   if (curr_time % priority == 0 || bool)
   {
@@ -331,7 +347,7 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       break;
     }
   }
-  int can = 1;
+  int can = 1; // booleano indica si se puede devolver el proceso de mayor prioridad
   lastprocess = procs_info[procs_count-1].pid;
   lastlastprocess = procs_info[procs_count-2].pid;
 
@@ -340,14 +356,18 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     proc_info_t first_process = get(&First);
     proc_info_t proc = first_process;
     while(on_io(proc.pid, procs_info,procs_count))
+    // si el proceso de mayor prioridad esta haciendo IO
     {
       int time = First.Time[First.front];
-      dequeue(&First);
-      enqueue(&First,proc);
+      dequeue(&First);    // se coloca el proceso al final de la cola manteniendo el tiempo de ejecucion 
+      enqueue(&First,proc);//que tenia
       First.Time[First.rear] = time;
-      proc = get(&First);
+      proc = get(&First); // analizar el siguiente valor de la cola
       if (proc.pid == first_process.pid)
+      // si el siguiente valor de la cola es igual al primero significa que todos los procesos de la cola
+      // estan realizando IO
       {
+        // no se puede devolver ningun proceso de esta cola
         can = 0;
         break;
       }
@@ -365,6 +385,8 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       }
     }
     if (First.front != First.rear && can)
+    // si can = 0 significa que todos los procesos de la cola estan haciendo IO luego ninguno
+    // debe ser devuelto, se debe revisar en la cola siguiente
     {
       First.Time[First.front] ++;
       if (First.Time[First.front] == TimeSlice)
@@ -373,9 +395,10 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Second, proc);
         Second.Time[Second.rear] = 0;
       }
-      printf("1");
       return proc.pid;
     }
+    // se devuelve el valor 1 a can para que la siguiente cola pueda devolver procesos que no esten 
+    // realizando operaciones de IO
     can = 1;
     
   } 
@@ -418,7 +441,6 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Third, proc);
         Third.Time[Third.rear] = 0;
       }
-      printf("2");
       return proc.pid;
     }
     can = 1;
@@ -463,11 +485,11 @@ int mlfq_IO_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         enqueue(&Third, proc);
         Third.Time[Third.rear] = 0;
       }
-      printf("3");
       return proc.pid;
     }
     can = 1;
   }
+  // devolver -1 significa que, de haber procesos activos, todos ellos estan realizando operaciones de IO 
   return -1;
 }
 
