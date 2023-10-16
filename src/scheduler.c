@@ -7,8 +7,8 @@
 
 #include "simulation.h"
 
-#define SLICE_TIME 20
-#define RESET_TIME 100
+#define SLICE_TIME 30
+#define PRIORITY_BOOST_TIME 300
 #define LEVELS 3
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -150,87 +150,124 @@ void update_mlfq_array(proc_info_t *procs_info, int procs_count, int curr_time)
   }
 }
 
-// variables auxiliares
-int last_pid = -1;
-int last_level = LEVELS + 1;
-int last_arrive_time = 0;
-int last_index = 0;
+void priority_boost(int procs_count)
+{
+  for(int i=0; i<procs_count; i++)
+  {
+    mlfq_level[i] = 0;
+  }
+}
+
+int find_index(proc_info_t *procs_info, int procs_count, int curr_pid)
+{
+  for(int i=0; i<procs_count; i++)
+  {
+    if(procs_info[i].pid == curr_pid) return i;
+  }
+  return -1;
+}
+
+int fp(proc_info_t *procs_info, int procs_count)
+{
+  for(int i=0; i<procs_count; i++)
+  {
+    if(!procs_info[i].on_io)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
+int lowest_level(proc_info_t *procs_info, int procs_count)
+{
+  int j = fp(procs_info, procs_count);
+  for(int i=0; i<procs_count; i++)
+  {
+    if(!procs_info[i].on_io)
+    {
+      j = (mlfq_level[i] < mlfq_level[j]) ? i : j;
+    }
+  }
+  return j;
+}
+
+int different_level(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, int lw)
+{
+  int j = lw;
+  for(int i=j+1; i<procs_count; i++)
+  {
+    if(mlfq_level[i] == mlfq_level[j] && mlfq_arrive_time[i] < mlfq_arrive_time[j] && !procs_info[i].on_io)
+    {
+      j = i;
+    }
+  }
+  return j;
+}
+
+int same_level(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, int lw, int last_arrive)
+{
+  int j = lw;
+  for(int i = lw+1; i<procs_count; i++)
+  {
+    if(mlfq_level[i] == mlfq_level[j] && !procs_info[i].on_io)
+    {
+      int i_arrive_time = mlfq_arrive_time[i] + (mlfq_arrive_time[i] < last_arrive) ? curr_time : 0; 
+      int j_arrive_time = mlfq_arrive_time[j] + (mlfq_arrive_time[j] < last_arrive) ? curr_time : 0; 
+
+      if(i_arrive_time < j_arrive_time) j = i;
+    }
+  }
+
+  return j;
+}
+
+int last_index = -1;
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
   if(procs_count == 0) return -1;
+
+  int last_arrive = 0;
+  int last_level = LEVELS + 1;
+  
+  if(last_index != -1)
+  {
+    last_arrive = mlfq_arrive_time[last_index];
+    last_level = mlfq_level[last_index];
+  }
   
   update_mlfq_array(procs_info, procs_count, curr_time);
 
-  // revisar el slice time para actualizar el nivel, el slice y el arrive time
-  if(last_pid == curr_pid && !procs_info[last_pid].on_io)
+  int index = find_index(procs_info, procs_count, curr_pid);
+
+  int lw = lowest_level(procs_info, procs_count);
+
+  if(lw == -1) return -1;
+
+  if(mlfq_slice_time[index] <= 0)
   {
-    if(mlfq_slice_time[last_index] > 0)
-    {
-      // Si cambia el timer interrupt period modificar
-      mlfq_slice_time[last_index] -= 10;
-      return curr_pid;
-    }
-    else if(procs_info[last_index].on_io)
-    {
-      mlfq_level[last_index] = (mlfq_level[last_index] < LEVELS) ? mlfq_level[last_index] + 1 : LEVELS;
-      mlfq_arrive_time[last_index] = curr_time;
-      mlfq_slice_time[last_index] = SLICE_TIME;
-    }
+    mlfq_level[index] = (mlfq_level[index] >= LEVELS) ? LEVELS : mlfq_level[index] + 1;  
+    mlfq_arrive_time[index] = curr_time;
+    mlfq_slice_time[index] = SLICE_TIME;
   }
 
-  // poner a todo el mundo para el primer nivel si estamos en un momento de hacerlo
-  if(curr_time % RESET_TIME == 0)
+  if(curr_time % PRIORITY_BOOST_TIME == 0) priority_boost(procs_count);
+
+  int k = 0;
+  if(last_level != mlfq_level[lw])
   {
-    memset(mlfq_level, 0, sizeof(int) * procs_count);
+    k = different_level(procs_info, procs_count, curr_time, curr_pid, lw);
+  }
+  else
+  {
+    k = same_level(procs_info, procs_count, curr_time, curr_pid, lw, last_arrive);
   }
 
-  // buscar el proximo elemento
-  int pid = -1;
-  int level = LEVELS + 1;
-  int arrive_time = 0;
-  
-  for(int i=0; i<procs_count; i++)
-  {
-    if(procs_info[i].on_io) continue;
-    if(procs_info[i].pid == curr_pid) continue;
+  mlfq_slice_time[k] -= 10;
+  last_index = k;
 
-    if(mlfq_level[i] != last_level)
-    {
-      if(mlfq_level[i] < level)
-      {
-        pid = procs_info[i].pid;
-        level = mlfq_level[i];
-        arrive_time = mlfq_arrive_time[i];
-      }
-      else if(mlfq_arrive_time[i] > arrive_time && mlfq_level[i] == level)
-      {
-        pid = procs_info[i].pid;
-        level = mlfq_level[i];
-        arrive_time = mlfq_arrive_time[i];
-      }
-    }
-    else
-    {
-      if(mlfq_level[i] == level)
-      {
-        int compare = (mlfq_arrive_time[i] < last_arrive_time) ? mlfq_arrive_time[i] + curr_time : mlfq_arrive_time[i];
-        if(compare < arrive_time)
-        {
-          pid = procs_info[i].pid;
-          arrive_time = compare;
-        }
-      }
-      else if(mlfq_level[i] < level)
-      {
-        pid = procs_info[i].pid;
-        level = mlfq_level[i];
-        arrive_time = (mlfq_arrive_time[i] < last_arrive_time) ? mlfq_arrive_time[i] + curr_time : mlfq_arrive_time[i];
-      }
-    }
-  }
-  
-  return (pid != -1) ? pid : curr_pid;
+  return procs_info[k].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
