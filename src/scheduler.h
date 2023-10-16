@@ -8,7 +8,7 @@ schedule_action_t get_scheduler(const char *name);
 
 typedef struct process_queue
 {
-  proc_info_t** processes;
+  proc_info_t* processes;
   int count;
 } process_queue_t;
 
