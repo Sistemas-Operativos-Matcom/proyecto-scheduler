@@ -118,6 +118,13 @@ void cleanInverse(int A[], proc_info_t *procs_info, int procs_count){
   }
 }
 
+proc_info_t findProc(proc_info_t *procs_info, int procs_count, int pid){
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (pid == procs_info[i].pid) return procs_info[i];
+  }
+}
+
 //Creacion de las colas
 int queue1[1000];
 int queue2[1000];
@@ -163,6 +170,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   //Comprueba si todos los procesos estan en alguna cola
   //sino lo incluyo en la primera cola
+
   //recorre el procs_info
   for (int i = 0; i < procs_count; i++)
   {
@@ -227,6 +235,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   //rr en q1
   for (int i = 0; i < countQ1; i++)
   {
+    //printf("q1 ");
+    if (findProc(procs_info, procs_count, queue1[i]).on_io) continue;
     if (curr_time % time_slice == 0 && curr_time % boost != 0){
       if (auxM1 >= countQ1 - 1) auxM1 = 0;
       //queue1[auxM1] se devuelve y baja de cola 
@@ -237,13 +247,16 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       return queue1[auxM1 + 1];
     }
     else if (curr_pid == -1) return queue1[auxM1];
-    if (countQ1 == 1) return queue1[0];
+    if (countQ1 == 1) if (findProc(procs_info, procs_count, queue1[0]).on_io) return queue1[0];
+    if (findProc(procs_info, procs_count, curr_pid).on_io) break;
     return curr_pid;
   }
 
   //rr en q2
   for (int i = 0; i < countQ2; i++)
   {
+    //printf("q2 ");
+    if (findProc(procs_info, procs_count, queue2[i]).on_io) continue;
     if (curr_time % time_slice == 0 && curr_time % boost != 0){
       if (auxM2 >= countQ2 - 1) auxM2 = 0;
 
@@ -255,13 +268,16 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       return queue2[auxM2 + 1];
     }
     else if (curr_pid == -1) return queue2[auxM2];
-    if (countQ2 == 1) return queue2[0];
+    if (countQ2 == 1) if (findProc(procs_info, procs_count, queue2[0]).on_io) return queue2[0];
+    if (findProc(procs_info, procs_count, curr_pid).on_io) break;
     return curr_pid;
   }
 
   //rr en q3
   for (int i = 0; i < countQ3; i++)
   {
+    //printf("q3 ");
+    if (findProc(procs_info, procs_count, queue3[i]).on_io) continue;
     if (curr_time % time_slice == 0 && curr_time % boost != 0){
       if (auxM3 >= countQ3 - 1) auxM3 = 0;
       else auxM3++;
@@ -269,13 +285,17 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       return queue3[auxM3];
     }
     else if (curr_pid == -1) return queue3[auxM3];
-    if (countQ3 == 1) return queue3[0];
+    if (countQ3 == 1) if (findProc(procs_info, procs_count, queue3[0]).on_io) return queue3[0];
+    if (findProc(procs_info, procs_count, curr_pid).on_io) break;
     return curr_pid;
   }
+  for (int i = 0; i < procs_count; i++)
+  {
+    if (findProc(procs_info, procs_count, procs_info[i].pid).on_io) continue;
+    return procs_info[i].pid;
+  }
   
-  clean(queue1);
-  clean(queue2);
-  clean(queue3);
+  return procs_info[0].pid;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -294,3 +314,9 @@ schedule_action_t get_scheduler(const char *name) {
 
 
 
+
+
+
+//ideas para io
+//hacer que el aarray de int sea un array de int, bool
+//
