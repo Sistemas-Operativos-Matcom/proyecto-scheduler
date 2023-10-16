@@ -8,7 +8,7 @@ schedule_action_t get_scheduler(const char *name);
 
 typedef struct process_queue
 {
-  proc_info_t* processes;
+  int* processes;
   int count;
 } process_queue_t;
 
@@ -21,7 +21,7 @@ typedef struct tuple_int
 typedef struct ml_queue
 {
     process_queue_t* process_queue;
-    tuple_int_t *pid_proc;
+    tuple_int_t* pid_proc;
     int process_count;
     int count;
 } ml_queue_t;
