@@ -7,6 +7,7 @@
 
 #include "simulation.h"
 int current_pid_index = 0; // Variable utilizada para saber el ultimo proceso que se ejecuto en Round Robin
+int slice_time = 0;
 
 int mlfq_pid_index = 0;                // Indice correspondiente al ultimo proceso ejecutado en MLFQ
 int mlfq_top_index = 0;                // Cantidad total de procesos activos en MLFQ
@@ -81,6 +82,7 @@ int R_R(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) /
 {
   if (curr_pid == -1) // Si termino un proceso...
   {
+    slice_time = 1;
     if (current_pid_index < procs_count - 1) // Y no es el ultimo, devuelve el proceso con el mismo indice
     {
       return procs_info[current_pid_index].pid;
@@ -88,7 +90,12 @@ int R_R(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) /
     current_pid_index = 0; // Si es el ultimo, devuelve el primer proceso
     return procs_info[0].pid;
   }
-
+  if(slice_time < 5)
+  { 
+    slice_time++;
+    return curr_pid;
+  }
+  slice_time = 1;
   if (current_pid_index < procs_count - 1) // Si el ultimo proceso ejecutado no es el ultimo de la lista, devuelve el siguiente
   {
     return procs_info[current_pid_index + 1].pid;
