@@ -7,6 +7,9 @@
 
 #include "simulation.h"
 
+int time_slice = 0;
+int preview_pid = 0;
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -33,24 +36,89 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) 
+{
+  
+  int min = process_total_time(procs_info[0].pid);
+  int pid_min = procs_info[0].pid;
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
+    for(int i = 1; i < procs_count; i++)
+    {
+         if(process_total_time(procs_info[i].pid) <= min)
+         {
+         pid_min = procs_info[i].pid;
+         }
+    }
+  
+     return pid_min;
 }
+  
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+  
+  int min = process_total_time(procs_info[0].pid);
+  int pid_min = procs_info[0].pid;
+  
+    for(int i = 1; i < procs_count; i++)
+    {
+      
+         if((process_total_time(procs_info[0].pid)-procs_info[i].executed_time)<min)
+         pid_min = i;
+    }
+  
+  
+  return pid_min;
+  
+}
+
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                     int curr_pid) {
+
+  if(time_slice == 5 )
+  {
+    time_slice = 0;
+    if(curr_pid == -1)
+    {
+      if (preview_pid >= procs_count)
+      {
+        preview_pid = 0;
+      return procs_info[0].pid;    
+      }
+      return procs_info[preview_pid].pid;  
+    }
+    else
+    {
+      preview_pid++;
+      if(preview_pid>=procs_count)
+      preview_pid=0;
+      return procs_info[preview_pid].pid;
+    }
+  }
+  else
+  {
+    time_slice++;
+    if(curr_pid == -1)
+    {
+      time_slice = 0;
+
+     if (preview_pid >= procs_count)
+      {
+        preview_pid = 0;
+      return procs_info[0].pid;    
+      }
+      return procs_info[preview_pid].pid;  
+    }
+    else
+    {
+      return curr_pid;
+    }
+    
+  }
+  
+}
+
+
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
@@ -58,7 +126,12 @@ schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
-  if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+
+   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
