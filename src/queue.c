@@ -1,10 +1,11 @@
 #include "queue.h"
 #include <stdio.h>
 
-queue_t InitCola()
+queue_t InitCola(int number)
 {
     queue_t queue;
     queue.count = 0;
+    queue.Number= number;
     return queue;
 }
 int IsEmpty (queue_t queue)
@@ -23,6 +24,10 @@ void push(queue_t *queue,int element)
 }
 void delete (queue_t *queue, int pos)
 {
+    if (pos == queue->count -1)
+    {
+
+    }
     for (size_t i = pos; i < queue->count-1; i++)
     {
         queue->list[i]=queue->list[i+1];

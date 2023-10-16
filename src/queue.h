@@ -5,9 +5,10 @@ typedef struct
 {
     int list[MAX];
     int count;
+    int Number;
 }queue_t;
 
-queue_t InitCola();
+queue_t InitCola(int number);
 int IsFull(queue_t cola);
 int IsEmpty(queue_t cola);
 void push(queue_t *cola,int element);

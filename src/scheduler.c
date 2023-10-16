@@ -60,9 +60,9 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
 {
-  queue_0 = InitCola();
-  queue_1 = InitCola();
-  queue_2 = InitCola();
+  queue_0 = InitCola(0);
+  queue_1 = InitCola(1);
+  queue_2 = InitCola(2);
   if (curr_pid == -1)
     return sjf_scheduler(procs_info, procs_count, curr_time, curr_pid);
   int time;
@@ -100,23 +100,12 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 int rr_schedulerplus(queue_t *queue, int procs_count, int curr_time,
-                     int curr_pid)
-{
-  int final;
-  if (iterador < procs_count)
-  {
-    final = queue->list[iterador];
-    iterador++;
-    return final;
-  }
-  iterador = 1;
-  return queue->list[0];
-}
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                   int curr_pid)
+                     int curr_pid, proc_info_t *procs_info)
 {
   int time;
-  int number = -3;
+  int final;
+  int element;
+   //cambiar de nivel cuando se haya cumplido el time slice
   if (curr_pid != -1)
   {
     for (size_t i = 0; i < procs_count; i++)
@@ -129,10 +118,33 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     }
     if(time %20 ==0 )
     {
-
+      if(queue->Number>0)
+      {
+        element = pop(queue,curr_pid);
+         if(queue->Number-1 == 0)
+         {
+          push(&queue_0,curr_pid);
+          curr_pid= -1;
+         }
+         push(queue,curr_pid);
+         curr_pid =-1;
+      }
     }
   }
-
+  if (iterador < procs_count)
+  {
+    final = queue->list[iterador];
+    iterador++;
+    return final;
+  }
+  iterador = 1;
+  return queue->list[0];
+}
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
+                   int curr_pid)
+{
+  
+  int number = -3;
   int process = procs_info[0].pid;
   // actualizo las colas
   for (size_t i = 0; i < procs_count; i++)
@@ -189,7 +201,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     }
   }
 
-  return rr_schedulerplus(&queue_2, queue_2.count, curr_time, curr_pid);
+  return rr_schedulerplus(&queue_2, queue_2.count, curr_time, curr_pid,procs_info);
 }
 
 // Información que puedes obtener de un proceso
