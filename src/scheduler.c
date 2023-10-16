@@ -53,11 +53,16 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   return -1;
 }
+
+const int time_slice = 3 * 10;
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                  int curr_pid)
 {
-  // int time_slice = 1 * 10;
   if (curr_pid == -1)
+    return procs_info[0].pid;
+
+  if (procs_count == 1)
     return procs_info[0].pid;
 
   int active_pr_count = 0;
@@ -68,19 +73,19 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       active_pr_count += 1;
   }
 
-  int *active_process = (int *)malloc(active_pr_count * sizeof(int));
+  proc_info_t *active_process = (proc_info_t *)malloc(active_pr_count * sizeof(proc_info_t));
   int curr = 0;
 
   for (int idx = 0; idx < procs_count; idx++)
     if (procs_info[idx].executed_time <= process_total_time(procs_info[idx].pid))
-      active_process[curr++] = procs_info[idx].pid;
+      active_process[curr++] = procs_info[idx];
 
   for (int idx = 0; idx < active_pr_count; idx++)
-    if (active_process[idx] == curr_pid)
-      return active_process[(idx + 1) % procs_count];
+    if (active_process[idx].pid == curr_pid && active_process[idx].executed_time % time_slice == 0)
+      return active_process[(idx + 1) % procs_count].pid;
 
-  // return active_process[0];
-  // fprintf(stderr, "RR scheduler Not Implemented ");
+  // Return same pid if process is still in  it's time slice execution time
+  return curr_pid;
 }
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
