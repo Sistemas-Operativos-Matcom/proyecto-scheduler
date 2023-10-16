@@ -56,6 +56,7 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
 }
 
 typedef struct queue{
+  int id;
   int length;
   proc_info_t *processes_info;
   void (*dequeue)(proc_info_t process, struct queue *q);
@@ -82,17 +83,17 @@ void dequeue(proc_info_t process, struct queue *queue)
       }
     }
   }
-  // queue->length -= 1; 
 }
 
-queue_t queue_init(int max_procs)
+queue_t queue_init(int max_procs, int id)
 {
-  queue_t q0;
-  q0.length = 0;
-  q0.processes_info = (proc_info_t*)malloc(max_procs * sizeof(proc_info_t));
-  q0.push = push;
-  q0.dequeue = dequeue;
-  return q0;
+  queue_t q;
+  q.id = id;
+  q.length = 0;
+  q.processes_info = (proc_info_t*)malloc(max_procs * sizeof(proc_info_t));
+  q.push = push;
+  q.dequeue = dequeue;
+  return q;
 }
 
 // queue_t queue = (queue_t *)malloc(sizeof(queue_t));
@@ -152,7 +153,7 @@ void init_queues(int procs_count)
   int i;
   for(i = 0; i < queuesQuant; i++)
   {
-    queues[i] = queue_init(procs_count);
+    queues[i] = queue_init(procs_count, i);
   }
 }
 
@@ -184,6 +185,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   {
     timeToBoost--;
   }
+
+
   //If there is a new process is the last one in procs_info list
   if(procs_count > enqueued_processes_quant)
   {
@@ -218,7 +221,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       for(int j = 0; j < queues[i].length; j++)
       {
         // Put in next queue in priority order
-        if(queues[i].processes_info[j].executed_time == 0)
+        if(queues[i].processes_info[j].executed_time >= 50)
         {
           if(i < queuesQuant)
           {
