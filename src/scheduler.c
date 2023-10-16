@@ -13,39 +13,8 @@ int *pid_save;
 
 int pid_save_size = 0;
 
-int s=5;
 
 
-int check_PID(proc_info_t *procs_info, int count, int act_proc_PID){
-
-for (size_t i = 0; i < count; i++)
-{
-  if(procs_info[i].pid==act_proc_PID){
-    return 1;
-  }
-}
-
-return 0;
-
-}
-
-void sort(proc_info_t *procs_info,int procs_count){
-
-for (size_t i = 0; i < procs_count; i++)
-       {
-        for (size_t j = i+1; i < procs_count; j++)
-        {
-          if( process_total_time(procs_info[i].pid)> process_total_time(procs_info[j].pid)){
-            proc_info_t swap = procs_info[i];
-            procs_info[i]=procs_info[j];
-            procs_info[i]=swap;
-          }
-        }
-        
-       }
-
-
-}
 
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -97,55 +66,60 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
 
-if (check_PID(procs_info,procs_count,act_proc))
-{
-  return act_proc;
-}
+for (int p = 0; p < procs_count; p++)
+  {
+    if(act_proc==procs_info[p].pid)
+    {
+      return act_proc;
+    }
+  }
 
-// proc_info_t *procs_info_copy =procs_info;
 
-//        for (size_t i = 0; i < procs_count; i++)
-//        {
-//         for (size_t j = i+1; i < procs_count; j++)
-//         {
-//           if( process_total_time(procs_info_copy[i].pid)> process_total_time(procs_info_copy[j].pid)){
-//             proc_info_t swap = procs_info_copy[i];
-//             procs_info_copy[i]=procs_info_copy[j];
-//             procs_info_copy[i]=swap;
-//           }
-//         }
-        
-//        }
+int min_time= process_total_time(procs_info[0].pid);
+int min_pid;
 
-sort(procs_info,procs_count);
+       for (int i = 1; i < procs_count; i++)
+       {
+      
+         if((process_total_time(procs_info[i].pid))<min_time)
+         {
 
-act_proc=procs_info[0].pid;
-return act_proc;
+          min_time=process_total_time(procs_info[i].pid);
+          min_pid=procs_info[i].pid;
 
+         }     
+       }
+
+       act_proc= min_pid;
+
+       return min_pid;
 
 }
 
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
 
-      //  proc_info_t *procs_info_copy =procs_info;
+  
+  
 
-      //  for (size_t i = 0; i < procs_count; i++)
-      //  {
-      //   for (size_t j = i+1; i < procs_count; j++)
-      //   {
-      //     if( process_total_time(procs_info_copy[i].pid)> process_total_time(procs_info_copy[j].pid)){
-      //       proc_info_t swap = procs_info_copy[i];
-      //       procs_info_copy[i]=procs_info_copy[j];
-      //       procs_info_copy[i]=swap;
-      //     }
-      //   }
-        
-      //  }
+int min_time= process_total_time(procs_info[0].pid)-procs_info[0].executed_time;
+int min_pid;
 
-sort(procs_info,procs_count);
+       for (int i = 1; i < procs_count; i++)
+       {
+      
+         if((process_total_time(procs_info[i].pid)-procs_info[i].executed_time)<min_time)
+         {
 
-       return procs_info[0].pid;
+          min_time=process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
+          min_pid=procs_info[i].pid;
+
+         }     
+       }
+
+       
+       
+       return min_pid;
            
 }
 
