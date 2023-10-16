@@ -1,5 +1,4 @@
 #include "scheduler.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +32,72 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+
+int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+
+  int i;
+  int t0 = process_total_time(procs_info[0].pid);
+  int pid = procs_info[0].pid;
+  int t1;
+  for (i = 0; i < procs_count - 1; i++) {
+    t1 = process_total_time(procs_info[i].pid);
+    if(t1 < t0){
+      t0 = t1;
+      pid = procs_info[i].pid;
+    }
+  }
+    
+  return pid;
+}
+
+int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+
+  int i;
+  int t0 = process_total_time(procs_info[0].pid);
+  int pid = procs_info[0].pid;
+  int t1;
+  for (i = 0; i < procs_count - 1; i++) {
+      t1 = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
+      if(t1 < t0){
+        t0 = t1;
+        pid = procs_info[i].pid;
+      }
+  }
+    
+    return pid;
+}
+
+
+int slice = 0;
+int procs_index = 0;
+int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+
+  if(curr_pid != -1){
+    if(slice < 3){
+      slice++;
+      return curr_pid;
+    }else{
+      slice = 0;
+      if(procs_index < procs_count - 1){
+        procs_index++;
+        return procs_info[procs_index].pid;
+      }else{
+        procs_index = 0;
+        return procs_info[procs_index].pid;
+      }
+    }
+  }else{
+    slice = 0;
+    if(procs_index < procs_count - 1){
+      return procs_info[procs_index].pid;
+    }else{
+      procs_index = 0;
+      return procs_info[procs_index].pid;
+    }
+  }
+}
+
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -59,6 +124,9 @@ schedule_action_t get_scheduler(const char *name) {
   // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
+  if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
+  if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
+  if (strcmp(name, "rr") == 0) return *rr_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
