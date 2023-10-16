@@ -109,7 +109,6 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 if(procs_count == 0)return -1;
 
 if(curr_pid != -1){
-  printf("mayor");
   for(int c = 0 ;c < procs_count;c++){ //encontrar el proceso actual
     if(procs_info[c].pid == curr_pid ){
       current = c ;
@@ -119,9 +118,8 @@ if(curr_pid != -1){
   last_process = current;
 
 }else{
-  printf("menor");
-  if(last_process == 0){
-  //si el anterior era el primer proceso entonces buscar el primero que este disponible
+  if(last_process == 0 || last_process >= procs_count){
+  //si el anterior era el primer proceso o el ultimo entonces buscar el primero que este disponible
   for(int c = 0;c < procs_count;c++ ){
 
     if(procs_info[c].on_io == 0 && process_total_time(procs_info[c].pid) - procs_info[c].executed_time >= 0){
@@ -141,7 +139,6 @@ if(curr_pid != -1){
 
 
 if(curr_time % 50 == 0 || procs_info[current].on_io == 1 || process_total_time(procs_info[current].pid) - procs_info[current].executed_time < 0 || curr_pid < 0){
-printf("time");
  int found = 0;//variable que determina si se encontro un proceso que no esta en IO a la derecha
 
   if(current + 1 < procs_count){
