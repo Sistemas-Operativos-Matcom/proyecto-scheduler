@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "array": "c",
+        "deque": "c",
+        "vector": "c",
+        "string_view": "c",
+        "__split_buffer": "c",
+        "queue": "c"
+    }
+}
