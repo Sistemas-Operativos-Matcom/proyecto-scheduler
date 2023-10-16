@@ -289,7 +289,6 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
     {
         return -1;
     }
-
     /*
     from all the processes that are in my queue run the one who has less remaining time and it's not on i/o mode.
     */
@@ -309,7 +308,8 @@ int my_preemptitive_shortest_job_first(proc_info_t *procs_info, int procs_count,
             }
         }
         int asummption = process_total_time(actual_pid) - procs_info[j].executed_time;
-        if ((asummption <= min_time))
+        printf(" pid:%d t:%d ", my_array[i], asummption);
+        if ((asummption < min_time))
         {
             min_time = asummption;
             answer_pid = my_array[i];
