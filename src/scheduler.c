@@ -102,11 +102,10 @@ schedule_action_t get_scheduler(const char *name)
             array_queues[i] = malloc(sizeof(struct process_mlfq) * MAX_SIZE);
             arrays_len[i] = 0;
         }
-        int start_priority = 10;
+        int start_priority = 8;
         for (int i = 0; i < NUMBER_QUEUES; i++)
         {
-            priority_queues[i] = 2 * start_priority;
-            start_priority = priority_queues[i];
+            priority_queues[i] = start_priority;
         }
         return *my_mlfq;
     }
