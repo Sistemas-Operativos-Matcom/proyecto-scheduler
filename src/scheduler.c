@@ -13,7 +13,6 @@ queue_t queue_0;
 queue_t queue_1;
 queue_t queue_2;
 
-
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -101,7 +100,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 int rr_schedulerplus(queue_t *queue, int procs_count, int curr_time,
-                 int curr_pid)
+                     int curr_pid)
 {
   int final;
   if (iterador < procs_count)
@@ -116,61 +115,81 @@ int rr_schedulerplus(queue_t *queue, int procs_count, int curr_time,
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid)
 {
+  int time;
   int number = -3;
+  if (curr_pid != -1)
+  {
+    for (size_t i = 0; i < procs_count; i++)
+    {
+      if (procs_info[i].pid == curr_pid)
+      {
+        time = procs_info[i].executed_time;
+        break;
+      }
+    }
+    if(time %20 ==0 )
+    {
+
+    }
+  }
+
   int process = procs_info[0].pid;
-  //actualizo las colas
+  // actualizo las colas
   for (size_t i = 0; i < procs_count; i++)
   {
+    number = -3;
+
     process = procs_info[i].pid;
-    for (size_t j = 0; j < queue_0.count; i++)
+    for (size_t j = 0; j < queue_0.count; j++)
     {
       if (process == queue_0.list[j])
       {
+        printf("cola 0");
         number = 0;
         break;
       }
     }
-    if (!number == 0)
+    if (number != 0)
     {
-      for (size_t k = 0; k < queue_1.count; i++)
+      for (size_t k = 0; k < queue_1.count; k++)
       {
         if (process == queue_1.list[k])
         {
+          printf("cola 1");
           number = 0;
           break;
         }
       }
     }
 
-    if (!number == 0)
+    if (number != 0)
     {
-      for (size_t l = 0; l < queue_2.count; i++)
+      for (size_t l = 0; l < queue_2.count; l++)
       {
         if (process == queue_2.list[l])
         {
+          //printf("cola 2");
           number = 0;
           break;
         }
       }
     }
-    if (!number == 0)
+    if (number != 0)
     {
       push(&queue_2, process);
+      printf("bb");
     }
-    
   }
-  //elimino los procesos anteriores
-  for (size_t m = 0; m< queue_0.count; m++)
+  // elimino los procesos anteriores
+  for (size_t m = 0; m < queue_0.count; m++)
   {
-    //int process1= queue_0.list[m];
+    // int process1= queue_0.list[m];
     for (size_t i = 0; i < procs_count; i++)
     {
-      
     }
-    
   }
-  
-  return rr_schedulerplus(&queue_2,queue_2.count,curr_time,curr_pid);
+
+  return rr_schedulerplus(&queue_2, queue_2.count, curr_time, curr_pid);
 }
 
 // Información que puedes obtener de un proceso
