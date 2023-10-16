@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
 #include "simulation.h"
 
@@ -76,7 +77,7 @@ for (int p = 0; p < procs_count; p++)
 
 
 int min_time= process_total_time(procs_info[0].pid);
-int min_pid;
+int min_pid=-1;
 
        for (int i = 1; i < procs_count; i++)
        {
@@ -99,13 +100,13 @@ int min_pid;
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
 
-  
+  if (procs_count == 0) return -1;
   
 
 int min_time= process_total_time(procs_info[0].pid)-procs_info[0].executed_time;
-int min_pid;
+int min_pid=-1;
 
-       for (int i = 1; i < procs_count; i++)
+       for (int i = 0; i < procs_count; i++)
        {
       
          if((process_total_time(procs_info[i].pid)-procs_info[i].executed_time)<min_time)
@@ -120,7 +121,8 @@ int min_pid;
        
        
        return min_pid;
-           
+
+ 
 }
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid){
@@ -135,6 +137,7 @@ for (size_t i = 0; i < pid_save_size; i++)
 }
 
 pid_save= malloc(procs_count * sizeof(int));
+
 int aux_size= pid_save_size;
 pid_save_size=procs_count;
 
