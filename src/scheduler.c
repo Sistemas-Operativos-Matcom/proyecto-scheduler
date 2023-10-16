@@ -45,7 +45,7 @@ int get_index(proc_info_t *procs_info, int procs_count, int pid)
 void io_remover(proc_info_t *procs_info, int *procs_count)
 {
   int procs_not_on_io_count = 0;
-  proc_info_t *procs_not_on_io_info = malloc(sizeof(proc_info_t) * (*procs_count));
+  proc_info_t procs_not_on_io_info[*procs_count];
   int proc_index = 0;
 
   for (int c = 0; c < (*procs_count); c++)
@@ -59,6 +59,10 @@ void io_remover(proc_info_t *procs_info, int *procs_count)
 
   // free(procs_info);
   // procs_info = malloc(procs_not_on_io_count * sizeof(proc_info_t));
+  //for(int c=0; c<procs_not_on_io_count; c++)
+  //{
+  //  procs_info[c] = procs_not_on_io_info[c];
+  //}
   memcpy(procs_info, procs_not_on_io_info, procs_not_on_io_count * sizeof(proc_info_t));
   *procs_count = procs_not_on_io_count;
 }
@@ -171,9 +175,89 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     rrindex++;
     rrindex %= procs_count;
     selected_proc = procs_info[rrindex].pid;
+    //printf("sc%d\n",selected_proc);
   }
 
   return selected_proc;
+}
+
+int priority[100000];
+int cpu_time[100000];
+int max_cpu_time_allowed = 5 * 10;
+int boost_time = 10 * 10;
+// Multi-level Feedback Queue
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  //for(int c=0; c<procs_count; c++)
+  //{
+  //  printf(" %d,", procs_info[c].pid);
+  //}
+  //printf("\n");
+
+  for (int c = 0; c < procs_count; c++)
+  {
+    int proc_pid = procs_info[c].pid;
+    if (!procs_info[c].on_io)
+    {
+      cpu_time[proc_pid] += 10; // a.k.a += timer_interrupt;
+    }
+    if (cpu_time[proc_pid] >= max_cpu_time_allowed)
+    {
+      priority[proc_pid]++;
+      cpu_time[proc_pid] = 0;
+    }
+  }
+
+  if (curr_time % boost_time == 0)
+  {
+    for (int c = 0; c < procs_count; c++)
+    {
+      int proc_pid = procs_info[c].pid;
+      priority[proc_pid] = 0;
+      cpu_time[proc_pid] = 0;
+    }
+  }
+
+  io_remover(procs_info, &procs_count);
+  if(procs_count == 0)
+    return -1;
+
+  int min_priority = 1e9;
+  int same_priority_amount = 0;
+  for (int c = 0; c < procs_count; c++)
+  {
+    int proc_pid = procs_info[c].pid;
+    if (priority[proc_pid] < min_priority)
+    {
+      min_priority = priority[proc_pid];
+      same_priority_amount = 0;
+    }
+    if (priority[proc_pid] == min_priority)
+    {
+      same_priority_amount++;
+    }
+  }
+
+  proc_info_t high_priority_procs[same_priority_amount];
+  int hppindex = 0;
+  for (int c = 0; c < same_priority_amount; c++)
+  {
+    int proc_pid = procs_info[c].pid;
+    if(priority[proc_pid] == min_priority)
+    {
+      high_priority_procs[hppindex++] = procs_info[c];
+    }
+  }
+
+  //for(int c=0; c<same_priority_amount; c++)
+  //{
+  //  printf(" %d,", high_priority_procs[c].pid);
+  //}
+
+  if(same_priority_amount > 0)
+    return rr_scheduler(high_priority_procs, same_priority_amount, curr_time, curr_pid);
+  else
+    return fifo_scheduler(procs_info, procs_count, curr_time, curr_pid);
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -191,6 +275,8 @@ schedule_action_t get_scheduler(const char *name)
     return *stcf_scheduler;
   else if (strcmp(name, "rr") == 0)
     return *rr_scheduler;
+  else if (strcmp(name, "mlfq") == 0)
+    return *mlfq_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
