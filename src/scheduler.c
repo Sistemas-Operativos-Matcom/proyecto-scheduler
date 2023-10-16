@@ -7,6 +7,29 @@
 
 #include "simulation.h" 
 
+typedef struct tuple
+{
+  int pid;
+  int own_slice_time;
+}Tuple;
+
+//cola mayor prioridad
+struct Tuple queue_2[MAX_PROCESS_COUNT];
+int count_queue_2 = 0;
+
+//cola media prioridad
+struct Tuple queue_1[MAX_PROCESS_COUNT];
+int count_queue_1 = 0;
+
+//cola menor prioridad
+struct Tuple queue_0[MAX_PROCESS_COUNT];
+int count_queue_0 = 0;
+
+Tuple* pointer_q2 = &queue_2;
+Tuple* pointer_q1 = &queue_1;
+Tuple* pointer_q0 = &queue_0;
+
+
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
 //
@@ -93,11 +116,200 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   return procs_info[0].pid;
 }  
 
-int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+
+
+
+
+int find_new_process(int pid)
 {
+ 
+  for (int i = 0; i < count_queue_2; i++)
+  {
+    if(pointer_q2 [i].pid != pid) continue;
+    return 2;
+  }
+
+  for (int i = 0; i < count_queue_1; i++)
+  {
+    if(pointer_q1[i].pid != pid) continue;
+    return 1;
+  }
+
+  for (int i = 0; i < count_queue_0; i++)
+  {
+    if(pointer_q0[i].pid != pid) continue;
+    return 0;
+  }
+    
+  return -1;  
+}
+
+int find_old_process(proc_info_t *procs_info, int procs_count, int pid)
+{
+  for (int i = 0; i < procs_count; i++)
+  {
+    if(procs_info[i].pid == pid) return i;
+  }
+  return -1;  
+}
+
+void priority_boost()
+{
+  for (int i = count_queue_2 - 1; i >= 0; i--)
+  {    
+    pointer_q2[i + count_queue_0 + count_queue_1] = pointer_q2[i];
+  }
+
+  for (int i = 0; i < count_queue_0; i++)
+  {
+    pointer_q2[i] = pointer_q0[i];
+    pointer_q0[i].own_slice_time = 0;
+    pointer_q0[i].pid = 0;
+  }
+
+  for (int i = 0; i < count_queue_1; i++)
+  {
+    pointer_q2[i + count_queue_0] = pointer_q1[i];
+    pointer_q1[i].own_slice_time = 0;
+    pointer_q1[i].pid = 0;
+  }
+
+  count_queue_0 = 0;
+  count_queue_1 = 0;
+}
+
+int get_position(Tuple *queue, int count_queue, int pid)
+{
+
+  for (int i = 0; i < count_queue; i++)
+  {
+    if(queue[i].pid == pid) return i;  
+  }
+
+}
+
+void delete_procs_from_queue(Tuple *queue, int count_queue, int pos)
+{
+
+  for (int i = pos; i < count_queue - 1; i++)
+  {
+    queue[i] = queue[i + 1];
+  }
+  if(queue == pointer_q2) count_queue_2 -= 1;
+  else if (queue == pointer_q1) count_queue_1 -= 1;
   
 }
 
+
+
+
+int rr_for_mlfq_scheduler(proc_info_t *procs_info, int procs_count, Tuple *queue, int queue_count)
+{
+  for (int i = 0; i < queue_count; i++)
+  {
+    if(queue[i].own_slice_time == 40)
+    {
+
+      if(count_queue_1 == 0 && count_queue_2 == 0) return queue[i].pid;
+
+
+      if(queue == pointer_q2) 
+      {
+        pointer_q1[count_queue_1] = queue[i];
+        pointer_q1[count_queue_1].own_slice_time = 0;
+        pointer_q1[count_queue_1].pid = queue[i].pid;
+        count_queue_1 += 1;
+        delete_procs_from_queue(queue, queue_count, i);
+      }
+
+        if(queue == pointer_q1)
+      { 
+        pointer_q0[count_queue_0] = queue[i];
+        pointer_q0[count_queue_0].own_slice_time = 0;
+        pointer_q0[count_queue_0].pid = queue[i].pid;
+        count_queue_0 += 1;
+        delete_procs_from_queue(queue, queue_count, i);
+      } 
+      continue;      
+    }
+
+    for (int j = 0; j < procs_count; j++)
+    {
+      if(procs_info[j].pid == queue[i].pid)
+      {
+        if(!procs_info[j].on_io)
+        {
+          queue[i].own_slice_time += 10;
+          return queue[i].pid;
+        }
+      }
+    }
+  }
+  
+  queue[0].own_slice_time += 10;
+  return queue[0].pid;
+} 
+
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+
+  //se eliminan de las colas los procesos que ya terminaron de ejecutarse
+
+  for (int i = 0; i < count_queue_2; i++)
+  {
+    if(find_old_process(procs_info, procs_count, pointer_q2[i].pid) == -1)
+    {
+      delete_procs_from_queue(pointer_q2, count_queue_2, i);
+    }
+  }
+
+  for (int i = 0; i < count_queue_1; i++)
+  {
+    if(find_old_process(procs_info, procs_count, pointer_q1[i].pid) == -1)
+    {
+      delete_procs_from_queue(pointer_q1, count_queue_1, i);
+    }
+  }
+
+  for (int i = 0; i < count_queue_0; i++)
+  {
+    if(find_old_process(procs_info, procs_count, pointer_q0[i].pid) == -1)
+    {
+      delete_procs_from_queue(pointer_q0, count_queue_0, i);
+    }
+  }
+
+  //se incorporan a la cola de mayor prioridad los procesos nuevos (si hay)
+  for (int i = 0; i < procs_count; i++)
+  {
+    if(find_new_process(procs_info[i].pid) == -1)
+    {
+      for (int i = count_queue_2 - 1; i >= 0; i--)
+      {
+        pointer_q2[i + 1] = pointer_q2[i];
+      }
+      pointer_q2[0].pid = procs_info[i].pid;
+      pointer_q2[0].own_slice_time = 0;
+      count_queue_2 += 1;      
+    }
+  }
+
+
+  // boost_time = 120
+  if(curr_time % 120 == 0)
+  {
+    priority_boost;
+    return rr_for_mlfq_scheduler(pointer_q2, count_queue_2, curr_time, curr_pid);    
+  }
+  if(count_queue_2 != 0) return rr_for_mlfq_scheduler(procs_info, procs_count, pointer_q2, count_queue_2);
+  if(count_queue_1 != 0) return rr_for_mlfq_scheduler(procs_info, procs_count, pointer_q1, count_queue_1);
+  if(count_queue_0 != 0) return rr_for_mlfq_scheduler(procs_info, procs_count, pointer_q0, count_queue_0);
+
+  return -1;
+  
+  
+}
+      
 
 
 
@@ -133,6 +345,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
