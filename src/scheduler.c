@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <limits.h>
 #include "simulation.h"
 
 // La función que define un scheduler está compuesta por los siguientes
@@ -34,29 +34,29 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
-
   int i;
-  int t0 = process_total_time(procs_info[0].pid);
-  int pid = procs_info[0].pid;
+  int t0 = INT_MAX; // Inicializar con un valor máximo
+  int pid = -1; // Inicializar con un valor inválido
   int t1;
-  for (i = 0; i < procs_count - 1; i++) {
+  
+  for (i = 0; i < procs_count; i++) {
     t1 = process_total_time(procs_info[i].pid);
-    if(t1 < t0){
+    if (t1 < t0) {
       t0 = t1;
       pid = procs_info[i].pid;
     }
   }
-    
+  
   return pid;
 }
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
   int i;
-  int t0 = process_total_time(procs_info[0].pid);
-  int pid = procs_info[0].pid;
+  int t0 = INT_MAX;
+  int pid = -1;
   int t1;
-  for (i = 0; i < procs_count - 1; i++) {
+  for (i = 0; i < procs_count; i++) {
       t1 = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
       if(t1 < t0){
         t0 = t1;
