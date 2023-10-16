@@ -1,6 +1,6 @@
 .PHONY: mlfq_s
 mlfq_s:
-	./test_single.sh ./test_cases/case_501.txt mlfq g
+	./test_single.sh ./test_cases/case_497.txt mlfq g
 
 
 .PHONY: mlfq
