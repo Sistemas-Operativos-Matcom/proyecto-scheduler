@@ -133,24 +133,11 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   if (procs_count == 1)
     return procs_info[0].pid;
-  
-   int active_pr_count = 0;
+
 
   for (int idx = 0; idx < procs_count; idx++)
-  {
-      active_pr_count += 1;
-  }
-
-  proc_info_t *active_process = (proc_info_t *)malloc(active_pr_count * sizeof(proc_info_t));
-  int curr = 0;
-
-  for (int idx = 0; idx < procs_count; idx++)
-    if (procs_info[idx].executed_time <= process_total_time(procs_info[idx].pid))
-      active_process[curr++] = procs_info[idx];
-
-  for (int idx = 0; idx < active_pr_count; idx++)
-    if (active_process[idx].pid == curr_pid && active_process[idx].executed_time % time_slice == 0 && active_process[idx].executed_time)
-      return active_process[(idx + 1) % procs_count].pid;
+    if (procs_info[idx].pid == curr_pid && procs_info[idx].executed_time % time_slice == 0 && procs_info[idx].executed_time)
+      return procs_info[(idx + 1) % procs_count].pid;
 
   // Return same pid if process is still in  it's time slice execution time
   return curr_pid;
