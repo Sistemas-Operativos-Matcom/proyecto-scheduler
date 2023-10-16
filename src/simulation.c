@@ -49,6 +49,8 @@ static void fill_proc_info(proc_execution_t *proc_exec,
   proc_info->pid = proc_exec->pid;
   proc_info->on_io = proc_exec->state == ON_IO;
   proc_info->executed_time = proc_exec->executed_time;
+  proc_info->priority = &proc_exec->priority;
+  proc_info->cpu_time = &proc_exec->cpu_time;
 }
 
 static int update_process(proc_execution_t *process_exec, int curr_time) {
