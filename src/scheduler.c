@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "simulation.h"
+#include "rrlist.h"
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -86,6 +87,32 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   return procs_info[0].pid;
 }
 
+int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+  static int slice_time = 1;
+  static int index = 0 ;
+
+  if(index >= procs_count) index = 0;
+
+  if(curr_pid == -1)
+  {
+    slice_time = 1;
+    return procs_info[index].pid;
+  }
+  else if(slice_time <= 3) 
+  {
+    slice_time++;
+    return procs_info[index].pid;
+  }
+  else
+  {
+    if(index + 1 < procs_count) index++;
+    else index=0;
+    slice_time = 1;
+    return procs_info[index].pid;
+  }
+}
+
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
@@ -105,8 +132,6 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return -1;
 }
 
-// Esta función devuelve la función que se ejecutará en cada timer-interrupt
-// según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
@@ -114,11 +139,7 @@ schedule_action_t get_scheduler(const char *name) {
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   else if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   else if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  else if (strcmp(name, "rr") == 0) return *round_robin_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
