@@ -7,20 +7,17 @@
 #include <limits.h>
 
 #include "simulation.h"
+
 #define TIME_SLICE 50
 #define PRIORITY_BOOST 500
+
 struct Dupla
 {
   int pid;
   int time_remaining;
 };
 
-/*Round Robin*/
-int position = 0;
-int proc_init_time;
-/*MLFQ*/
-int lastarrival = 0;
-int proc_init_time;
+
 
 // La función que define un scheduler está compuesta por los siguientes
 // parámetros:
@@ -47,6 +44,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
+
 int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   int minimal_time = INT_MAX;
@@ -80,6 +78,10 @@ int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return return_pid;
 }
 
+/*Round Robin*/
+int position = 0;
+int proc_init_time;
+
 int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
                    int curr_pid) {
   if (curr_pid == -1)
@@ -96,7 +98,7 @@ int Round_Robin(proc_info_t *procs_info, int procs_count, int curr_time,
 
 
 
-
+/*MLFQ*/
 //variables para la cola de prioridad alta
 struct Dupla hp_queue[MAX_PROCESS_COUNT];//cola
 //  tiempo inicio, posicion y cantidad de procesos de esta cola
@@ -123,6 +125,7 @@ int pos_pid(proc_info_t *procs_info, int procs_count,int pid)
   }
   return pos;  
 }
+
 //Devuelve la posición de un proceso en la cola.si no se encuentra devuelve -1
 int pos_queue(struct Dupla *queue, int procs_count,int pid)
 {
@@ -142,50 +145,6 @@ void del_pid(struct Dupla *procs_info, int procs_count,int pos_pid)
 {
   for (int i = pos_pid; i < procs_count-1;i++)
     procs_info[i] = procs_info[i+1];
-}
-
-int rr_universal1(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid,
-                     int *proc_init_time, int *position) {
-  int temp = 0;
-  printf("%d\n",curr_pid);
-  if (curr_pid == -1){
-      //printf("*************");
-      *proc_init_time = curr_time;
-      do {
-        if (!procs_info[*position].on_io)
-            return procs_info[*position].pid;
-        else
-            *position = *position +1;
-        if (*position >= procs_count)
-          *position=0;
-        if (temp >= procs_count){
-            *proc_init_time = -1;
-            return -1;
-        }
-        temp++;
-       
-      } while(1);
-     
-  }
-
-  else  if(curr_time - *proc_init_time >= TIME_SLICE){
-      *position = *position +1;
-      *proc_init_time = curr_time;
-      do {
-        if (!procs_info[*position].on_io)
-            return procs_info[*position].pid;
-        else
-            *position = *position +1;
-        if (*position >= procs_count)
-          *position=0;
-        if (temp >= procs_count){
-            *proc_init_time = -1;
-            return -1;
-        }
-        temp++;
-      } while(1);
-  }
-  return -1;
 }
 
 int next_proc(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid, struct Dupla *queue, int queue_procs_count,int *proc_init_time,int *position){
@@ -316,47 +275,7 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       }
     }
  
-    /*Buscamos cada uno de los procesos en que cola se encuentra y le bajamos la prioridad si no esta en io o le subimos la prioridad si esta en io
-    for (int i = 0; i < procs_count;i++){//para cada uno de los procesos
-      //lo buscamos en las tres colas
-      hp_pos = pos_pid(hp_queue, hp_procs_count,procs_info[i].pid);
-      mp_pos = pos_pid(mp_queue, mp_procs_count,procs_info[i].pid);
-      lp_pos = pos_pid(lp_queue, lp_procs_count,procs_info[i].pid);
-      if (hp_pos>=0){//si esta en la de alta prioridad
-          if (!procs_info[i].on_io){//y no esta haciendo io
-              mp_queue[mp_procs_count]=procs_info[i];//lo pasamos a la cola de prioridad media
-              mp_procs_count++;
-              del_pid(hp_queue, hp_procs_count,hp_pos);
-              hp_procs_count--;
-          }
-      }
-      else if (mp_pos>=0){//si esta en la de prioridad alta
-          if (!procs_info[i].on_io){//y no esta haciendo io
-              lp_queue[lp_procs_count]=procs_info[i];//lo pasamos a la cola de prioridad baja
-              lp_procs_count++;
-              del_pid(mp_queue, mp_procs_count,mp_pos);
-              mp_procs_count--;
-          }
-          else{//si esta en io, lo pasamos a la cola de prioridad alta
-              hp_queue[hp_procs_count]=procs_info[i];
-              hp_procs_count++;
-              del_pid(mp_queue, mp_procs_count,mp_pos);
-              mp_procs_count--;  
-          }
-      }
-      else if (lp_pos>=0){//si esta en la de prioridad baja
-          if (procs_info[i].on_io){//si esta en io, lo pasamos a la cola de prioridad alta
-              hp_queue[hp_procs_count]=procs_info[i];
-              hp_procs_count++;
-              del_pid(lp_queue, lp_procs_count,lp_pos);
-              lp_procs_count--;  
-          }
-      }
-      else{//si no esta en ninguna de las colas, significa que es un proceso nuevo y lo ponemos en la cola de prioridad alta
-          hp_queue[hp_procs_count]=procs_info[i];
-          hp_procs_count++;
-      }
-    }*/
+    
    /*
     printf("***hp_queue***\n");
     for (int i = 0; i < hp_procs_count;i++)
@@ -371,7 +290,7 @@ int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       printf("%d (%d)",lp_queue[i].pid,lp_queue[i].time_remaining );
     printf("\n");
     for(int i = 0; i < 10000000;i++);*/
-    //scanf("%c");
+   
     int nextp;
     //si hay procesos en la cola de prioridad alta, usamos rr
     if (hp_procs_count > 0){
