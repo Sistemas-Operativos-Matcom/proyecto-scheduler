@@ -34,23 +34,46 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
+// int fifo_cpu_time[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+// int get_curr_index(proc_info_t *procs_info, int procs_count, int curr_pid)
+// {
+//   for (int i = 0; i<procs_count; i++)
+//   {
+//     if (procs_info[i].pid == curr_pid)
+//       return i;
+//   }
+//   return -1;
+// }
+
 // int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 //                      int curr_pid) {
   // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
   // cambiar)
-  //
+  
   // Información que puedes obtener de un proceso
   // int pid = procs_info[0].pid;      // PID del proceso
   // int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                     // realizando una opreación IO
+  //                                    realizando una opreación IO
   // int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
-  //
+  //                                               ejecutado (en CPU o en I/O)
+  
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
-//   int duration = process_total_time(pid);
-  //
-//   return -1;
+  // int duration = process_total_time(pid);
+//   int ind = get_curr_index(procs_info, procs_count, curr_pid);
+  
+//   printf("%d\n", fifo_cpu_time[curr_pid]);
+//   if (procs_info[ind].on_io == 0)
+//   {
+//     fifo_cpu_time[curr_pid] += 10;
+//   }
+//   else
+//   {
+//     if (procs_count>1)
+//       return procs_info[1].pid; 
+//   }
+//   return procs_info[0].pid;
 // }
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -151,8 +174,13 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   //Define la cola del proceso que se está ejecutando:
   int active_queue = -1;
   
-  //array containing added processes pids. Size = 200
+  //Array con los pids de los procesos añadidos. Size = 200
+  //added[i] = 1 --> proceso con pid = i añadido
   int added[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+  //Almacena el tiempo que lleva ejecutándose en cpu un proceso (aproximado)
+  //cpu_time[i] = x --> proceso con pid = i lleva x ms ejecutándose en cpu
+  int cpu_time[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
   //Priority boost timer. Define cada cuanto tiempo realizar un priority boost
   int pb_timer = 500;
@@ -174,8 +202,8 @@ int process_ended(proc_info_t *procs_info, int procs_count, int pid)
   return 1;
 }
 
-//Retorna el proceso que se está ejecutando actualmente
-proc_info_t get_current_process(proc_info_t *procs_info, int procs_count, int c_pid)
+//Retorna el proceso buscado
+proc_info_t get_process(proc_info_t *procs_info, int procs_count, int c_pid)
 {
     for (int i = 0; i<procs_count; i++)
     {
@@ -183,25 +211,45 @@ proc_info_t get_current_process(proc_info_t *procs_info, int procs_count, int c_
         return procs_info[i];
     }
     proc_info_t error = {-1, -1, -1};
+    printf("Se produjo un error");
     return error;
 }
 
-//Devuelve si en la cola actual quedan procesos por ejecutarse (1--> si quedan)
+//Devuelve si el proceso esta en io en tiempo real
+int get_io(proc_info_t *procs_info, int procs_count, int pid)
+{
+  for (int i = 0; i<procs_count; i++)
+  {
+    if (procs_info[i].pid == pid)
+      return procs_info[i].on_io;
+  }
+  printf("Error. No encontrado");
+  return -1;
+}
+
+//Devuelve si en la cola actual quedan procesos por ejecutarse que no esten en IO (1--> si quedan)
 int queue_not_empty(proc_info_t *current_queue, proc_info_t *procs_info, int procs_count)
 {
   for (int i = 0; i<200; i++)
   {
     int pid = current_queue[i].pid;
     if (pid == 0)
-    {
-      //Si es el proceso 0 y no se ha terminado, devuelve No vacío
-      if ((current_queue[i].executed_time != 0) && process_ended(procs_info, procs_count, pid) == 0)
-        return 1;
+    {       
+      if (
+          (current_queue[i].executed_time != 0) &&                // Si es el proceso 0
+          (process_ended(procs_info, procs_count, pid) == 0) &&   // y no se ha terminado
+          (get_io(procs_info, procs_count, pid) == 0)             // y no está haciendo IO
+         )
+        return 1;                                                 // devuelve No vacío
     }
     else  //Si no es el proceso cero:
     {
-      //Devuelve 1 si hay algun proceso no terminado
-      if (process_ended(procs_info, procs_count, pid) == 0)
+      //Devuelve 1 si hay algun proceso no terminado y que no está haciendo IO
+      if (
+        (process_ended(procs_info, procs_count, pid) == 0)  //El proceso no ha terminado
+        && 
+        (get_io(procs_info, procs_count, pid) == 0)        //El proceso no está haciendo IO
+        )   
         return 1;
     }      
   }
@@ -238,6 +286,7 @@ void decrease_priority(int curr_pid, proc_info_t curr_process)
 //Incrementa la prioridad de todos los procesos
 void priority_boost(proc_info_t *procs_info, int procs_count)
 {
+  //printf("REALIZADO PB\n");
   proc_info_t empty_process = {0,0,0};
   
   //Vaciar todas las colas
@@ -252,7 +301,7 @@ void priority_boost(proc_info_t *procs_info, int procs_count)
   //Poner todos los procesos en la cola de mayor prioridad
   for (int i = 0; i < procs_count; i++)
   {
-    queues[2][i] = procs_info[i];
+    queues[2][procs_info[i].pid] = procs_info[i];
   }
   active_queue = 2;
 }
@@ -268,9 +317,19 @@ int is_last(proc_info_t *queue, int curr_pid)
   return 1;
 }
 
-//Implementacion de round robin para MLFQ
-int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count, int queue_num, int curr_pid)
+//En cada time interrupt, aumenta en 10 el cpu_time del proceso que se va a retornar
+void inc_cpu_time(int pid)
 {
+  cpu_time[pid] += 10;
+}
+
+//Implementacion de round robin para MLFQ
+int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count, int queue_num, int curr_pid, int prev_q, int curr_time)
+{
+  if (curr_time == 19600)
+  {
+      printf("\n\nCola actual: %d\n\n",active_queue);
+  }
   //Almacena si el proceso actual es el último de su cola.
   int last = is_last(queue, curr_pid);
 
@@ -290,49 +349,116 @@ int mlfq_rr(proc_info_t *queue, proc_info_t *procs_info, int procs_count, int qu
           {
             //Hay un proceso siguiente en cola que debe ejecutarse, cuyo index=pid es mayor.
             if (pid > curr_pid)
-              return pid;
+            {
+              //Si el proceso no está en io
+              if (get_io(procs_info, procs_count, i) == 0)
+              {
+                inc_cpu_time(pid);  //Aumentar su tiempo en el cpu por los siguientes 10ms
+                return pid;
+              }              
+            }
           }
           else  //Es el último proceso de su cola, hay que empezar de nuevo.
-            return pid;   //Devolver el primer proceso sin terminar de la cola que me encuentre      
+          {
+            //Si el proceso no está en io
+            if (get_io(procs_info, procs_count, i) == 0)
+            {
+              inc_cpu_time(pid);  //Aumentar su tiempo en el cpu por los siguientes 10ms
+              //Devolver el primer proceso sin terminar de la cola que me encuentre
+              return pid;
+            }   
+          }
         }
         else
-          return pid;
+          {  
+            //Si el proceso no está en io
+            if (get_io(procs_info, procs_count, i) == 0)
+            {
+              inc_cpu_time(pid);  //Aumentar su tiempo en el cpu por los siguientes 10ms
+              return pid;
+            }    
+          }
       }        
     }
   }
-  //Si llega hasta aquí es porque está en la última cola y no hay ningún proceso pendiente además del actual, por tanto, hay que devolver el actual
-  return curr_pid;
+  //Si llega hasta aquí es porque está en la última cola y no hay ningún proceso pendiente además del actual, por tanto, hay que devolver el actual.
+  
+  //Si el proceso actual no está en io
+  if (get_io(procs_info, procs_count, curr_pid) == 0)
+  {
+    inc_cpu_time(curr_pid);   //Aumentar su tiempo en el cpu por los siguientes 10ms
+    active_queue = prev_q;    //Al llamar al rr se cambio el active queue, asi que se vuelve a setear
+                              //al que habia antes
+    return curr_pid;
+  }
+  //El proceso actual está en io.
+  return -1; 
 }
 
+//Devuelve el siguiente proceso a ser ejecutado
+int next_process(proc_info_t *procs_info, int procs_count, int curr_pid, int curr_time)
+{
+  //Se empieza por la cola de mayor prioridad y se va bajando hasta encontrar una cola con un proceso pendiente.
+  for (int i = 2; i>=0; i--)
+  {
+    //Si quedan procesos que no estan en io
+    if (queue_not_empty(queues[i], procs_info, procs_count) == 1)   
+    {
+      int prev_q = active_queue;
+      active_queue = i;
+      return mlfq_rr(queues[i], procs_info, procs_count, i, curr_pid, prev_q, curr_time);
+    }      
+  }
+  //printf("ERROR GRAVE 1");
+  //Solo queda un proceso pendiente y está realizando IO
+  inc_cpu_time(curr_pid);
+  return curr_pid;   
+}
 
 // -----------------------------------  -->     MLFQ   <--  ------------------------------------
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid)
 {
-  //Debugger
-  // if (curr_time == 790)
-  // {
-  //   printf("active queue: %d; curr_pid: %d\n", active_queue, curr_pid);
-  //   for (int i = 0; i<20; i++)
-  //   {
-  //     printf("%d ", queues[active_queue][i].executed_time);
-  //   }
-  //   printf("\n");
-  // }
 
-  //Punto de partida para mlfq. Ejecuta siempre el primer proceso de todos.
-  
+  //Debugger
+  int chkT = -19600;
+  if (curr_time == chkT)
+  {
+    //proc_info_t curr = get_process(procs_info, procs_count, curr_pid);
+    printf("active queue: %d; curr_pid: %d\n", active_queue, curr_pid);
+    printf("Cola 2:\n");
+    for (int i = 5; i<10; i++)
+    {
+      printf(" P:%d", queues[2][i].pid);
+    }
+    printf("\nCola 1:\n");
+    for (int i = 5; i<10; i++)
+    {
+      printf(" P:%d", queues[1][i].pid);
+    }
+    printf("\nCola 0:\n");
+    for (int i = 5; i<10; i++)
+    {
+      printf(" P:%d", queues[0][i].pid);
+    }
+    printf("\n");
+
+    //printf("CurrPid ON IO: %d \n", curr.on_io);
+  }
+
+  //Realizar Priority Boost
   if (curr_time % pb_timer == 0)
     priority_boost(procs_info, procs_count);
   
-  
+  //Punto de partida para mlfq. Ejecuta siempre el primer proceso de todos.
   if (mlfq_begin == 0)
   {
     mlfq_begin = 1;
     added[0] = 1;
     q2[0] = procs_info[0];
     active_queue = 2;
+    inc_cpu_time(0);
     return procs_info[0].pid;
   }
 
@@ -343,11 +469,26 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   if (curr_pid != -1)
   {
     //Obtengo el proceso actual
-    proc_info_t curr_process = get_current_process(procs_info, procs_count, curr_pid);
+    proc_info_t curr_process = get_process(procs_info, procs_count, curr_pid);
     
-    //Si no ha consumido el time_slice, seguir ejecutándolo
-    if (curr_process.executed_time % time_slice != 0)
-      return curr_pid;
+    if (curr_time == chkT)
+    {
+      printf("\n%d\n", cpu_time[curr_process.pid]);
+    }
+    //Si no ha consumido el time_slice:
+    if (cpu_time[curr_process.pid] % time_slice != 0)
+    {
+      if (curr_process.on_io == 0)  //Si el proceso actual no entró en IO:
+      {
+        inc_cpu_time(curr_pid);   // Aumentamos su tiempo en CPU
+        return curr_pid;          // Y lo seguimos ejecutando.
+      }
+      else
+      {
+        //El proceso actual entró en io, por lo que hay que ejecutar el siguiente proceso de mayor prioridad.
+        return next_process(procs_info, procs_count, curr_pid, curr_time);
+      }      
+    }
     else
     {
       //Como ya consumio el time slice:
@@ -355,18 +496,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       if (active_queue != 0)     
         decrease_priority(curr_pid, curr_process);
 
-      // Ahora ejecuto el siguiente proceso
-      // Voy a la cola de mayor prioridad y ejecuto RR sobre dicha cola.
-
-      //Se empieza por la cola de mayor prioridad y se va bajando hasta encontrar una cola con un proceso pendiente.
-      for (int i = 2; i>=0; i--)
-      {
-        if (queue_not_empty(queues[i], procs_info, procs_count) == 1)   //Quedan procesos
-        {
-          active_queue = i;
-          return mlfq_rr(queues[i], procs_info, procs_count, i, curr_pid);
-        }      
-      }      
+      // Ahora ejecuto el siguiente proceso. Ejecutar RR sobre la cola de mayor prioridad.
+      return next_process(procs_info, procs_count, curr_pid, curr_time);         
     }
   }
 
@@ -381,15 +512,25 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       //hay un proceso o es el proceso 0 que no se ha terminado
       if (c_pid != 0 || queues[i][j].executed_time != 0) 
       {
-        //Si el proceso no se ha terminado, seguir ejecutandolo:
+        //Si el proceso no se ha terminado:
         if (process_ended(procs_info, procs_count, c_pid) == 0)   //O(n)
-          return queues[i][j].pid;
+        {
+          //Si el proceso no está en io:
+          if (get_io(procs_info, procs_count, c_pid) == 0)
+          {
+            active_queue = i;     //Se actualiza el valor de la cola activa
+            inc_cpu_time(c_pid);  //Aumentar su tiempo en cpu por los próximos 10ms
+            return c_pid;   //seguir ejecutándolo        
+          }
+        }
       }
     }
   }
-  //No debe llegar hasta aqui. Si llego, hubo algun error
-  printf("Error");
-  return 201;
+  //Si llego hasta aqui, solo hay un proceso pendiente
+  //printf("ERROR 2\n");
+  inc_cpu_time(curr_pid);
+  return curr_pid;
+  //return 201;
 }
 
 

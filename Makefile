@@ -31,3 +31,7 @@ rr_s:
 .PHONY: rr
 rr:
 	./test_all.sh ./test_cases rr
+
+.PHONY: fifo_s
+fifo_s:
+	./test_single.sh ./test_cases/case_501.txt fifo g
