@@ -58,7 +58,7 @@ proc_info_t getMin(proc_info_t *procs_info, int procs_count, int stcf)
 typedef struct queue{
   int length;
   proc_info_t *processes_info;
-  proc_info_t (*pop)(struct queue *q);
+  proc_info_t (*dequeue)(proc_info_t process, struct queue *q);
   void (*push)(proc_info_t process, struct queue *q);
 } queue_t;
 
@@ -68,13 +68,19 @@ void push(proc_info_t process, struct queue *queue)
   queue->length+=1;
 }
 
-proc_info_t pop(struct queue *queue)
+proc_info_t dequeue(proc_info_t process, struct queue *queue)
 {
   proc_info_t proc = queue->processes_info[0];
   int i;
-  for(i = 1; i < queue->length; i++)
+  for(i = 0; i < queue->length; i++)
   {
-    queue->processes_info[i-1] = queue->processes_info[i];
+    if(queue->processes_info[i].pid == process.pid)
+    {
+      for(int j = i; j < queue->length-1; j++)
+      {
+        queue->processes_info[j] = queue->processes_info[j+1];
+      }
+    }
   }
   queue->length-=1; 
   return proc;
@@ -86,7 +92,7 @@ queue_t queue_init(int max_procs)
   q0.length = 0;
   q0.processes_info = (proc_info_t*)malloc(max_procs * sizeof(proc_info_t));
   q0.push = push;
-  q0.pop = pop;
+  q0.dequeue = dequeue;
   return q0;
 }
 
@@ -113,36 +119,37 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 {
   return getMin(procs_info, procs_count, 1).pid;
 }
-int times = 5;
+int timeslice = 5;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  int i;
-  for(i = 0; i < procs_count-1; i++)
+  for(int i = 0; i < procs_count-1; i++)
   {
     if(curr_pid == procs_info[i].pid)
     {
-      if(times == 0)
+      if(timeslice != 0)
       {
-        times = 5;
-        return procs_info[i+1].pid;
-      }
-      else
-      {
-        times--;
+        timeslice--;
         return curr_pid;
       }
+      timeslice = 5;
+      return procs_info[i+1].pid;
     }
   }
   return procs_info[0].pid;
 }
 
 
-// Queues for MLFQ
+// Queues for MLFQ scheduler
+int *enqueued_processes;
+int enqueued_processes_quant = 0;
 int queuesQuant = 4;
-queue_t * queues = (queue_t*) malloc(queuesQuant * sizeof(queue_t));
+queue_t * queues;
 
 void init_queues(int procs_count)
 {
+  // Each queue has an array of procs_count size, but length is the real number of processes in it
+  enqueued_processes = malloc(procs_count*sizeof(int));
+  queues = (queue_t*) malloc(queuesQuant * sizeof(queue_t));
   int i;
   for(i = 0; i < queuesQuant; i++)
   {
@@ -155,8 +162,64 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   init_queues(procs_count);
 
   // MLFQ
+  //If there is a new process is the last one in procs_info list
+  if(procs_count > enqueued_processes_quant)
+  {
+    queues[0].push(procs_info[procs_count-1], &queues[0]);
+  }
 
-  
+  // If some process have ended must be eliminated from queue
+  if(procs_count < enqueued_processes_quant)
+  {
+    // For each queue
+    for(int i = 0; i < queuesQuant; i++)
+    {
+      // For each process in queue
+      for(int p = 0; p < queues[i].length; p++)
+      {
+        proc_info_t process = queues[i].processes_info[p];
+        if(process.executed_time == process_total_time(process.pid))
+        {
+          printf("%d", queues[i].length);
+          queues[i].dequeue(process, &queues[i]);
+          printf("%d", queues[i].length);
+        }
+      }
+    }
+  }
+
+  //Work with processes sorted by priority
+  for(int i = 0; i < queuesQuant; i++)
+  {
+    if(queues[i].length != 0)
+    {
+      // Checking if some process must be dequeued by priority
+      for(int j = 0; j < queues[i].length; j++)
+      {
+        // Put in next queue in priority order
+        if(queues[i].processes_info[j].executed_time == 0)
+        {
+          if(i < queuesQuant)
+          {
+            queues[i+1].push(procs_info[j], &queues[i+1]);
+          }
+          queues[i].dequeue(procs_info[j], &queues[i]);
+        }
+      }
+
+      // Setting array in queue with processes to round robin
+      proc_info_t *queueProcs = (proc_info_t *)malloc(queues[i].length * sizeof(proc_info_t)); 
+      for(int k = 0; k < queues[i].length; k++)
+      {
+        queueProcs[k] = queues[i].processes_info[k];
+      }
+      int next_pid = rr_scheduler(queueProcs, queues[i].length, curr_time, curr_pid);
+      
+      return next_pid;
+    }
+  }
+
+  return -1;
 }
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
