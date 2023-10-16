@@ -85,23 +85,15 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid){
-  
-  static int splice = 50;
-  int curr_splice = curr_time / splice;
+    static index = -1;
+    int splice = 50;
 
-  while(procs_info[curr_splice % procs_count].on_io){
-    int count = 0;
-
-    curr_splice = curr_splice + 1;
-
-    count++;
-    if(count == procs_count){
-      return -1;
-    }
-  }
+  if(curr_pid == -1) return procs_info[0].pid;
   
+  if(curr_time % splice == 0) index++;
+  return procs_info[index % procs_count].pid;
   
-  return procs_info[curr_splice].pid;                      
+
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
