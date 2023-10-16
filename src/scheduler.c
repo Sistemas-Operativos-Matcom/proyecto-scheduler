@@ -245,13 +245,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
   if(lw == -1) return -1;
 
-  if(mlfq_slice_time[index] <= 0)
-  {
-    mlfq_level[index] = (mlfq_level[index] >= LEVELS) ? LEVELS : mlfq_level[index] + 1;  
-    mlfq_arrive_time[index] = curr_time;
-    mlfq_slice_time[index] = SLICE_TIME;
-  }
-
   if(curr_time % PRIORITY_BOOST_TIME == 0) priority_boost(procs_count);
 
   int k = 0;
@@ -266,6 +259,13 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
   mlfq_slice_time[k] -= 10;
   last_index = k;
+
+  if(mlfq_slice_time[k] <= 0)
+  {
+    mlfq_level[k] = (mlfq_level[k] >= LEVELS) ? LEVELS : mlfq_level[k] + 1;  
+    mlfq_arrive_time[k] = curr_time;
+    mlfq_slice_time[k] = SLICE_TIME;
+  }
 
   return procs_info[k].pid;
 }
