@@ -98,7 +98,8 @@ int R_R(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) /
   slice_time = 1;
   if (current_pid_index < procs_count - 1) // Si el ultimo proceso ejecutado no es el ultimo de la lista, devuelve el siguiente
   {
-    return procs_info[current_pid_index + 1].pid;
+    current_pid_index++;
+    return procs_info[current_pid_index].pid;
   }
   current_pid_index = 0;
   return procs_info[0].pid; // Sino, devuelve el primero
