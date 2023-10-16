@@ -20,6 +20,7 @@ static int64_t ms_time() {
 
 static simulation_t *g_sim;
 
+
 static simulation_t new_simulation(process_t *processes, int process_count) {
   simulation_t sim = {
       (proc_execution_t *)malloc(process_count * sizeof(proc_execution_t)),

@@ -9,6 +9,8 @@
 #include "scheduler.h"
 #include "simulation.h"
 
+int timeP[200];
+
 int main(int argc, char **argv) {
   char *path = argv[1];
   char *scheduler_name = argv[2];
@@ -22,7 +24,7 @@ int main(int argc, char **argv) {
   printf("Scheduler: %s\n", scheduler_name);
   printf("--------------------------------------------\n\n");
 
-  start_new_simulation(processes, process_count, get_scheduler(scheduler_name),
+  start_new_simulation(processes, process_count, get_scheduler(scheduler_name ,&timeP),
                        config);
   return 0;
 }
