@@ -201,7 +201,7 @@ void start_new_simulation(process_t *processes, int process_count,
       // intervalo de timer-interrupt según el scheduler (puede ser el mismo).
       int next_active_pid = scheduler_action(
           procs_info, active_processes, g_sim->curr_time, g_sim->curr_proc_pid);
-
+          
       // Comprueba que el proceso a ejecutar es un proceso activo.
       if (next_active_pid != -1) {
         int is_correct = 0;
