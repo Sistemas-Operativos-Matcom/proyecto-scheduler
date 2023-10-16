@@ -111,7 +111,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   int current_index = -1;
 
   for (int i = 0; i < procs_count; i++) {
-    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time < min_value){
+    if (process_total_time(procs_info[i].pid) - procs_info[i].executed_time <= min_value){
       min_value = process_total_time(procs_info[i].pid) - procs_info[i].executed_time;
       current_index = i;
     }
