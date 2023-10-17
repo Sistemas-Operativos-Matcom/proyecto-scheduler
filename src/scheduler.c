@@ -119,7 +119,13 @@ int aux_rr_scheduler(int procs_info[], int procs_count, int curr_time,int curr_p
       return procs_info[0];
     }
   }
-  return curr_pid;
+  int f =0;
+  for(int i = 0; i < procs_count; i++){
+        if(procs_info[i] == curr_pid){
+          f=1;
+        }}
+  if(f==1){return curr_pid;}
+  else{return procs_info[0];}
 }
 
 static void increase_time_in_cpu(proc_info_t *procs_info,int procs_count, int curr_pid, int curr_time){
@@ -166,31 +172,33 @@ int milf_queuer(proc_info_t *procs_info, int procs_count,int curr_pid,int curr_t
     int queue_2[procs_count];
     int q_2 = 0;
     for(int i = 0; i<procs_count;i++){
-      if(procs_info[i].on_io == 0){
-      if(queue[i]==0){
-        queue_0[q_0] = procs_info[i].pid;
-        q_0 = q_0 +1;
-      }
-      if(queue[i]==1){
-        queue_1[q_1] = procs_info[i].pid;
-        q_1 = q_1 +1;
-      }
-      if(queue[i]==2){
-        queue_2[q_2] = procs_info[i].pid;
-        q_2 = q_2 +1;
-      }
+      if(procs_info[i].on_io != 1){
+        if(queue[i]==0){
+          queue_0[q_0] = procs_info[i].pid;
+          q_0 = q_0 +1;
+        }
+        if(queue[i]==1){
+          queue_1[q_1] = procs_info[i].pid;
+          q_1 = q_1 +1;
+        }
+        if(queue[i]==2){
+          queue_2[q_2] = procs_info[i].pid;
+          q_2 = q_2 +1;
+        }
       }
     }
     int ans = -1;
     if(q_0 != 0){
       ans= aux_rr_scheduler(queue_0,q_0,time_in_cpu,curr_pid);
+      if(curr_time >= 2500 && curr_time<=3100){printf("queue_0 ");printf("%d",q_0);
+        printf(" pid ");printf("%d",ans);putchar('\n');}
     }
-    else if(q_1 != 0) {
-      ans= aux_rr_scheduler(queue_1,q_1,time_in_cpu,curr_pid);
-    }
-    else if(q_2 != 0){
-      ans= aux_rr_scheduler(queue_2,q_2,time_in_cpu,curr_pid);
-    }
+    else if(q_1 != 0) {ans= aux_rr_scheduler(queue_1,q_1,time_in_cpu,curr_pid);
+if(curr_time >= 2500 && curr_time<=3100){ printf("queue_1 ");printf("%d",q_1);printf(" pid ");printf("%d",ans);putchar('\n');}
+          }
+    else if(q_2 != 0){ans= aux_rr_scheduler(queue_2,q_2,time_in_cpu,curr_pid);
+if(curr_time >= 2500 && curr_time<=3100){ printf("queue_2 ");printf("%d",q_2);printf(" pid ");printf("%d",ans);putchar('\n');}
+          }
     else{ans= procs_info[0].pid;}
 
     if(ans != curr_pid){time_in_cpu = 0;}
@@ -240,3 +248,4 @@ schedule_action_t get_scheduler(const char *name) {
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
+
