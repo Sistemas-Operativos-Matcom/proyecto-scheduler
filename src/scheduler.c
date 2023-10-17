@@ -34,6 +34,7 @@
 int queue[MAX_PROCESS_COUNT];
 int pid_q[MAX_PROCESS_COUNT];
 
+
 int time_slice = 100;
 int priority_boost = 1000;
 int time_in_cpu = 0;
@@ -165,6 +166,7 @@ int milf_queuer(proc_info_t *procs_info, int procs_count,int curr_pid,int curr_t
     int queue_2[procs_count];
     int q_2 = 0;
     for(int i = 0; i<procs_count;i++){
+      if(procs_info[i].on_io == 0){
       if(queue[i]==0){
         queue_0[q_0] = procs_info[i].pid;
         q_0 = q_0 +1;
@@ -177,19 +179,22 @@ int milf_queuer(proc_info_t *procs_info, int procs_count,int curr_pid,int curr_t
         queue_2[q_2] = procs_info[i].pid;
         q_2 = q_2 +1;
       }
+      }
     }
+    int ans = -1;
     if(q_0 != 0){
-      int ans= aux_rr_scheduler(queue_0,q_0,time_in_cpu,curr_pid);
-      return ans;
+      ans= aux_rr_scheduler(queue_0,q_0,time_in_cpu,curr_pid);
     }
     else if(q_1 != 0) {
-      int ans= aux_rr_scheduler(queue_1,q_1,time_in_cpu,curr_pid);
-      return ans;
+      ans= aux_rr_scheduler(queue_1,q_1,time_in_cpu,curr_pid);
     }
-    else{
-      int ans= aux_rr_scheduler(queue_2,q_2,time_in_cpu,curr_pid);
-      return ans;
+    else if(q_2 != 0){
+      ans= aux_rr_scheduler(queue_2,q_2,time_in_cpu,curr_pid);
     }
+    else{ans= procs_info[0].pid;}
+
+    if(ans != curr_pid){time_in_cpu = 0;}
+    return ans;
 }
 
 int milf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
