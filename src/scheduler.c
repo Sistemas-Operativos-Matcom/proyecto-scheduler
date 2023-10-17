@@ -41,30 +41,31 @@ int get_index(proc_info_t *procs_info, int procs_count, int pid)
   return -1;
 }
 
-// Eliminates the processes on IO from procs_info
-void io_remover(proc_info_t *procs_info, int *procs_count)
+int calculate_procs_not_on_io(proc_info_t *procs_info, int procs_count)
 {
   int procs_not_on_io_count = 0;
-  proc_info_t procs_not_on_io_info[*procs_count];
-  int proc_index = 0;
-
-  for (int c = 0; c < (*procs_count); c++)
+  for (int c = 0; c < procs_count; c++)
   {
-    if (!procs_info[c].on_io && procs_info[c].executed_time <= process_total_time(procs_info[c].pid))
+    if (!procs_info[c].on_io)
     {
       procs_not_on_io_count++;
-      procs_not_on_io_info[proc_index++] = procs_info[c];
     }
   }
 
-  // free(procs_info);
-  // procs_info = malloc(procs_not_on_io_count * sizeof(proc_info_t));
-  //for(int c=0; c<procs_not_on_io_count; c++)
-  //{
-  //  procs_info[c] = procs_not_on_io_info[c];
-  //}
-  memcpy(procs_info, procs_not_on_io_info, procs_not_on_io_count * sizeof(proc_info_t));
-  *procs_count = procs_not_on_io_count;
+  return procs_not_on_io_count;
+}
+
+// Eliminates the processes on IO from procs_info
+void remove_io_procs(proc_info_t *procs_info, proc_info_t *procs_not_on_io_info, int procs_count, int procs_not_on_io_count)
+{
+  int proc_index = 0;
+  for (int c = 0; c < procs_count; c++)
+  {
+    if (!procs_info[c].on_io)
+    {
+      procs_not_on_io_info[proc_index++] = procs_info[c];
+    }
+  }
 }
 
 // Returns the pid of the next process that is not on IO
@@ -92,9 +93,11 @@ int next_not_on_io_proc(proc_info_t *procs_info, int procs_count, int index)
 // First In First Out
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  io_remover(procs_info, &procs_count);
-  if (procs_count == 0)
+  int procs_not_on_io_count = calculate_procs_not_on_io(procs_info, procs_count);
+  if (procs_not_on_io_count == 0)
     return -1;
+  proc_info_t procs_not_on_io_info[procs_not_on_io_count];
+  remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
   // if(procs_info[0].on_io && procs_count>1)
   //   return procs_info[1].pid;
@@ -102,27 +105,29 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   // Se devuelve el PID del primer proceso de todos los disponibles (los
   // procesos están ordenados por orden de llegada).
 
-  return procs_info[0].pid;
+  return procs_not_on_io_info[0].pid;
   // return next_not_on_io_proc(procs_info, procs_count, 0);
 }
 
 // Shortest Job First
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  io_remover(procs_info, &procs_count);
-  if (procs_count == 0)
+  int procs_not_on_io_count = calculate_procs_not_on_io(procs_info, procs_count);
+  proc_info_t procs_not_on_io_info[procs_not_on_io_count];
+  if (procs_not_on_io_count == 0)
     return -1;
+  remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
-  int min_duration = process_total_time(procs_info[0].pid);
-  int selected_proc = procs_info[0].pid;
+  int min_duration = process_total_time(procs_not_on_io_info[0].pid);
+  int selected_proc = procs_not_on_io_info[0].pid;
 
-  for (int c = 1; c < procs_count; c++)
+  for (int c = 1; c < procs_not_on_io_count; c++)
   {
-    int actual_proc_duration = process_total_time(procs_info[c].pid);
+    int actual_proc_duration = process_total_time(procs_not_on_io_info[c].pid);
     if (actual_proc_duration < min_duration)
     {
       min_duration = actual_proc_duration;
-      selected_proc = procs_info[c].pid;
+      selected_proc = procs_not_on_io_info[c].pid;
     }
   }
 
@@ -132,20 +137,22 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int c
 // Shortest Time to Completion First
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  io_remover(procs_info, &procs_count);
-  if (procs_count == 0)
+  int procs_not_on_io_count = calculate_procs_not_on_io(procs_info, procs_count);
+  proc_info_t procs_not_on_io_info[procs_not_on_io_count];
+  if (procs_not_on_io_count == 0)
     return -1;
+  remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
-  int min_time_left = process_total_time(procs_info[0].pid) - procs_info[0].executed_time;
-  int selected_proc = procs_info[0].pid;
+  int min_time_left = process_total_time(procs_not_on_io_info[0].pid) - procs_not_on_io_info[0].executed_time;
+  int selected_proc = procs_not_on_io_info[0].pid;
 
-  for (int c = 1; c < procs_count; c++)
+  for (int c = 1; c < procs_not_on_io_count; c++)
   {
-    int actual_proc_time_left = process_total_time(procs_info[c].pid) - procs_info[c].executed_time;
+    int actual_proc_time_left = process_total_time(procs_not_on_io_info[c].pid) - procs_not_on_io_info[c].executed_time;
     if (actual_proc_time_left < min_time_left)
     {
       min_time_left = actual_proc_time_left;
-      selected_proc = procs_info[c].pid;
+      selected_proc = procs_not_on_io_info[c].pid;
     }
   }
 
@@ -153,18 +160,24 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 }
 
 int slice_time = 5 * 10; // !!!!!!INVESTIGATE HOW TO ACCESS TIMER INTERRUPT
+int rrindex = 0;
 // Round Robin
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  io_remover(procs_info, &procs_count);
-  if (procs_count == 0)
+  int procs_not_on_io_count = calculate_procs_not_on_io(procs_info, procs_count);
+  proc_info_t procs_not_on_io_info[procs_not_on_io_count];
+  if (procs_not_on_io_count == 0)
     return -1;
+  remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
-  int curr_index = get_index(procs_info, procs_count, curr_pid);
-  int selected_proc = curr_index == -1 ? procs_info[0].pid : procs_info[curr_index].pid;
+  // int curr_index = get_index(procs_info, procs_count, curr_pid);
+  // int selected_proc = curr_index == -1 ? procs_info[0].pid : procs_info[curr_index].pid;
 
   if (curr_time % slice_time == 0)
   {
+    rrindex++;
+    rrindex %= procs_not_on_io_count;
+    /*
     int rrindex = 0;
     for (int c = 0; c < procs_count; c++)
     {
@@ -176,9 +189,10 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
     rrindex %= procs_count;
     selected_proc = procs_info[rrindex].pid;
     //printf("sc%d\n",selected_proc);
+    */
   }
 
-  return selected_proc;
+  return procs_not_on_io_info[rrindex].pid;
 }
 
 int priority[100000];
@@ -188,11 +202,11 @@ int boost_time = 10 * 10;
 // Multi-level Feedback Queue
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  //for(int c=0; c<procs_count; c++)
+  // for(int c=0; c<procs_count; c++)
   //{
-  //  printf(" %d,", procs_info[c].pid);
-  //}
-  //printf("\n");
+  //   printf(" %d,", procs_info[c].pid);
+  // }
+  // printf("\n");
 
   for (int c = 0; c < procs_count; c++)
   {
@@ -218,15 +232,17 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     }
   }
 
-  io_remover(procs_info, &procs_count);
-  if(procs_count == 0)
+  int procs_not_on_io_count = calculate_procs_not_on_io(procs_info, procs_count);
+  proc_info_t procs_not_on_io_info[procs_not_on_io_count];
+  if (procs_not_on_io_count == 0)
     return -1;
+  remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
   int min_priority = 1e9;
   int same_priority_amount = 0;
-  for (int c = 0; c < procs_count; c++)
+  for (int c = 0; c < procs_not_on_io_count; c++)
   {
-    int proc_pid = procs_info[c].pid;
+    int proc_pid = procs_not_on_io_info[c].pid;
     if (priority[proc_pid] < min_priority)
     {
       min_priority = priority[proc_pid];
@@ -240,25 +256,22 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 
   proc_info_t high_priority_procs[same_priority_amount];
   int hppindex = 0;
-  for (int c = 0; c < same_priority_amount; c++)
+  for (int c = 0; c < procs_not_on_io_count; c++)
   {
-    int proc_pid = procs_info[c].pid;
-    if(priority[proc_pid] == min_priority)
+    int proc_pid = procs_not_on_io_info[c].pid;
+    if (priority[proc_pid] == min_priority)
     {
-      high_priority_procs[hppindex++] = procs_info[c];
+      high_priority_procs[hppindex++] = procs_not_on_io_info[c];
     }
   }
 
-  //for(int c=0; c<same_priority_amount; c++)
+  // for(int c=0; c<same_priority_amount; c++)
   //{
-  //  printf(" %d,", high_priority_procs[c].pid);
-  //}
+  //   printf(" %d,", high_priority_procs[c].pid);
+  // }
 
-  if(same_priority_amount > 0)
-    return rr_scheduler(high_priority_procs, same_priority_amount, curr_time, curr_pid);
-  else
-    return fifo_scheduler(procs_info, procs_count, curr_time, curr_pid);
-}
+  return rr_scheduler(high_priority_procs, same_priority_amount, curr_time, curr_pid);
+  }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.

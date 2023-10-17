@@ -1,0 +1,92 @@
+[33mcommit 7e08de16043f72328af516200cbdd5d6054bd48a[m[33m ([m[1;36mHEAD -> [m[1;32mDevelopment[m[33m, [m[1;31morigin/Development[m[33m)[m
+Author: EdianBC <edianbc@gmail.com>
+Date:   Sun Oct 15 23:38:20 2023 -0400
+
+    Added mlfq
+
+[33mcommit a92519cbe0ea3ac5d42f5e6e769133f5cc82b769[m
+Author: EdianBC <edianbc@gmail.com>
+Date:   Sun Oct 15 14:19:16 2023 -0400
+
+    Added some functions
+
+[33mcommit fb6eff0c8284589e796d42c3636eee8deb3934c8[m
+Author: EdianBC <edianbc@gmail.com>
+Date:   Fri Oct 13 17:24:18 2023 -0400
+
+    Added IO
+
+[33mcommit 504b5be2529ed80dbc7a5ece8053bb6d988ebfa0[m
+Author: EdianBC <edianbc@gmail.com>
+Date:   Tue Oct 10 18:46:10 2023 -0400
+
+    Added sjf, stcf and rr
+
+[33mcommit bc536997cceb3023ccf37e6b3d349168502e79ce[m
+Author: EdianBC <edianbc@gmail.com>
+Date:   Tue Oct 10 17:20:34 2023 -0400
+
+    Initial Changes
+
+[33mcommit eb7604a36d9e9b074f14eec1bea58b5ec9c7337e[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Sun Oct 8 01:34:10 2023 -0400
+
+    Fix curr pid update if proc was on io
+
+[33mcommit b5d7f32bec143a92e6c193d963156ec201f67dca[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Sat Oct 7 18:01:01 2023 -0400
+
+    Fix typo in readme
+
+[33mcommit c9f39bfaf432545512b6ac34cc9b380aa56d7907[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Sat Oct 7 18:00:26 2023 -0400
+
+    Update test cases
+
+[33mcommit 5a681592db34a1ec358690f3c89b3d120e7ec41b[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Fri Sep 29 12:42:19 2023 -0400
+
+    Fix comment on scheduler
+
+[33mcommit d8e15af73a52f1ea7832cb5abdfed14f21f28bd8[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Thu Sep 28 11:19:26 2023 -0400
+
+    Fix on io updates on simulation
+
+[33mcommit 0b49ca22c9e750a40b66c6f4cfa512c952deb21e[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Mon Sep 25 23:24:52 2023 -0400
+
+    Update readme
+
+[33mcommit 1fde4be022914f842cb8cbdafdb378e669a2669c[m
+Merge: 44e7d60 5e0388e
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Tue Sep 26 03:59:48 2023 +0100
+
+    Merge pull request #1 from Sistemas-Operativos-Matcom/fix/typos
+    
+    Fix typos
+
+[33mcommit 5e0388e2dd5b559c4b4b2b7f29842db1cbc9e31d[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Mon Sep 25 22:58:53 2023 -0400
+
+    Fix typos
+
+[33mcommit 44e7d60fe51b3d9925cb5af77073f5eb7fe1287c[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Mon Sep 25 15:15:26 2023 -0400
+
+    Add scheduler project
+
+[33mcommit ad3479fd72fb2eb3b4894c43837a1eee82940e35[m
+Author: Jorge Morgado Vega <jorge.morgadov@gmail.com>
+Date:   Mon Sep 25 14:56:12 2023 -0400
+
+    Initial commit
