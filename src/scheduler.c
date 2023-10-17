@@ -101,7 +101,10 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
   int duration = process_total_time(pid);
-  return curr_pid;
+  if(curr_pid == -1)
+    return procs_info[0].pid;
+  
+    return curr_pid;
   //return -1;
 }
 
