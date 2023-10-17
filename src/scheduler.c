@@ -34,7 +34,6 @@
 int queue[MAX_PROCESS_COUNT];
 int pid_q[MAX_PROCESS_COUNT];
 
-
 int time_slice = 100;
 int priority_boost = 1000;
 int time_in_cpu = 0;

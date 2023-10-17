@@ -239,7 +239,8 @@ void start_new_simulation(process_t *processes, int process_count,
       }
     }
 
-       if (show_graph) show_sim_state();
+    if (show_graph) show_sim_state();
+
     // Actualiza el tiempo de la simulación
     g_sim->curr_time = next_sim_time;
 
@@ -249,6 +250,7 @@ void start_new_simulation(process_t *processes, int process_count,
 
     // Comprueba si todos los procesos terminaron
     ended_sim = ended_processes == process_count;
+
   }
 
   int64_t final_sim_time = ms_time();
