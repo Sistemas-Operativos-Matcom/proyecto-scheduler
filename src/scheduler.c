@@ -43,10 +43,10 @@ int q[MAX_PROCESS_COUNT][3]; // listas de prioridades mayor 0 menor 2
 
 int exececuted_timer_interrupts[MAX_PROCESS_COUNT];
 
-proc_info_t *pid_to_proc_info[MAX_PROCESS_COUNT];
+int on_io[MAX_PROCESS_COUNT]; //-1: ended 0: runnable 1: io
 
 int mlfq_first_time = 1;
-int mlfq_firt_process = 1;
+int mlfq_first_process = 1;
 int process_priority[MAX_PROCESS_COUNT];
 
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -169,8 +169,10 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 {
   time_slice = 5;
   priority_boost = 100;
-
   //incializar las estructuras de datos necesarias
+ // printf("f");
+  //printf("%d ", curr_pid);
+
   if (mlfq_first_time)
   {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++)
@@ -185,25 +187,9 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     mlfq_first_time = 0;
   }
 
-  // si el programa termino quitarlo de las listas
-  if (!mlfq_firt_process && curr_pid == -1)
-  {
-    remove_from_queue(process_priority[last_pid], last_pid);
-  }
-  else
-  { // cambiar la prioridad regla 4
-    if (exececuted_timer_interrupts[curr_pid] >= time_slice-1 && !pid_to_proc_info[curr_pid]->on_io)
-    {
-      if (process_priority[curr_pid] < 2)
-      {
-
-        int _priority = process_priority[curr_pid]; 
-        add_to_queue(process_priority[curr_pid] + 1, curr_pid, 0);
-        remove_from_queue(_priority, curr_pid);
-      }
-      //curr_pid = -1;
-    }
-  }
+  last_of_q[0] = 0;
+  last_of_q[1] = 0;
+  last_of_q[2] = 0;
 
   // agregar proceso nuevo a q0 regla 3
   for (int i = 0; i < procs_count; i++)
@@ -212,8 +198,32 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     {
       process_priority[procs_info[i].pid] = 0;
       add_to_queue(0, procs_info[i].pid, 1);
-      pid_to_proc_info[procs_info[i].pid] = &procs_info[i];
-      mlfq_firt_process = 0; // marcar que ya se hizo un proceso
+      mlfq_first_process = 0; // marcar que ya se hizo un proceso
+    }
+    else{
+      add_to_queue(process_priority[procs_info[i].pid], procs_info[i].pid, 0);
+    }
+    on_io[procs_info[i].pid] = procs_info[i].on_io;
+  }
+
+  // si el programa termino quitarlo de las listas
+  if (!mlfq_first_process && curr_pid == -1)
+  {
+
+  }
+  else
+  { // cambiar la prioridad regla 4
+   // printf("curr: %d", exececuted_timer_interrupts[curr_pid]);
+    if (exececuted_timer_interrupts[curr_pid] >= time_slice-1 && !on_io[curr_pid])
+    {
+      ///printf("entre");
+      if (process_priority[curr_pid] < 2)
+      {
+        int _priority = process_priority[curr_pid]; 
+        add_to_queue(process_priority[curr_pid] + 1, curr_pid, 0);
+        remove_from_queue(_priority, curr_pid);
+      }
+      //curr_pid = -1;
     }
   }
 
@@ -236,20 +246,21 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   int priority = 0;
   while (last_of_q[priority] == 0 && priority <= 2)
   {
-    
-    
     priority++;
   }
   
    // round robin regla 2
-  if (exececuted_timer_interrupts[curr_pid] < time_slice - 1 && curr_pid != -1 && !procs_info[index_last_pid].on_io)
+  if (exececuted_timer_interrupts[curr_pid] < time_slice - 1 && curr_pid != -1 && !on_io[curr_pid])
   { // si aun no se cumple el time slice y no esta en io seguimos con el mismo proceso
+    //printf("entre");
      exececuted_timer_interrupts[curr_pid]++;
      return curr_pid;
   }
   else
   { // toca cambiar de proceso
-    if (exececuted_timer_interrupts[curr_pid] >= time_slice - 1 && !pid_to_proc_info[curr_pid]->on_io){
+
+  //printf("curr pid %d %d\n", curr_pid, last_pid);
+    if (exececuted_timer_interrupts[curr_pid] >= time_slice - 1 && !on_io[curr_pid]){
       exececuted_timer_interrupts[curr_pid] = 0;
     }
     if (q[current_index_RR_q[priority]][priority] == curr_pid)
@@ -259,9 +270,9 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
     while (priority <= 2)
     {
-      while (current_index_RR_q[priority] < last_of_q[priority] && pid_to_proc_info[q[current_index_RR_q[priority]][priority]]->on_io)
+      while (current_index_RR_q[priority] < last_of_q[priority] && on_io[q[current_index_RR_q[priority]][priority]])
       {
-        printf("%d %d\n", q[current_index_RR_q[priority]][priority], pid_to_proc_info[q[current_index_RR_q[priority]][priority]]->on_io);
+        //printf("%d %d\n", q[current_index_RR_q[priority]][priority], on_io[q[current_index_RR_q[priority]][priority]]);
         current_index_RR_q[priority]++;
       }
 
@@ -270,7 +281,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
         current_index_RR_q[priority] = 0;
       }
 
-      while (current_index_RR_q[priority] < last_of_q[priority] && pid_to_proc_info[q[current_index_RR_q[priority]][priority]]->on_io)
+      while (current_index_RR_q[priority] < last_of_q[priority] && on_io[q[current_index_RR_q[priority]][priority]])
       {
         current_index_RR_q[priority]++;
       }
@@ -285,14 +296,23 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       last_pid = q[current_index_RR_q[priority]][priority];
       return last_pid;
     }
+
+    //printf("%d\n",last_of_q[0]);
+
+    //printf("%d\n",last_of_q[1]);
+
+    //printf("%d\n",last_of_q[2]);
     if(last_of_q[0] > 0){
-      return q[0][0];
+      last_pid = q[0][0];
+      return last_pid;
     }
     if(last_of_q[1] > 0){
-      return q[0][1];
+      last_pid = q[0][1];
+      return last_pid;
     }
     if(last_of_q[2] > 0){
-      return q[0][2];
+      last_pid = q[0][2];
+      return last_pid;
     }
   }
 }

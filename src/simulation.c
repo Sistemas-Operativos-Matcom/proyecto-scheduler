@@ -162,7 +162,7 @@ void start_new_simulation(process_t *processes, int process_count,
   // simulación
   while (!ended_sim) {
     int next_sim_time = g_sim->curr_time + TIMER_INTERRUPT_PERIOD_MS;
-
+    
     // Comprobar si arrivaron procesos
     for (int i = 0; i < g_sim->processes_count; i++) {
       if (g_sim->curr_time >= g_sim->procs_exec_info[i].process.arrive_time &&
