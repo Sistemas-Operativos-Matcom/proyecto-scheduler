@@ -11,7 +11,7 @@ Queue* initialize(int time_slice)
     return q;
 }
 
-void enqueue(Queue* q, proc_info_t* process)
+void enqueue(Queue* q, proc_info_t process)
 {
     ProcessNode *procNode = (ProcessNode*)malloc(sizeof(ProcessNode));
     
@@ -35,15 +35,15 @@ proc_info_t* dequeue(Queue* q)
 {
     if (q->first == NULL)
     {//cola vacia
-        return;
+        return NULL;
     }
     ProcessNode* tempNode = q->first;
-    proc_info_t* proc_pointer = tempNode->process;
+    proc_info_t* proc_pointer = &tempNode->process;
     q->first = q->first->next;
     if (q->first == NULL)
     {
         q->last = NULL;
     }
-    free(tempNode);
+    
     return proc_pointer;
 }

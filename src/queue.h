@@ -3,7 +3,7 @@
 
 typedef struct ProcessNode
 {
-    proc_info_t* process;
+    proc_info_t process;
     struct ProcessNode* next; 
 } ProcessNode;
 
@@ -15,5 +15,5 @@ typedef struct Queue
 } Queue;
 
 Queue* initialize();
-void enqueue(Queue*, proc_info_t*);
+void enqueue(Queue*, proc_info_t);
 proc_info_t* dequeue(Queue*);
