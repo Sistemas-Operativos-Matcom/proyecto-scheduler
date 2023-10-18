@@ -27,20 +27,6 @@
 //  contexto y se ejecuta el proceso indicado.
 //
 
-// Returns the index of a process with a given pid, if not found returns -1
-int get_index(proc_info_t *procs_info, int procs_count, int pid)
-{
-  for (int c = 0; c < procs_count; c++)
-  {
-    if (procs_info[c].pid == pid)
-    {
-      return c;
-    }
-  }
-
-  return -1;
-}
-
 int calculate_procs_not_on_io(proc_info_t *procs_info, int procs_count)
 {
   int procs_not_on_io_count = 0;
@@ -68,28 +54,6 @@ void remove_io_procs(proc_info_t *procs_info, proc_info_t *procs_not_on_io_info,
   }
 }
 
-// Returns the pid of the next process that is not on IO
-int next_not_on_io_proc(proc_info_t *procs_info, int procs_count, int index)
-{
-  for (int c = index; c < procs_count; c++)
-  {
-    if (!procs_info[c].on_io)
-    {
-      return procs_info[c].pid;
-    }
-  }
-
-  for (int c = 0; c < index; c++)
-  {
-    if (!procs_info[c].on_io)
-    {
-      return procs_info[c].pid;
-    }
-  }
-
-  return -1;
-}
-
 // First In First Out
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
@@ -99,14 +63,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   proc_info_t procs_not_on_io_info[procs_not_on_io_count];
   remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
 
-  // if(procs_info[0].on_io && procs_count>1)
-  //   return procs_info[1].pid;
-
-  // Se devuelve el PID del primer proceso de todos los disponibles (los
-  // procesos están ordenados por orden de llegada).
-
   return procs_not_on_io_info[0].pid;
-  // return next_not_on_io_proc(procs_info, procs_count, 0);
 }
 
 // Shortest Job First
@@ -169,24 +126,12 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   if (procs_not_on_io_count == 0)
     return -1;
   remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
-  // int curr_index = get_index(procs_info, procs_count, curr_pid);
-  // int selected_proc = curr_index == -1 ? procs_info[0].pid : procs_info[curr_index].pid;
 
   if (curr_time % slice_time == 0)
   {
     rrindex++;
   }
   rrindex %= procs_not_on_io_count;
-
-  //for(int c=0; c<procs_not_on_io_count; c++)
-  //{
-  //  printf("prr%d ", procs_not_on_io_info[c].pid);
-  //}
-
-  //printf("rrindex:%d, pnoi:%d", rrindex, procs_not_on_io_info[rrindex].pid);
-  //printf("pnoi:%d ", procs_not_on_io_info[rrindex].pid);
-  //if(procs_not_on_io_info[rrindex].on_io)
-  //  printf("onioo!!");
 
   return procs_not_on_io_info[rrindex].pid;
 }
@@ -198,13 +143,6 @@ int boost_time = 10 * 10;
 // Multi-level Feedback Queue
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  //printf("t:%d ", curr_time);
-  //for(int c=0; c<procs_count; c++)
-  //{
-  //  printf("p%d:pri%d ", procs_info[c].pid, priority[procs_info[c].pid]);
-  //}
-  //printf("\n");
-
   for (int c = 0; c < procs_count; c++)
   {
     int proc_pid = procs_info[c].pid;
@@ -250,8 +188,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       same_priority_amount++;
     }
   }
-  
-  //printf("t:%d spa:%d ", curr_time, same_priority_amount);
 
   proc_info_t high_priority_procs[same_priority_amount];
   int hppindex = 0;
@@ -264,16 +200,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
     }
   }
 
-  //for(int c=0; c<same_priority_amount; c++)
-  //{
-  //  printf("p%d ", high_priority_procs[c].pid);
-  //}
-
-  // for(int c=0; c<same_priority_amount; c++)
-  //{
-  //   printf(" %d,", high_priority_procs[c].pid);
-  // }
-
   return rr_scheduler(high_priority_procs, same_priority_amount, curr_time, curr_pid);
   }
 
@@ -281,9 +207,6 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name)
 {
-  // Si necesitas inicializar alguna estructura antes de comenzar la simulación
-  // puedes hacerlo aquí.
-
   if (strcmp(name, "fifo") == 0)
     return *fifo_scheduler;
   else if (strcmp(name, "sjf") == 0)
@@ -295,21 +218,11 @@ schedule_action_t get_scheduler(const char *name)
   else if (strcmp(name, "mlfq") == 0)
     return *mlfq_scheduler;
 
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
-
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
 
 /*
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
-{
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
-
   // Información que puedes obtener de un proceso
   int pid = procs_info[0].pid;                 // PID del proceso
   int on_io = procs_info[0].on_io;             // Indica si el proceso se encuentra
@@ -320,7 +233,4 @@ int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, in
   // También puedes usar funciones definidas en `simulation.h` para extraer
   // información extra:
   int duration = process_total_time(pid);
-
-  return -1;
-}
 */
