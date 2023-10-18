@@ -3,31 +3,50 @@
 #include <string.h>
 #include <time.h>
 #include "queue.h"
+
 const QUEUES_AMOUNT = 5;
 int curr_proc_pos = 0;
-int time_slice = -10;
+int time_slice_count = 0;
 int time_slice_for_rr = -10;
 int last_pid_in_queue = -1;
 int queue_initialized = 0;
 int current_queue = 0;
 int priority_boost_count = -10;
-int priority_boost = 400;
+int RR_time_slice = 60;
+int priority_boost = 500;
+int doing_RR = 0;
+RR_pid = 0;
+int* procs_indexer;
+int* ptr;
 Queue** queues;
 
-printQueue(int queueID) {
-  ProcessNode* p = queues[queueID]->first;
-    while (p != NULL) 
-    {
-      printf("%d , ",p->process->pid);
-      p = p->next;    
-    }
-    printf("\n");
+printQueue() {
+  for (int i=0;i<QUEUES_AMOUNT;i++)
+  {
+
+  ProcessNode* p = queues[i]->first;
+  if (p != NULL) {
+      printf("QUEUE #%d:", i);
+      do  
+      {
+        printf("%d , ",p->process.pid);
+        p = p->next;    
+      } while (p != NULL);
+      printf("\n");
   }
+  }
+}
 
 
-//definiendo array de Queue
+//definiendo array de Queue y el procs_indexer
 Queue** initializeQueues()
 {
+  procs_indexer = (int*)malloc(MAX_PROCESS_COUNT*sizeof(int));
+  for (int i = 0; i < MAX_PROCESS_COUNT; i++)
+  {
+    procs_indexer[i] = i;
+
+  }
   
   int timeSlices[] = {20, 40, 60, 80, 100};
   Queue** queues = (Queue**)malloc(sizeof(Queue*)*QUEUES_AMOUNT);
@@ -40,6 +59,7 @@ Queue** initializeQueues()
   queue_initialized = 1;
   return queues;
 }
+
 /*typedef struct Queue
 {
    proc_info_t* data;
@@ -158,120 +178,178 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-
- time_slice += 10;
- if (time_slice == 200 || time_slice == 0)
- {
-  time_slice = 0;
-  
-  //termine y no estaba en ultima posicion
-  if (curr_proc_pos <= procs_count-1 && curr_pid < 0)
+                     int curr_pid) 
+{
+//si la pos es válida mando a ejecutarse al proceso en esa pos hasta alcanzar time slice,
+//si proc termina time slice = 10
+//si pos no es válida mandar a pos 0
+if (RR_time_slice != time_slice_count)
+{
+  time_slice_count +=10;
+  if (curr_proc_pos <= procs_count-1)
+  { if (curr_pid < 0)
   {
-    //ejecuto el proceso que venía después(ahora está en mi posición poruqe terminé)
+    time_slice_count = 10;
+  }
     return procs_info[curr_proc_pos].pid;
   }
-  //no terminé y no estaba en última posición
-  if (curr_proc_pos < procs_count-1)
-  {
-    //pasamos al siguiente proceso, que es indexable
-    return procs_info[++curr_proc_pos].pid;
-  }
-
-  //estaba en última posición
+  
+}
+ time_slice_count = 10;
+ if (curr_proc_pos >= procs_count-1)
+ {
   curr_proc_pos = 0;
   return procs_info[0].pid;
+ }
+ return procs_info[++curr_proc_pos].pid;
 }
-  if (curr_pid < 0)
-  {
-    return -1;
-  }
-  //mientras el proceso no termine y no llegue otro time slice se sigue ejecutando
-  return procs_info[curr_proc_pos].pid;
-}
+
+//  if (curr_pid != -1 && (time_slice_count != 40 || time_slice_count !=0))
+//  {
+//   //proceso se sigue ejecutando
+//   time_slice_count += 10;
+//   return curr_pid;
+//  }
+//  return NextProcessAcordingToRR(procs_info,procs_count,curr_time,curr_pid);
+// }
+//    int NextProcessAcordingToRR(proc_info_t *procs_info, int procs_count, int curr_time,
+//                      int curr_pid)
+//    {
+//       time_slice_count = 0;
+//         if (curr_proc_pos <= procs_count-1 && curr_pid < 0)
+//       {//termine y no estaba en ultima posicion
+//         //ejecuto el proceso que venía después(ahora está en mi posición porque terminé)
+//         return procs_info[curr_proc_pos].pid;
+//       }
+//    }
+  
+//   //no terminé y no estaba en última posición
+//   if (curr_proc_pos < procs_count-1)
+//   {
+//     //pasamos al siguiente proceso, que es indexable
+//     return procs_info[++curr_proc_pos].pid;
+//   }
+
+//   //estaba en última posición
+//   curr_proc_pos = 0;
+//   return procs_info[0].pid;
+// }
+//   if (curr_pid < 0)
+//   {
+//     return -1;
+//   }
+//   //mientras el proceso no termine y no llegue otro time slice se sigue ejecutando
+//   return procs_info[curr_proc_pos].pid;
+// }
+
 
 
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  
+  //procesos que lleguen nuevos se ponen en primera cola
+  //se manda a ejecutar el de mayor prioridad, si hay varios se ejecutan según RR
+  //si el proceso termina o se pone en io se manda otro proceso
+  //para bajar de las colas se toma en cuenta solo el cpu time de cada proceso
+  //un proceso no puede terminar en io,siempre viene un CPU time despues
   priority_boost_count += 10;
   
   queues = queue_initialized==1 ? queues : initializeQueues();
- 
-  
-  
-  
-    
 
-  //printf("*********     QUEUE      **************\n\n");
-
-  //printQueue();
-
-  //printf("*********     END QUEUE      **************\n\n");
+ if (doing_RR && time_slice_count >= RR_time_slice && !(curr_pid < 0 || procs_info[procs_indexer[curr_pid]].on_io) && priority_boost_count < priority_boost)
+ {
+  time_slice_count+=10;
+  queues[current_queue]->first->process.executed_time += 10;
+  return curr_pid;
+ }
  
   proc_info_t* process = dequeue(queues[current_queue]);
-  if (process != NULL)
-  {
-  printf("Current PID=%d dequeue = %d \n", curr_pid,process->pid);
-    /* code */
-  }
-  
-
-
+ 
   if (curr_pid >= 0 && process!=NULL )
   {//proceso no ha terminado entonces encolamos
-    printf("Process data: process pid %d, process on_io %d, process exec_time: %d\n", process->pid, process->on_io, process->executed_time);
+    //printf("Process data: process pid %d, process on_io %d, process exec_time: %d\n", process->pid, process->on_io, process->executed_time);
     int nextQueue = current_queue < QUEUES_AMOUNT - 1 ? current_queue + 1 : current_queue;
     if(process->executed_time >= queues[current_queue]->time_slice)
     {
-      printf("ENQUE IN NEXT %d, process=%d\n", nextQueue, process->pid);
-      enqueue(queues[nextQueue], process);
+      enqueue(queues[nextQueue], *process);
     }
     else
     {
-      printf("EUQUE IN CURRENT %d, process=%d\n", current_queue, process->pid);
-      enqueue(queues[current_queue], process);
+      enqueue(queues[current_queue], *process);
     }
     
   }
-
-  //incorporando procesos recien llegados a primera cola
+//incorporando procesos recien llegados a primera cola
   for (size_t i = 0; i < procs_count; i++)
   {
     if (procs_info[i].executed_time == 0 && procs_info[i].pid > last_pid_in_queue)
     {
       last_pid_in_queue = procs_info[i].pid;
-      printf("last pid in queue %d\n", last_pid_in_queue);
-      proc_info_t* reference = &procs_info[i];
+      proc_info_t reference = procs_info[i];
       enqueue(queues[0], reference);
-      printf("Enqueue done\n");
     }
   }
- printQueue(0);
   int result = curr_pid;
-  for (int i = 0; i < QUEUES_AMOUNT; i++)
+ //haciendo priority boost
+  if (priority_boost_count >= priority_boost)
   {
-    if (queues[i]->first != NULL)
-    {
-      current_queue = i;
-      result = queues[i]->first->process->pid;
-      printf("Result updated: %d \n", result);
-      break;
+    priority_boost_count = -10;
+    current_queue = 0;
+    for (int i = QUEUES_AMOUNT - 1; i>=1; i--) {
+      while (queues[i]->first!=NULL)
+      {
+        proc_info_t* p = dequeue(queues[i]);
+        enqueue(queues[0], *p);
+      }
+      
     }
   }
+//actualizando procs_indexer
+  if (process != NULL && curr_pid < 0)
+{
+  //termino un proceso
+  for (size_t i = process->pid + 1; i < MAX_PROCESS_COUNT; i++)
+  {
+    procs_indexer[i] -= 1;
+  }
+  
+}
 
-  printf("Currente queue = %d\n",current_queue);
-  // if (priority_boost_count >= priority_boost)
-  // {
-  //   priority_boost_count = -10;
-  //   for (int i = QUEUES_AMOUNT - 1; i>=1; i--) {
-  //     while (queues[i]->first!=NULL)
-  //     {
-  //       enqueue(queues[0], dequeue(queues[i]));
-  //     }
-  //   }
-  // }
+  //buscando primer elemento valido entre las colas segun la prioridad
+  for (int i = 0; i < QUEUES_AMOUNT; i++)
+  {  
+      while (queues[i]->first != NULL)
+      {
+        int a = queues[i]->first->process.pid;
+        int index = procs_indexer[0];
+        
+        if(!procs_info[index].on_io)
+        {
+         break;
+        }
+         process = dequeue(queues[current_queue]);
+         enqueue(queues[i], *process);
+      }
+    if (queues[i]->first != NULL)
+     {
+      if (current_queue != i || RR_pid < 0)
+      {
+        doing_RR = 0;
+      }
+      current_queue = i;
+      result = queues[i]->first->process.pid;
+      if (result == RR_pid)
+      {
+       RR_pid = -1;
+      }
+      doing_RR = queues[current_queue]->first != queues[current_queue]->last;
+      RR_pid = queues[current_queue]->last;
+
+      //printf("Result updated: %d \n", result);
+      break;
+     }
+  }
+  queues[current_queue]->first->process.executed_time += 10;
   return result;
 }
   
