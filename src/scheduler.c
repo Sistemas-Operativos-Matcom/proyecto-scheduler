@@ -169,28 +169,24 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int cu
   if (procs_not_on_io_count == 0)
     return -1;
   remove_io_procs(procs_info, procs_not_on_io_info, procs_count, procs_not_on_io_count);
-
   // int curr_index = get_index(procs_info, procs_count, curr_pid);
   // int selected_proc = curr_index == -1 ? procs_info[0].pid : procs_info[curr_index].pid;
 
   if (curr_time % slice_time == 0)
   {
     rrindex++;
-    rrindex %= procs_not_on_io_count;
-    /*
-    int rrindex = 0;
-    for (int c = 0; c < procs_count; c++)
-    {
-      rrindex = c;
-      if (curr_pid == procs_info[c].pid)
-        break;
-    }
-    rrindex++;
-    rrindex %= procs_count;
-    selected_proc = procs_info[rrindex].pid;
-    //printf("sc%d\n",selected_proc);
-    */
   }
+  rrindex %= procs_not_on_io_count;
+
+  //for(int c=0; c<procs_not_on_io_count; c++)
+  //{
+  //  printf("prr%d ", procs_not_on_io_info[c].pid);
+  //}
+
+  //printf("rrindex:%d, pnoi:%d", rrindex, procs_not_on_io_info[rrindex].pid);
+  //printf("pnoi:%d ", procs_not_on_io_info[rrindex].pid);
+  //if(procs_not_on_io_info[rrindex].on_io)
+  //  printf("onioo!!");
 
   return procs_not_on_io_info[rrindex].pid;
 }
@@ -202,11 +198,12 @@ int boost_time = 10 * 10;
 // Multi-level Feedback Queue
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
 {
-  // for(int c=0; c<procs_count; c++)
+  //printf("t:%d ", curr_time);
+  //for(int c=0; c<procs_count; c++)
   //{
-  //   printf(" %d,", procs_info[c].pid);
-  // }
-  // printf("\n");
+  //  printf("p%d:pri%d ", procs_info[c].pid, priority[procs_info[c].pid]);
+  //}
+  //printf("\n");
 
   for (int c = 0; c < procs_count; c++)
   {
@@ -253,6 +250,8 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       same_priority_amount++;
     }
   }
+  
+  //printf("t:%d spa:%d ", curr_time, same_priority_amount);
 
   proc_info_t high_priority_procs[same_priority_amount];
   int hppindex = 0;
@@ -264,6 +263,11 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
       high_priority_procs[hppindex++] = procs_not_on_io_info[c];
     }
   }
+
+  //for(int c=0; c<same_priority_amount; c++)
+  //{
+  //  printf("p%d ", high_priority_procs[c].pid);
+  //}
 
   // for(int c=0; c<same_priority_amount; c++)
   //{
