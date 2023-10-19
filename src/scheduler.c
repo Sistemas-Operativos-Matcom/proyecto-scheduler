@@ -74,37 +74,109 @@ int min_time = 2147483647;
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
   static const int SLICING_FACTOR = 5;
-  static int time_slice_cont = 0;  
+    static int time_slice_cont = 0;  
   static int proc_ind = 0;
+
 
   if (time_slice_cont<SLICING_FACTOR && curr_pid!=-1){
     time_slice_cont++;
     return curr_pid;
   }
-  
+
+//   printf("aereeeeeesd");
+// fflush(stdout);
+   
   proc_ind=(proc_ind+1) % procs_count;
   time_slice_cont = 0;
-
+ 
   return procs_info[proc_ind].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+ int boost_cooldown= 100;
+ int max_cpu_time = 50;
+ int canon [100000];    // canon denotes the relevance of a process, whether is canon or not xd
+ int cur_cpu_time [100000];
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+// Multi-level Feedback Queue
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
+    // priority and time boost loop
+    for (int i = 0; i < procs_count; i++) {
+        int proc_pid = procs_info[i].pid;
 
-  return -1;
+        if (!procs_info[i].on_io) {
+            cur_cpu_time[proc_pid] += 10; 
+        }
+
+        if (max_cpu_time <= cur_cpu_time[proc_pid] ) {
+            cur_cpu_time[proc_pid] = 0;
+            canon[proc_pid]++;
+        }
+    }
+
+    // resetting priority and CPU time
+    if (curr_time % boost_cooldown == 0) {
+        for (int i = 0; i < procs_count; i++) {
+            int proc_pid = procs_info[i].pid;
+            canon[proc_pid] = 0;
+
+            cur_cpu_time[proc_pid] = 0;
+        }
+    }
+
+    // counting processes not on I/O cuchauuuuu
+    int io_proc_cont = 0;
+    for (int i = 0; i < procs_count; i++) {
+
+        if (!procs_info[i].on_io) {
+            io_proc_cont++;
+        }
+    }
+
+    if (io_proc_cont == 0) {
+      return -1;
+    } 
+
+    proc_info_t io_proc_data [io_proc_cont];
+    int idx = 0;
+
+    //filtering processes not on I/O
+    for (int i = 0; i < procs_count; i++) {
+        if (!procs_info[i].on_io) {
+            io_proc_data[idx++] = procs_info[i];
+        }
+    }
+
+    int canon_cont = 0;
+
+    int min_priority = 1000000000;
+
+    for (int i = 0; i < io_proc_cont; i++) {
+
+        int proc_pid = io_proc_data[i].pid;
+
+        if (canon[proc_pid] < min_priority) {
+            canon_cont = 0;
+            min_priority = canon[proc_pid];
+        }
+         if (canon[proc_pid] == min_priority) {
+            canon_cont++;
+        }
+    }
+
+    proc_info_t top_proc[canon_cont];    // here there will be stored the most canon events, the next to process
+    int cp_idx = 0;       // canon process index
+
+    //extracting high priority processes
+    for (int i = 0; i < io_proc_cont ; i++) {
+        int proc_pid = io_proc_data[i].pid;
+
+        if (canon[proc_pid] == min_priority) {
+            top_proc[cp_idx++] = io_proc_data[i];
+        }
+    }
+
+    return rr_scheduler(top_proc, canon_cont, curr_time, curr_pid);
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
@@ -113,10 +185,13 @@ schedule_action_t get_scheduler(const char *name) {
   // Si necesitas inicializar alguna estructura antes de comenzar la simulación
   // puedes hacerlo aquí.
 
+
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   if (strcmp(name, "rr") == 0) return *rr_scheduler;
+  if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
+  
 
   // Añade aquí los schedulers que implementes. Por ejemplo:
   //
