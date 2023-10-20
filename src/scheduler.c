@@ -73,23 +73,39 @@ int min_time = 2147483647;
 
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  static const int SLICING_FACTOR = 5;
-    static int time_slice_cont = 0;  
   static int proc_ind = 0;
+  static const int slice_time = 50;
 
+  // counting processes not on I/O cuchauuuuu
+    int io_proc_cont = 0;
+    for (int i = 0; i < procs_count; i++) {
 
-  if (time_slice_cont<SLICING_FACTOR && curr_pid!=-1){
-    time_slice_cont++;
-    return curr_pid;
-  }
+        if (!procs_info[i].on_io) {
 
-//   printf("aereeeeeesd");
-// fflush(stdout);
+            io_proc_cont++;
+        }
+    }
+
+    if (io_proc_cont == 0) {
+      return -1;
+    } 
+
+    proc_info_t io_proc_data [io_proc_cont];
+    int idx = 0;
+
+    //filtering processes not on I/O
+    for (int i = 0; i < procs_count; i++) {
+        if (!procs_info[i].on_io) {
+            io_proc_data[idx++] = procs_info[i];
+        }
+    }
+  
    
-  proc_ind=(proc_ind+1) % procs_count;
-  time_slice_cont = 0;
- 
-  return procs_info[proc_ind].pid;
+  if (curr_time%slice_time==0){proc_ind++;}
+
+  proc_ind =proc_ind% io_proc_cont;
+
+  return io_proc_data[proc_ind].pid;
 }
 
  int boost_cooldown= 100;
