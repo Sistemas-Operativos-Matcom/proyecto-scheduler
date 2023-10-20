@@ -20,22 +20,22 @@ int* procs_indexer;
 int* ptr;
 Queue** queues;
 
-printQueue() {
-  for (int i=0;i<QUEUES_AMOUNT;i++)
-  {
+// printQueue() {
+//   for (int i=0;i<QUEUES_AMOUNT;i++)
+//   {
 
-  ProcessNode* p = queues[i]->first;
-  if (p != NULL) {
-      printf("QUEUE #%d:", i);
-      do  
-      {
-        printf("%d , ",p->process.pid);
-        p = p->next;    
-      } while (p != NULL);
-      printf("\n");
-  }
-  }
-}
+//   ProcessNode* p = queues[i]->first;
+//   if (p != NULL) {
+//       printf("QUEUE #%d:", i);
+//       do  
+//       {
+//         printf("%d , ",p->process.pid);
+//         p = p->next;    
+//       } while (p != NULL);
+      
+//   }
+//   }
+// }
 
 
 //definiendo array de Queue y el procs_indexer
