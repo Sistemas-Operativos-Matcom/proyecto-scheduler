@@ -247,13 +247,15 @@ if (RR_time_slice != time_slice_count)
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
+
   //procesos que lleguen nuevos se ponen en primera cola
   //se manda a ejecutar el de mayor prioridad, si hay varios se ejecutan según RR
   //si el proceso termina o se pone en io se manda otro proceso
   //para bajar de las colas se toma en cuenta solo el cpu time de cada proceso
   //un proceso no puede terminar en io,siempre viene un CPU time despues
   priority_boost_count += 10;
-  
+ 
+
   queues = queue_initialized==1 ? queues : initializeQueues();
 
  if (doing_RR && time_slice_count < RR_time_slice && !(curr_pid < 0 || procs_info[procs_indexer[curr_pid]].on_io) && priority_boost_count < priority_boost)
@@ -267,7 +269,9 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
  
   if (curr_pid >= 0)
   {//proceso no ha terminado entonces encolamos
-    //printf("Process data: process pid %d, process on_io %d, process exec_time: %d\n", process->pid, process->on_io, process->executed_time);
+    
+      //printf("Process data: process pid %d, process on_io %d, process exec_time: %d\n", process->pid, process->on_io, process->executed_time);
+    
     int nextQueue = current_queue < QUEUES_AMOUNT - 1 ? current_queue + 1 : current_queue;
     if(process->executed_time >= queues[current_queue]->time_slice)
     {
@@ -276,6 +280,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
     else
     {
       enqueue(queues[current_queue], *process);
+      
     }
     
   }
@@ -287,12 +292,15 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       last_pid_in_queue = procs_info[i].pid;
       proc_info_t reference = procs_info[i];
       enqueue(queues[0], reference);
+      
     }
   }
   int result = curr_pid;
  //haciendo priority boost
+ //printf("Before pb %d.\n", priority_boost_count);
   if (priority_boost_count >= priority_boost)
   {
+   
     priority_boost_count = 0;
     current_queue = 0;
     for (int i = QUEUES_AMOUNT - 1; i>=1; i--) {
@@ -306,7 +314,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   }
 //actualizando procs_indexer
   if (process != NULL && curr_pid < 0)
-{
+{ //printf("Process finished\n");
   //termino un proceso
   for (size_t i = process->pid + 1; i < MAX_PROCESS_COUNT; i++)
   {
@@ -318,20 +326,35 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   //buscando primer elemento valido entre las colas segun la prioridad
   for (int i = 0; i < QUEUES_AMOUNT; i++)
   {  //encontrando primer proceso en cola i-esima que no este en io
-      while (queues[i]->first != NULL)
+      int first_element_pid = -1;
+      int first_set = 0;
+      int valid = 0;
+
+      if (queues[i]->first != NULL)
       {
+        while (first_element_pid != queues[i]->first->process.pid)
+        {
+          if (!first_set)
+        {
+          first_element_pid = queues[i]->first->process.pid;
+          first_set = 1;
+        }
         int a = queues[i]->first->process.pid;
         int index = procs_indexer[a];
-        
         if(!procs_info[index].on_io)
         {
-         break;
+          valid = 1;
+          break;
         }
-         process = dequeue(queues[current_queue]);
+         process = dequeue(queues[i]);
          enqueue(queues[i], *process);
+        }
+      
+      if (!valid)
+      {
+        continue;
       }
-    if (queues[i]->first != NULL)
-     {
+      
       if (current_queue != i || RR_pid < 0)
       {
         doing_RR = 0;
@@ -352,10 +375,68 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       //printf("Result updated: %d \n", result);
       break;
      }
+    }
+    queues[current_queue]->first->process.executed_time += 10;
+    return result;
   }
-  queues[current_queue]->first->process.executed_time += 10;
-  return result;
-}
+      
+
+
+      // while (queues[i]->first != NULL)
+      // { printf("first node of queue %d is: %d\n", i,queues[i]->first->process.pid);
+      //   int a = queues[i]->first->process.pid;
+      //   int index = procs_indexer[a];
+      //   if (!first_set)
+      //   {
+      //     first_element_pid = queues[i]->first->process.pid;
+      //     first_set = 1;
+      //   }
+      //   if (first_set == 1 && first_element_pid == a)
+      //   {
+      //     continue;
+      //   }
+        
+      //   if(!procs_info[index].on_io)
+      //   {
+      //    break;
+      //   }
+        
+      //    process = dequeue(queues[i]);
+      //   //  if (queues[i]->first != NULL)
+      //   //  {
+      //   //   printf("first node of queue %d is: %d\n", i,queues[i]->first->process.pid);
+      //   //  }
+         
+      //    enqueue(queues[i], *process);
+      // }
+      
+    // if (queues[i]->first != NULL && !procs_info[procs_indexer[first_element_pid]].on_io)
+    //  {
+    //   if (current_queue != i || RR_pid < 0)
+    //   {
+    //     doing_RR = 0;
+    //   }
+    //   current_queue = i;
+    //   result = queues[i]->first->process.pid;
+    //   if (result == RR_pid)
+    //   {
+    //    RR_pid = -1;
+    //   }
+    //   doing_RR = queues[current_queue]->first != queues[current_queue]->last;
+    //   time_slice_count +=10;
+      
+      
+    //   //printf("\n%d Este es doing_RR.\n", doing_RR);
+    //   RR_pid = queues[current_queue]->last;
+
+    //   //printf("Result updated: %d \n", result);
+    //   break;
+    //  }
+
+//   }
+//   queues[current_queue]->first->process.executed_time += 10;
+//   return result;
+// }
   
 
 int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
