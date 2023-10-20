@@ -256,16 +256,16 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   
   queues = queue_initialized==1 ? queues : initializeQueues();
 
- if (doing_RR && time_slice_count >= RR_time_slice && !(curr_pid < 0 || procs_info[procs_indexer[curr_pid]].on_io) && priority_boost_count < priority_boost)
+ if (doing_RR && time_slice_count < RR_time_slice && !(curr_pid < 0 || procs_info[procs_indexer[curr_pid]].on_io) && priority_boost_count < priority_boost)
  {
   time_slice_count+=10;
   queues[current_queue]->first->process.executed_time += 10;
   return curr_pid;
  }
- 
+  time_slice_count = 0;
   proc_info_t* process = dequeue(queues[current_queue]);
  
-  if (curr_pid >= 0 && process!=NULL )
+  if (curr_pid >= 0)
   {//proceso no ha terminado entonces encolamos
     //printf("Process data: process pid %d, process on_io %d, process exec_time: %d\n", process->pid, process->on_io, process->executed_time);
     int nextQueue = current_queue < QUEUES_AMOUNT - 1 ? current_queue + 1 : current_queue;
@@ -293,7 +293,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
  //haciendo priority boost
   if (priority_boost_count >= priority_boost)
   {
-    priority_boost_count = -10;
+    priority_boost_count = 0;
     current_queue = 0;
     for (int i = QUEUES_AMOUNT - 1; i>=1; i--) {
       while (queues[i]->first!=NULL)
@@ -317,11 +317,11 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
   //buscando primer elemento valido entre las colas segun la prioridad
   for (int i = 0; i < QUEUES_AMOUNT; i++)
-  {  
+  {  //encontrando primer proceso en cola i-esima que no este en io
       while (queues[i]->first != NULL)
       {
         int a = queues[i]->first->process.pid;
-        int index = procs_indexer[0];
+        int index = procs_indexer[a];
         
         if(!procs_info[index].on_io)
         {
@@ -343,6 +343,10 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
        RR_pid = -1;
       }
       doing_RR = queues[current_queue]->first != queues[current_queue]->last;
+      time_slice_count +=10;
+      
+      
+      //printf("\n%d Este es doing_RR.\n", doing_RR);
       RR_pid = queues[current_queue]->last;
 
       //printf("Result updated: %d \n", result);
