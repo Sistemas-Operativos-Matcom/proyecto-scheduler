@@ -4,13 +4,19 @@
 #include "simulation.h"
 
 struct Queue{
-    proc_info_t *processes[200];
-    int front,rear;
+    int* processes_pid;
+    int front,rear,size;
 };
 
-void enqueue ( proc_info_t *process, struct Queue *queue );
+void initializeQueue(struct Queue* q,int capacity);
 
-void dequeue ( proc_info_t *process, struct Queue *queue );
+int isEmpty(struct Queue* q);
+
+void enqueue ( int pid, struct Queue* q );
+
+int dequeue ( struct Queue* q );
+
+int find_process( struct Queue* q,int pid);
 
 
 #endif

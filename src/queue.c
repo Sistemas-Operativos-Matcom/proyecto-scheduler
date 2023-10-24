@@ -7,28 +7,57 @@
 
 #include "simulation.h"
 
-void enqueue ( proc_info_t *process, struct Queue *queue )
+void initializeQueue(struct Queue* q,int capacity)
 {
-    queue->rear++;
-    queue->processes[queue->rear] = process;
+    q->front = -1;
+    q->rear = -1;
+    q->size = 0;
+    q->processes_pid = (int*) malloc(capacity * sizeof( int ));
 }
 
-void dequeue ( proc_info_t *process, struct Queue *queue )
+int isEmpty(struct Queue* q)
 {
-    int aux=0;
-    for(int i = 0 ; i <= queue->rear ; i++)
-    {
-        if(queue->processes[i]->pid == process[i].pid)
-        {
-            aux = 1 ;
-            continue;
-        }
-        if(aux==1)
-        {
-            queue->processes[i-1]=queue->processes[i];
+    return q->size == 0;
+}
 
-        }
+void enqueue ( int pid, struct Queue* q )
+{
+    if (isEmpty(q)) 
+    {
+        q->front = 0;
     }
 
-    queue->rear--;
+    q->rear++;
+    q->size++;
+    q->processes_pid[q->rear] = pid;
+}
+
+int dequeue ( struct Queue* q )
+{
+    if(isEmpty(q)) return -1;
+    int p = q->processes_pid[q->front];
+    if (q->front == q->rear) 
+    {
+        q->front = -1;
+        q->rear = -1;
+        q->size = 0;
+    } else 
+    {
+        q->front++;
+        q->size--;
+    }
+    return p;
+}
+
+
+int find_process( struct Queue* q,int pid)
+{
+    for(int i = q->front ; i <= q->rear;i++)
+    {
+        if(q->processes_pid[i] == pid)
+        {
+            return 1;
+        }
+    }
+    return 0;
 }

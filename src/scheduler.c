@@ -27,6 +27,8 @@
 //  - La función devuelve un PID diferente al curr_pid: Simula un cambio de
 //  contexto y se ejecuta el proceso indicado.
 //
+
+
 int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
 {
   return procs_info[0].pid;
@@ -108,131 +110,110 @@ int round_robin_scheduler(proc_info_t *procs_info, int procs_count, int curr_tim
   }
 }
 
-// int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
-// {
-//   static int que_turn = 1;
-//   static int slice_time = 1;
-//   static int index_que1=0;
-//   static int index_que2=0;
-//   static int index_que3=0;
+static struct Queue queues[3];
+int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) 
+{
+  static int que_turn = 0;
+  static int last_pid = -1;
 
-//   if ( curr_time % 60 == 0 )
-//   {
-//     if (que_turn == 3) que_turn=1;
-//     else que_turn++;
-//     slice_time=1;
-//   }
+  for(int i = 0 ; i < procs_count ; i++ )
+  {
+    if ( (procs_info[i].executed_time == 0) && !find_process(&queues[0],procs_info[i].pid) )
+    {
+      enqueue(procs_info[i].pid,&queues[0]);
+    }
+  }
 
-//   if(curr_time % 500 == 0)
-//   {
-//     if(queue3.rear != -1)
-//     {
-//       while(queue3.rear != -1)
-//       {
-//         enqueue(queue3->processes[0],queue1);
-//         dequeue(queue3->processes[0],queue3);
-//       }
-//     }
+  if ( curr_time % 90 == 0 )
+  {
+    if ( !isEmpty( &queues[ (que_turn + 1) % 3 ] ) )
+    {
+      que_turn = (que_turn + 1) % 3;
+    }
+    else if ( !isEmpty( &queues[ (que_turn + 2) % 3 ] ) )
+    {
+      que_turn = (que_turn + 2) % 3;
+    }
+  }
 
-//     if(queue2.rear != -1)
-//     {
-//       while(queue2.rear != -1)
-//       {
-//         enqueue(queue2->processes[0],queue1);
-//         dequeue(queue2->processes[0],queue2);
-//       }
-//     }
+  if( curr_time % 600 == 0 )
+  {
+    while( queues[1].size != 0 )
+    {
+      int current = dequeue(&queues[1]);
+      enqueue(current,&queues[0]);
+    }
+    while( queues[2].size != 0 )
+    {
+      int current = dequeue(&queues[2]);
+      enqueue(current,&queues[0]);
+    }
 
-//     que_turn = 1;
-//     slice_time=1;
-//   }
+    que_turn = 0; 
+  }
 
-//   if( que_turn == 1 )
-//   {
-//     if(index_que1 >= queue1.rear) index = 0;
+  if ( isEmpty(&queues[que_turn]) )
+  {
+    if ( isEmpty(&queues[(que_turn + 1) % 3]) )
+    {
+      if ( isEmpty(&queues[(que_turn +2) % 3]) )
+      {
+        last_pid = -1;
+        return -1;
+      }
+      else
+      {
+        que_turn = (que_turn +2) % 3;
+      }
+    }
+    else
+    {
+      que_turn = (que_turn +1) % 3;
+    }
+  }
 
-//     if(slice_time <= 3) 
-//     {
-//       slice_time++;
-//       return procs_info[index].pid;
-//     }
-//     else
-//     {
-//       if(index + 1 < procs_count) index++;
-//       else index=0;
-//       slice_time = 1;
-//       return procs_info[index].pid;
-//     }
-//   }
-//   else if (que_turn == 2)
-//   {
-//     if(index >= procs_count) index = 0;
+  int valid_pid = 0;
+  int current = dequeue(&queues[que_turn]);
 
-//     if(slice_time <= 3) 
-//     {
-//       slice_time++;
-//       return procs_info[index].pid;
-//     }
-//     else
-//     {
-//       if(index + 1 < procs_count) index++;
-//       else index=0;
-//       slice_time = 1;
-//       return procs_info[index].pid;
-//     }
-//   }
-//   else if (que_turn == 3)
-//   {
-//     if(index >= procs_count) index = 0;
+  for(int j = 0; j < 200;j++)
+  {
+    for(int i = 0;i<procs_count;i++)
+    {
+      if(current==procs_info[i].pid)
+      {
+        valid_pid=1;
+        break;
+      }
+    }
+    if(valid_pid)
+    {
+      break;
+    }
+    current = dequeue(&queues[que_turn]);
+    if(current == -1)
+    {
+      que_turn= (que_turn + 1 ) % 3;
+    }
+  }
 
-//     if(slice_time <= 3) 
-//     {
-//       slice_time++;
-//       return procs_info[index].pid;
-//     }
-//     else
-//     {
-//       if(index + 1 < procs_count) index++;
-//       else index=0;
-//       slice_time = 1;
-//       return procs_info[index].pid;
-//     }
-//   }
+  enqueue(current,&queues[(que_turn + 1) % 3]);
 
-//   return -1;
-// }
-
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
-
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
-
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
-  return -1;
+  last_pid = current;
+  return current;
 }
 
-schedule_action_t get_scheduler(const char *name) {
-  // Si necesitas inicializar alguna estructura antes de comenzar la simulación
-  // puedes hacerlo aquí.
-
-  // struct Queue queue1,Queue queue2,Queue queue3;
-  // queue1.front = queue1.rear = queue2.front = queue2.rear = queue3.front = queue3.rear = -1;
-
+schedule_action_t get_scheduler(const char *name) 
+{
+  for (int i = 0; i < 3; i++) 
+  {
+    initializeQueue(&queues[i],10000);
+  }
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
   else if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
   else if (strcmp(name, "stcf") == 0) return *stcf_scheduler;
   else if (strcmp(name, "rr") == 0) return *round_robin_scheduler;
+  else if (strcmp(name, "mlfq") == 0) return *mlfq_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
