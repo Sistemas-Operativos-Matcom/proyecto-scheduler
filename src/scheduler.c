@@ -175,7 +175,7 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int 
   int valid_pid = 0;
   int current = dequeue(&queues[que_turn]);
 
-  for(int j = 0; j < 200;j++)
+  for(int j = 0; j < 500;j++)
   {
     for(int i = 0;i<procs_count;i++)
     {
