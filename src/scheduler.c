@@ -36,6 +36,7 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
 
 int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
   // Se devuelve el PID del proceso con menor tamaño
+  if(curr_pid!=-1)return curr_pid;
   int id=0;
   int PID=procs_info[0].pid;
   for(int i=0;i<procs_count;i++){
@@ -49,6 +50,7 @@ int sjf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int cu
 
 int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int curr_pid) {
   // Se devuelve el PID con el menor tiempo a ser completado.
+  if(curr_pid!=-1)return curr_pid;
   int id=0; 
   int PID=procs_info[0].pid;
   for(int i=0;i<procs_count;i++){
@@ -63,6 +65,7 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,int c
 #define QUANTUM 5
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
     // Round Robin, en todo su esplendor 
+    if(curr_pid!=-1)return curr_pid;
     static int prev_change = 0; 
     static int id= 0; 
 
