@@ -10,4 +10,9 @@ typedef struct pair{
   int fs,sc;
 } pair_t;
 
+typedef struct queue{
+  int Head,Sz,Tail;
+  int Arr[500];
+}queue_t;
+
 #endif

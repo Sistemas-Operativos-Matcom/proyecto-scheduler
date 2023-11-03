@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 #include "simulation.h"
 
@@ -32,7 +33,6 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   // procesos están ordenados por orden de llegada).
   return procs_info[0].pid;
 }
-
 
 
 int Comp(pair_t A,pair_t B){
@@ -87,42 +87,120 @@ int stcf_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 
 }
 
+void Q_push(queue_t *Q,int val){
+     assert(Q->Tail<500);
+     Q->Arr[Q->Tail]=val;
+     Q->Tail++;
+     Q->Sz++;
+     if(Q->Tail==500){
+      int NewAr[500];
+      for(int i=0;i<Q->Sz;i++){
+        NewAr[i]=Q->Arr[Q->Head+i];
+      }
+      memset(Q->Arr,0,sizeof(Q->Arr));
+      Q->Tail=Q->Sz;
+      Q->Head=0;
+      for(int i=0;i<Q->Sz;i++){
+         Q->Arr[i]=NewAr[i];
+      }
+     }
+}
+int Q_front(queue_t *Q){
+  return Q->Arr[Q->Head];
+}
+
+void Q_pop(queue_t *Q){
+    Q->Head++;
+    Q->Sz--;
+}
+int Flag[500000];
+int Old[500000];
+queue_t Qrr;
+
 int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  pair_t Ans;
-  Ans.fs=1e9;
-  Ans.sc=-1;
+  
   for(int i=0;i<procs_count;i++){
-    pair_t Cur;
-    Cur.fs=process_total_time(procs_info[i].pid)-procs_info[i].executed_time;
-    Cur.sc=i;
-    if(Comp(Cur,Ans)){
-      Ans=Cur;
+      if(!Old[procs_info[i].pid]){
+        Q_push(&Qrr,procs_info[i].pid);
+        Old[procs_info[i].pid]=1;
+      }
+      Flag[procs_info[i].pid]=1;
+  }
+ while(Qrr.Sz && !Flag[Q_front(&Qrr)]){
+      Q_pop(&Qrr);
+ }
+ int ans=-1;
+  if(curr_time%30==0){
+    int pid=Q_front(&Qrr);
+    Q_pop(&Qrr);
+    Q_push(&Qrr,pid);
+    while(Qrr.Sz && !Flag[Q_front(&Qrr)]){
+      Q_pop(&Qrr);
     }
+    ans=Q_front(&Qrr);
+  }else{
+    ans=Q_front(&Qrr);
   }
-  if(Ans.sc==-1){
-    return -1;
+  for(int i=0;i<procs_count;i++){
+      Flag[procs_info[i].pid]=0;
   }
-  return procs_info[Ans.sc].pid; 
+
+  return ans;
+}
+
+int IO[500000];
+queue_t MLQ[4];
+
+void PriorityBoost(){
 
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+    for(int i=0;i<procs_count;i++){
+      if(!Old[procs_info[i].pid]){
+        Q_push(&MLQ[0],procs_info[i].pid);
+        Old[procs_info[i].pid]=1;
+      }
+      if(procs_info[i].on_io){
+        IO[procs_info[i].pid]=1;
+      }
+      Flag[procs_info[i].pid]=1;
+    }
+    int ans=-1;
+   for(int i=0;i<4;i++){
+      int Qans=-1;
+      while(MLQ[i].Sz){
+       if(!Flag[Q_front(&MLQ[i])]){
+       Q_pop(&MLQ[i]);
+       continue;
+       }
+       if(IO[Q_front(&MLQ[i])]){
+        int pid=Q_front(&MLQ[i]);
+        Q_pop(&MLQ[i]);
+        Q_push(&MLQ[i],pid);
+       }
+     }
+      if(curr_time%30==0){
+        int pid=Q_front(&Qrr);
+        Q_pop(&Qrr);
+        Q_push(&Qrr,pid);
+        ans=Q_front(&Qrr);
+      }else{
+      ans=Q_front(&Qrr);
+      }
+  }
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
-
+  if(curr_time%200==0){
+    Priority_Boost();
+  }
+  for(int i=0;i<procs_count;i++){
+      Flag[procs_info[i].pid]=0;
+      IO[procs_info[i].pid]=0;
+  }
+  return ans;
   return -1;
 }
 
