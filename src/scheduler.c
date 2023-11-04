@@ -153,7 +153,13 @@ int IO[500000];
 queue_t MLQ[4];
 
 void PriorityBoost(){
-
+    for(int i=1;i<4;i++){
+       while(MLQ[i].Sz){
+          int pid=Q_front(&MLQ[i]);
+          Q_pop(&MLQ[i]);
+          Q_push(&MLQ[0],pid);  
+       } 
+    }
 }
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
@@ -173,25 +179,22 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
    for(int i=0;i<4;i++){
       int Qans=-1;
       while(MLQ[i].Sz){
-       if(!Flag[Q_front(&MLQ[i])]){
-       Q_pop(&MLQ[i]);
-       continue;
-       }
-       if(IO[Q_front(&MLQ[i])]){
-        int pid=Q_front(&MLQ[i]);
-        Q_pop(&MLQ[i]);
-        Q_push(&MLQ[i],pid);
-       }
-     }
-      if(curr_time%30==0){
-        int pid=Q_front(&Qrr);
-        Q_pop(&Qrr);
-        Q_push(&Qrr,pid);
-        ans=Q_front(&Qrr);
-      }else{
-      ans=Q_front(&Qrr);
+        if(!Flag[Q_front(&MLQ[i])]){
+          Q_pop(&MLQ[i]);
+          continue;
+        }
+        if(IO[Q_front(&MLQ[i])]){
+          int pid=Q_front(&MLQ[i]);
+          Q_pop(&MLQ[i]);
+          Q_push(&MLQ[i],pid);
+        }
       }
-  }
+      if(MLQ[i].Sz==0){
+        continue;
+      }
+      
+
+    }
 
   if(curr_time%200==0){
     Priority_Boost();
