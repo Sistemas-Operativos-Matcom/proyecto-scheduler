@@ -150,6 +150,7 @@ int rr_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
 }
 
 int IO[500000];
+int ExecutedT[500000];
 queue_t MLQ[4];
 
 void PriorityBoost(){
@@ -161,6 +162,11 @@ void PriorityBoost(){
        } 
     }
 }
+int min(int a,int b){
+  if(a<b)return a; 
+  return b; 
+}
+
 
 int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
                      int curr_pid) {
@@ -173,38 +179,56 @@ int mlfq_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
       if(procs_info[i].on_io){
         IO[procs_info[i].pid]=1;
       }
+      ExecutedT[procs_info[i].pid]=procs_info[i].executed_time;
       Flag[procs_info[i].pid]=1;
     }
     int ans=-1;
    for(int i=0;i<4;i++){
-      int Qans=-1;
+    int Flg=1;
+    int ini=-1;
       while(MLQ[i].Sz){
         if(!Flag[Q_front(&MLQ[i])]){
           Q_pop(&MLQ[i]);
+          Old[Q_front(&MLQ[i])]=0;
+          continue;
+        }
+        if(Q_front(&MLQ[i])==curr_pid && ExecutedT[Q_front(&MLQ[i])]%40==0 && Flg){
+          int pid=Q_front(&MLQ[i]);
+          Q_pop(&MLQ[i]);
+          Q_push(&MLQ[min(i+1,3)],pid);
+          Flg=0;
           continue;
         }
         if(IO[Q_front(&MLQ[i])]){
           int pid=Q_front(&MLQ[i]);
+          if(ini==pid){
+            break;
+          }
+          if(ini==-1){
+            ini=pid;
+          }        
           Q_pop(&MLQ[i]);
           Q_push(&MLQ[i],pid);
+          continue;
         }
+        break;
       }
       if(MLQ[i].Sz==0){
         continue;
       }
-      
-
+      if(IO[Q_front(&MLQ[i])])continue;
+      ans=Q_front(&MLQ[i]);
+      break;
     }
 
   if(curr_time%200==0){
-    Priority_Boost();
+    PriorityBoost();
   }
   for(int i=0;i<procs_count;i++){
       Flag[procs_info[i].pid]=0;
       IO[procs_info[i].pid]=0;
   }
   return ans;
-  return -1;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
