@@ -33,38 +33,82 @@ int fifo_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
   return procs_info[0].pid;
 }
 
-int my_own_scheduler(proc_info_t *procs_info, int procs_count, int curr_time,
-                     int curr_pid) {
-  // Implementa tu scheduler aqui ... (el nombre de la función lo puedes
-  // cambiar)
+// Estrategia Shortest Job First(SJF)
+int SJF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid) {
+  int sj_pid = procs_info[0].pid;
+  int sj_duration = process_total_time(sj_pid);
 
-  // Información que puedes obtener de un proceso
-  int pid = procs_info[0].pid;      // PID del proceso
-  int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
-                                    // realizando una opreación IO
-  int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
-                                                // ejecutado (en CPU o en I/O)
+  for(int i = 1; i < procs_count; i++)
+  {
+    int pid = procs_info[i].pid;
+    int duration = process_total_time(pid);
 
-  // También puedes usar funciones definidas en `simulation.h` para extraer
-  // información extra:
-  int duration = process_total_time(pid);
+    if(sj_duration > duration)
+    {
+      sj_duration = duration;
+      sj_pid = pid;
+    }
+  }
+  return sj_pid;
+}
 
+//Estrategia Shortest Time-to-Completion First(STCF)
+int STCF_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  int stc_pid = procs_info[0].pid;
+  int stc_left_time = process_total_time(stc_pid) - procs_info[0].executed_time;
+
+  for(int i = 1; i < procs_count; i++)
+  {
+    int pid = procs_info[i].pid;
+    int left_time = process_total_time(pid) - procs_info[i].executed_time;
+
+    if(stc_left_time > left_time)
+    {
+      stc_left_time = left_time;
+      stc_pid = pid;
+    }
+  }
+  return stc_pid;
+}
+
+//Estrategia Round Robin(RR)
+int RR_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
+  // time slice = timer interrupt * 3
+  static int tsc = 0; // contador para el time slice
+  static int process_i = 0;
+  
+  if(curr_pid != -1 && tsc < 3)
+  {
+    tsc ++;
+    return curr_pid;
+  }
+
+  tsc = 0;
+  process_i = (process_i + 1) % procs_count;
+  return procs_info[process_i].pid;
+}
+
+int MLFQ_scheduler(proc_info_t *procs_info, int procs_count, int curr_time, int curr_pid)
+{
   return -1;
 }
 
 // Esta función devuelve la función que se ejecutará en cada timer-interrupt
 // según el nombre del scheduler.
 schedule_action_t get_scheduler(const char *name) {
-  // Si necesitas inicializar alguna estructura antes de comenzar la simulación
-  // puedes hacerlo aquí.
 
   if (strcmp(name, "fifo") == 0) return *fifo_scheduler;
-
-  // Añade aquí los schedulers que implementes. Por ejemplo:
-  //
-  // if (strcmp(name, "sjf") == 0) return *sjf_scheduler;
-  //
+  if (strcmp(name, "sjf") == 0) return *SJF_scheduler;
+  if (strcmp(name, "stcf") == 0) return *STCF_scheduler;
+  if (strcmp(name, "rr") == 0) return *RR_scheduler;
 
   fprintf(stderr, "Invalid scheduler name: '%s'\n", name);
   exit(1);
 }
+
+//int on_io = procs_info[0].on_io;  // Indica si el proceso se encuentra
+                                    // realizando una opreación IO
+//int exec_time = procs_info[0].executed_time;  // Tiempo que el proceso se ha
+                                                // ejecutado (en CPU o en I/O)
